@@ -14,12 +14,14 @@ import {
   ClipboardText, 
   ChartBar, 
   UploadSimple,
-  Plus
+  Plus,
+  DownloadSimple
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
   generateSampleSOPs, 
-  generateSampleSparesLabor 
+  generateSampleSparesLabor,
+  exportToExcel
 } from '@/lib/excel-parser'
 import { isOverdue } from '@/lib/maintenance-utils'
 import { toast } from 'sonner'
@@ -99,6 +101,25 @@ function App() {
     toast.success('Sample data loaded successfully')
   }
 
+  const handleExportData = () => {
+    if (safeWorkOrders.length === 0 && safeSOPs.length === 0 && safeSparesLabor.length === 0) {
+      toast.error('No data to export')
+      return
+    }
+
+    try {
+      exportToExcel({
+        workOrders: safeWorkOrders,
+        sops: safeSOPs,
+        sparesLabor: safeSparesLabor
+      })
+      toast.success('Data exported successfully')
+    } catch (error) {
+      toast.error('Failed to export data')
+      console.error(error)
+    }
+  }
+
   const safeWorkOrders = workOrders || []
   const safeSOPs = sops || []
   const safeSparesLabor = sparesLabor || []
@@ -127,8 +148,14 @@ function App() {
               )}
               <Button variant="outline" onClick={() => setImportOpen(true)}>
                 <UploadSimple size={18} />
-                Import Data
+                Import Excel
               </Button>
+              {(safeWorkOrders.length > 0 || safeSOPs.length > 0 || safeSparesLabor.length > 0) && (
+                <Button variant="outline" onClick={handleExportData}>
+                  <DownloadSimple size={18} />
+                  Export Excel
+                </Button>
+              )}
               {safeWorkOrders.length === 0 && (
                 <Button onClick={handleLoadSampleData}>
                   <Plus size={18} />
@@ -172,12 +199,12 @@ function App() {
                 <Wrench size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
                 <h3 className="text-xl font-semibold mb-2">No Work Orders Yet</h3>
                 <p className="text-muted-foreground mb-6">
-                  Get started by importing data or loading sample work orders
+                  Import Excel/CSV data or load sample work orders to get started
                 </p>
                 <div className="flex gap-3 justify-center">
                   <Button onClick={() => setImportOpen(true)}>
                     <UploadSimple size={18} />
-                    Import Data
+                    Import Excel/CSV
                   </Button>
                   <Button variant="outline" onClick={handleLoadSampleData}>
                     Load Sample Data
@@ -208,12 +235,12 @@ function App() {
                 <ClipboardText size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
                 <h3 className="text-xl font-semibold mb-2">No SOPs Available</h3>
                 <p className="text-muted-foreground mb-6">
-                  Import your SOP library to get started with automated PM scheduling
+                  Import your SOP library via Excel/CSV to enable automated PM scheduling
                 </p>
                 <div className="flex gap-3 justify-center">
                   <Button onClick={() => setImportOpen(true)}>
                     <UploadSimple size={18} />
-                    Import Data
+                    Import Excel/CSV
                   </Button>
                   <Button variant="outline" onClick={handleLoadSampleData}>
                     Load Sample Data
@@ -243,12 +270,12 @@ function App() {
                 <ChartBar size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
                 <h3 className="text-xl font-semibold mb-2">No Data to Analyze</h3>
                 <p className="text-muted-foreground mb-6">
-                  Import or create work orders to see analytics
+                  Import work orders via Excel/CSV or create sample data to view analytics
                 </p>
                 <div className="flex gap-3 justify-center">
                   <Button onClick={() => setImportOpen(true)}>
                     <UploadSimple size={18} />
-                    Import Data
+                    Import Excel/CSV
                   </Button>
                   <Button variant="outline" onClick={handleLoadSampleData}>
                     Load Sample Data

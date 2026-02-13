@@ -10,8 +10,8 @@ import {
 } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { UploadSimple, CheckCircle, Warning, X } from '@phosphor-icons/react'
-import { parseExcelFile } from '@/lib/excel-parser'
+import { UploadSimple, CheckCircle, Warning, X, DownloadSimple } from '@phosphor-icons/react'
+import { parseExcelFile, downloadExcelTemplate } from '@/lib/excel-parser'
 import type { ExcelImportData, ImportValidationError } from '@/lib/types'
 import { toast } from 'sonner'
 
@@ -50,8 +50,13 @@ export function ExcelImport({ open, onClose, onImportComplete }: ExcelImportProp
   }
 
   const handleFileSelect = (selectedFile: File) => {
-    if (!selectedFile.name.endsWith('.csv') && !selectedFile.name.endsWith('.txt')) {
-      toast.error('Please upload a CSV or TXT file')
+    const validExtensions = ['.xlsx', '.xls', '.csv', '.txt']
+    const hasValidExtension = validExtensions.some(ext => 
+      selectedFile.name.toLowerCase().endsWith(ext)
+    )
+    
+    if (!hasValidExtension) {
+      toast.error('Please upload an Excel (.xlsx, .xls) or CSV file')
       return
     }
     setFile(selectedFile)
@@ -110,8 +115,20 @@ export function ExcelImport({ open, onClose, onImportComplete }: ExcelImportProp
             <UploadSimple size={24} />
             Import Excel/CSV Data
           </DialogTitle>
-          <DialogDescription>
-            Upload a CSV file containing Maintenance Tracking, SOP Library, and Spares & Labor data
+          <DialogDescription className="flex items-center justify-between">
+            <span>Upload an Excel (.xlsx, .xls) or CSV file containing Maintenance Tracking, SOP Library, and Spares & Labor data</span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => {
+                downloadExcelTemplate()
+                toast.success('Template downloaded')
+              }}
+              className="ml-2 whitespace-nowrap"
+            >
+              <DownloadSimple size={16} />
+              Download Template
+            </Button>
           </DialogDescription>
         </DialogHeader>
 
@@ -129,7 +146,7 @@ export function ExcelImport({ open, onClose, onImportComplete }: ExcelImportProp
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv,.txt"
+                accept=".xlsx,.xls,.csv,.txt"
                 onChange={handleFileInputChange}
                 className="hidden"
               />
@@ -140,7 +157,7 @@ export function ExcelImport({ open, onClose, onImportComplete }: ExcelImportProp
                 Browse Files
               </Button>
               <p className="text-xs text-muted-foreground mt-4">
-                Accepts CSV and TXT files
+                Accepts Excel (.xlsx, .xls), CSV, and TXT files
               </p>
             </div>
           ) : (
