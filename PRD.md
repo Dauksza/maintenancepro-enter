@@ -47,6 +47,13 @@ This is a multi-module enterprise system with sophisticated data relationships, 
 - **Progression**: Load aggregated data → Render charts (status, priority, timeline) → Apply date filters → Export reports
 - **Success criteria**: Charts update in real-time, Gantt timeline accurate, heatmap shows maintenance density, completion rate calculated correctly
 
+### Drag-and-Drop Calendar View
+- **Functionality**: Interactive calendar with month and week views, allowing drag-and-drop rescheduling of work orders
+- **Purpose**: Provide visual timeline for maintenance scheduling and enable intuitive rescheduling through direct manipulation
+- **Trigger**: User navigates to Calendar tab
+- **Progression**: View calendar → Select month/week view → Drag work order card → Drop on target date → Confirm reschedule → Update scheduled date
+- **Success criteria**: Smooth drag interaction, visual feedback during drag, work orders update correctly, calendar refreshes immediately, shows downtime totals per day
+
 ### Automation Rules Engine
 - **Functionality**: Auto-mark overdue tasks, trigger notifications, auto-schedule recurring maintenance, stamp completion dates
 - **Purpose**: Reduce manual tracking overhead and ensure maintenance compliance
@@ -132,6 +139,7 @@ Animations should reinforce **operational responsiveness and data state changes*
   - **SOP Viewer**: Expandable accordion-style sections for procedure steps, with sticky header showing LOTO/PPE requirements
   - **Frequency Parser Display**: Visual timeline showing Daily→Weekly→Monthly→Yearly with labor hours inline
   - **Work Order Timeline**: Custom Gantt chart with drag-to-reschedule, color-coded by priority, grouped by equipment
+  - **Drag-and-Drop Calendar**: Custom calendar grid with native HTML5 drag-and-drop, visual drop zones, color-coded work order cards with left border status indicators, responsive month/week view toggle
 
 - **States**:
   - Buttons: Default solid primary, hover with brightness increase, active with slight scale down, disabled with reduced opacity
@@ -143,6 +151,7 @@ Animations should reinforce **operational responsiveness and data state changes*
 - **Icon Selection**:
   - Wrench (maintenance actions)
   - Calendar (scheduling)
+  - CalendarBlank (calendar view)
   - ClipboardText (SOPs and procedures)
   - Warning (overdue and alerts)
   - CheckCircle (completion)
@@ -152,6 +161,9 @@ Animations should reinforce **operational responsiveness and data state changes*
   - Lightning (automation rules)
   - Package (spare parts)
   - User (technician assignment)
+  - Clock (time/downtime)
+  - CaretLeft/CaretRight (navigation)
+  - Rows (week view)
 
 - **Spacing**:
   - Grid padding: 16px horizontal, 12px vertical
@@ -169,3 +181,4 @@ Animations should reinforce **operational responsiveness and data state changes*
   - Priority actions (Mark Complete, Assign) as floating action button menu
   - Tabs convert to horizontal scrollable list
   - SOP viewer becomes full-screen modal with scroll sections
+  - Calendar view switches to vertical week-only view on mobile with touch-optimized drag interactions

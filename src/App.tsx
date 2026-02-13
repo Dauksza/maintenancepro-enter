@@ -9,13 +9,15 @@ import { WorkOrderDetail } from '@/components/WorkOrderDetail'
 import { SOPLibrary } from '@/components/SOPLibrary'
 import { AnalyticsDashboard } from '@/components/AnalyticsDashboard'
 import { ExcelImport } from '@/components/ExcelImport'
+import { CalendarView } from '@/components/CalendarView'
 import { 
   Wrench, 
   ClipboardText, 
   ChartBar, 
   UploadSimple,
   Plus,
-  DownloadSimple
+  DownloadSimple,
+  CalendarBlank
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -169,10 +171,14 @@ function App() {
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsList className="grid w-full max-w-4xl grid-cols-4">
             <TabsTrigger value="tracking" className="flex items-center gap-2">
               <Wrench size={18} />
               Maintenance Tracking
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <CalendarBlank size={18} />
+              Calendar
             </TabsTrigger>
             <TabsTrigger value="sops" className="flex items-center gap-2">
               <ClipboardText size={18} />
@@ -213,6 +219,33 @@ function App() {
               </div>
             ) : (
               <WorkOrderGrid
+                workOrders={safeWorkOrders}
+                onUpdateWorkOrder={handleUpdateWorkOrder}
+                onSelectWorkOrder={handleSelectWorkOrder}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="calendar" className="space-y-6 animate-fade-in">
+            {safeWorkOrders.length === 0 ? (
+              <div className="bg-card border rounded-lg p-12 text-center">
+                <CalendarBlank size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-xl font-semibold mb-2">No Work Orders to Schedule</h3>
+                <p className="text-muted-foreground mb-6">
+                  Import Excel/CSV data or load sample work orders to view the calendar
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Button onClick={() => setImportOpen(true)}>
+                    <UploadSimple size={18} />
+                    Import Excel/CSV
+                  </Button>
+                  <Button variant="outline" onClick={handleLoadSampleData}>
+                    Load Sample Data
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <CalendarView
                 workOrders={safeWorkOrders}
                 onUpdateWorkOrder={handleUpdateWorkOrder}
                 onSelectWorkOrder={handleSelectWorkOrder}
