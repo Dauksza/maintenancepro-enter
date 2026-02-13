@@ -11,6 +11,7 @@ import { AnalyticsDashboard } from '@/components/AnalyticsDashboard'
 import { ExcelImport } from '@/components/ExcelImport'
 import { CalendarView } from '@/components/CalendarView'
 import { TimelineView } from '@/components/TimelineView'
+import { ResourceAllocationView } from '@/components/ResourceAllocationView'
 import { 
   Wrench, 
   ClipboardText, 
@@ -19,7 +20,8 @@ import {
   Plus,
   DownloadSimple,
   CalendarBlank,
-  ChartLineUp
+  ChartLineUp,
+  Users
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -173,7 +175,7 @@ function App() {
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-5xl grid-cols-5">
+          <TabsList className="grid w-full max-w-6xl grid-cols-6">
             <TabsTrigger value="tracking" className="flex items-center gap-2">
               <Wrench size={18} />
               Maintenance Tracking
@@ -181,6 +183,10 @@ function App() {
             <TabsTrigger value="timeline" className="flex items-center gap-2">
               <ChartLineUp size={18} />
               Timeline
+            </TabsTrigger>
+            <TabsTrigger value="resources" className="flex items-center gap-2">
+              <Users size={18} />
+              Resources
             </TabsTrigger>
             <TabsTrigger value="calendar" className="flex items-center gap-2">
               <CalendarBlank size={18} />
@@ -261,6 +267,42 @@ function App() {
               </div>
             ) : (
               <TimelineView
+                workOrders={safeWorkOrders}
+                onUpdateWorkOrder={handleUpdateWorkOrder}
+                onSelectWorkOrder={handleSelectWorkOrder}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="resources" className="space-y-6 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold">Resource Allocation</h2>
+                <p className="text-muted-foreground">
+                  Track technician workload and balance resource assignments
+                </p>
+              </div>
+            </div>
+
+            {safeWorkOrders.length === 0 ? (
+              <div className="bg-card border rounded-lg p-12 text-center">
+                <Users size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-xl font-semibold mb-2">No Work Orders to Display</h3>
+                <p className="text-muted-foreground mb-6">
+                  Import Excel/CSV data or load sample work orders to view resource allocation
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Button onClick={() => setImportOpen(true)}>
+                    <UploadSimple size={18} />
+                    Import Excel/CSV
+                  </Button>
+                  <Button variant="outline" onClick={handleLoadSampleData}>
+                    Load Sample Data
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <ResourceAllocationView
                 workOrders={safeWorkOrders}
                 onUpdateWorkOrder={handleUpdateWorkOrder}
                 onSelectWorkOrder={handleSelectWorkOrder}

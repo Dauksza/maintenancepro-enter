@@ -54,6 +54,13 @@ This is a multi-module enterprise system with sophisticated data relationships, 
 - **Progression**: View calendar → Select month/week view → Drag work order card → Drop on target date → Confirm reschedule → Update scheduled date
 - **Success criteria**: Smooth drag interaction, visual feedback during drag, work orders update correctly, calendar refreshes immediately, shows downtime totals per day
 
+### Resource Allocation View
+- **Functionality**: Technician-centric timeline showing workload distribution across days with visual capacity indicators and drag-to-reassign capabilities
+- **Purpose**: Balance workload across technicians, identify over-allocated resources, and enable rapid work order reassignment
+- **Trigger**: User navigates to Resources tab
+- **Progression**: View technician rows with timeline → See daily workload heatmap (light/moderate/heavy/critical) → Drag work order between technicians or days → View workload metrics (total hours, avg per tech) → Click work order for details
+- **Success criteria**: Workload heatmap accurately shows daily hour totals, drag-and-drop reassigns both technician and date, unassigned work orders displayed separately, tooltip shows detailed breakdown, metrics calculate correctly
+
 ### Automation Rules Engine
 - **Functionality**: Auto-mark overdue tasks, trigger notifications, auto-schedule recurring maintenance, stamp completion dates
 - **Purpose**: Reduce manual tracking overhead and ensure maintenance compliance
@@ -140,6 +147,7 @@ Animations should reinforce **operational responsiveness and data state changes*
   - **Frequency Parser Display**: Visual timeline showing Daily→Weekly→Monthly→Yearly with labor hours inline
   - **Work Order Timeline**: Custom Gantt chart with drag-to-reschedule, color-coded by priority, grouped by equipment
   - **Drag-and-Drop Calendar**: Custom calendar grid with native HTML5 drag-and-drop, visual drop zones, color-coded work order cards with left border status indicators, responsive month/week view toggle
+  - **Resource Allocation Timeline**: Technician-row timeline with daily workload heatmap (color-coded by hours: green 0-2h, yellow 2-4h, orange 4-6h, red >6h), drag work orders horizontally for rescheduling or vertically for reassignment, summary cards showing total technicians, total workload, and average per technician
 
 - **States**:
   - Buttons: Default solid primary, hover with brightness increase, active with slight scale down, disabled with reduced opacity
@@ -161,8 +169,10 @@ Animations should reinforce **operational responsiveness and data state changes*
   - Lightning (automation rules)
   - Package (spare parts)
   - User (technician assignment)
+  - Users (resource allocation)
   - Clock (time/downtime)
   - CaretLeft/CaretRight (navigation)
+  - ChartLineUp (timeline view)
   - Rows (week view)
 
 - **Spacing**:
@@ -182,3 +192,4 @@ Animations should reinforce **operational responsiveness and data state changes*
   - Tabs convert to horizontal scrollable list
   - SOP viewer becomes full-screen modal with scroll sections
   - Calendar view switches to vertical week-only view on mobile with touch-optimized drag interactions
+  - Resource allocation view switches to single-technician view with swipe to change technician, simplified workload indicators
