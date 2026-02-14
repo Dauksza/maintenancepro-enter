@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
 import type { 
   WorkOrder, 
@@ -8,7 +8,8 @@ import type {
   Employee,
   SkillMatrixEntry,
   EmployeeSchedule,
-  Message
+  Message,
+  CertificationReminder
 } from '@/lib/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,7 @@ import { ResourceAllocationView } from '@/components/ResourceAllocationView'
 import { CapacityPlanning } from '@/components/CapacityPlanning'
 import { AutoSchedulerDialog } from '@/components/AutoSchedulerDialog'
 import { EmployeeManagement } from '@/components/EmployeeManagement'
+import { CertificationReminders } from '@/components/CertificationReminders'
 import { 
   Wrench, 
   ClipboardText, 
@@ -36,7 +38,8 @@ import {
   Users,
   Gauge,
   Sparkle,
-  UserGear
+  UserGear,
+  Certificate
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -50,6 +53,7 @@ import {
   generateSampleSchedules
 } from '@/lib/employee-utils'
 import { isOverdue } from '@/lib/maintenance-utils'
+import { generateRemindersFromSkillMatrix, getReminderCounts } from '@/lib/certification-utils'
 import { toast } from 'sonner'
 
 function App() {
@@ -60,6 +64,7 @@ function App() {
   const [skillMatrix, setSkillMatrix] = useKV<SkillMatrixEntry[]>('skill-matrix', [])
   const [schedules, setSchedules] = useKV<EmployeeSchedule[]>('employee-schedules', [])
   const [messages, setMessages] = useKV<Message[]>('employee-messages', [])
+  const [reminders, setReminders] = useKV<CertificationReminder[]>('certification-reminders', [])
   
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -222,6 +227,15 @@ function App() {
   const safeMessages = messages || []
   const overdueCount = safeWorkOrders.filter(wo => wo.is_overdue).length
 
+  const certificationCounts = useMemo(() => {
+    const currentReminders = generateRemindersFromSkillMatrix(
+      safeSkillMatrix,
+      safeEmployees,
+      reminders || []
+    )
+    return getReminderCounts(currentReminders)
+  }, [safeSkillMatrix, safeEmployees, reminders])
+
   return (
     <div className="min-h-screen bg-background grid-pattern">
       <Toaster position="top-right" />
@@ -238,6 +252,16 @@ function App() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {certificationCounts.critical > 0 && (
+                <Button 
+                  onClick={() => setActiveTab('certifications')}
+                  variant="outline"
+                  className="gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                >
+                  <Certificate size={18} weight="fill" />
+                  {certificationCounts.critical} Cert{certificationCounts.critical === 1 ? '' : 's'} Expiring
+                </Button>
+              )}
               {overdueCount > 0 && (
                 <>
                   <div className="bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-semibold animate-pulse">
@@ -275,7 +299,7 @@ function App() {
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-6xl grid-cols-8">
+          <TabsList className="grid w-full max-w-6xl grid-cols-9">
             <TabsTrigger value="tracking" className="flex items-center gap-2">
               <Wrench size={18} />
               Maintenance Tracking
@@ -299,6 +323,10 @@ function App() {
             <TabsTrigger value="employees" className="flex items-center gap-2">
               <UserGear size={18} />
               Employees
+            </TabsTrigger>
+            <TabsTrigger value="certifications" className="flex items-center gap-2">
+              <Certificate size={18} />
+              Certifications
             </TabsTrigger>
             <TabsTrigger value="sops" className="flex items-center gap-2">
               <ClipboardText size={18} />
@@ -517,6 +545,27 @@ function App() {
                 onUpdateSkill={handleUpdateSkill}
                 onUpdateSchedule={handleUpdateSchedule}
                 onSendMessage={handleSendMessage}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="certifications" className="space-y-6 animate-fade-in">
+            {safeEmployees.length === 0 ? (
+              <div className="bg-card border rounded-lg p-12 text-center">
+                <Certificate size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-xl font-semibold mb-2">No Certification Data</h3>
+                <p className="text-muted-foreground mb-6">
+                  Load sample employee data to get started with certification tracking
+                </p>
+                <Button onClick={handleLoadSampleData}>
+                  Load Sample Data
+                </Button>
+              </div>
+            ) : (
+              <CertificationReminders
+                employees={safeEmployees}
+                skillMatrix={safeSkillMatrix}
+                onUpdateSkill={handleUpdateSkill}
               />
             )}
           </TabsContent>

@@ -194,3 +194,66 @@ export interface EmployeeAnalytics {
   certification_expiring_soon: Array<{ employee_id: string; skill: string; expiry_date: string }>
   work_order_completion_by_tech: Array<{ technician: string; completed: number; avg_time: number }>
 }
+
+export type NotificationStatus = 'Pending' | 'Sent' | 'Read' | 'Dismissed'
+
+export type NotificationPriority = 'Low' | 'Medium' | 'High' | 'Critical'
+
+export type NotificationType = 
+  | 'Certification Expiring' 
+  | 'Certification Expired'
+  | 'Renewal Required'
+  | 'Training Due'
+
+export interface CertificationReminder {
+  reminder_id: string
+  employee_id: string
+  skill_name: string
+  skill_category: string
+  certification_date: string
+  expiry_date: string
+  days_until_expiry: number
+  notification_status: NotificationStatus
+  priority: NotificationPriority
+  notification_type: NotificationType
+  last_notified_at: string | null
+  notification_count: number
+  dismissed: boolean
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export interface NotificationSettings {
+  settings_id: string
+  enabled: boolean
+  notify_at_days: number[]
+  notify_methods: Array<'Email' | 'SMS' | 'In-App'>
+  escalate_to_manager: boolean
+  escalation_days: number
+  auto_disable_employee: boolean
+  auto_disable_days: number
+  created_at: string
+  updated_at: string
+}
+
+export interface CertificationRenewalStats {
+  total_certifications: number
+  expired: number
+  expiring_30_days: number
+  expiring_60_days: number
+  expiring_90_days: number
+  up_to_date: number
+  by_category: Array<{ category: string; expired: number; expiring: number; total: number }>
+  by_employee: Array<{ 
+    employee_id: string
+    employee_name: string
+    expired_count: number
+    expiring_count: number
+  }>
+  recent_renewals: Array<{
+    employee_id: string
+    skill_name: string
+    renewed_date: string
+  }>
+}

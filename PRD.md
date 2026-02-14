@@ -75,6 +75,13 @@ This is a multi-module enterprise system with sophisticated data relationships, 
 - **Progression**: View employee directory → Filter by department/status → Select employee for details → View contact info/skills/schedule → Navigate to Skills Matrix → View skill coverage across workforce → Check certification expiry dates → View schedules → Track weekly hours → Send messages → View analytics
 - **Success criteria**: Employee data persists correctly, skill levels and certifications display accurately, schedules show shift assignments with totals, messaging system supports broadcasts and priority levels, analytics calculate department distribution, shift coverage, skill coverage, and work order performance by technician
 
+### Certification Renewal Reminder System
+- **Functionality**: Automated tracking and notification system for employee certifications with expiry dates, configurable notification schedules, priority-based alerts, and one-click renewal workflow
+- **Purpose**: Ensure workforce compliance by proactively managing certification renewals, preventing expired certifications that could impact work eligibility, and reducing administrative burden through automation
+- **Trigger**: User navigates to Certifications tab, or system automatically checks daily and sends notifications based on configured thresholds
+- **Progression**: System scans skill matrix for certifications with expiry dates → Calculates days until expiry → Generates reminders for certifications expiring within 120 days → Sends notifications at configured intervals (90/60/30/14/7/3/1/0 days before expiry) → Displays dashboard with critical/high/medium priority reminders → User can renew certification with new expiry date → Reminder automatically dismissed → Toast notifications appear for critical expirations
+- **Success criteria**: Reminders generated accurately based on expiry dates, notifications sent at correct intervals with appropriate priority levels (Critical for expired/7-day, High for 30-day, Medium for 60-day), compliance rate calculated correctly, stats dashboard shows expired/expiring/up-to-date counts by category and employee, renewal workflow updates skill matrix and removes reminder, configurable notification settings (enable/disable, notification days, escalation rules, auto-disable employees), search and filtering work across all reminders, recent renewals tracked for audit trail
+
 ### Automation Rules Engine
 - **Functionality**: Auto-mark overdue tasks, trigger notifications, auto-schedule recurring maintenance, stamp completion dates
 - **Purpose**: Reduce manual tracking overhead and ensure maintenance compliance
@@ -92,7 +99,10 @@ This is a multi-module enterprise system with sophisticated data relationships, 
 - **Concurrent Edits**: Use optimistic locking with last-write-wins, show toast notification if data was modified
 - **Large Datasets**: Implement virtual scrolling, lazy loading for SOP details, pagination for analytics
 - **Missing Employee Data**: When employee schedules reference non-existent employees, display warning and allow creation
-- **Expired Certifications**: Highlight employees with expired certifications in skill matrix with visual warnings
+- **Expired Certifications**: Highlight employees with expired certifications in skill matrix with visual warnings, system automatically generates critical reminders
+- **Certification Without Expiry Date**: Handle certifications that don't require renewal gracefully, exclude from reminder generation
+- **Multiple Certifications Expiring**: Group reminders by employee in notification display, prevent notification spam
+- **Dismissed Reminders Reappearing**: Track dismissal state separately, only regenerate if certification date changes
 - **Message Delivery**: Support both individual and broadcast messages, track read status, prevent duplicate sends
 - **Schedule Conflicts**: Detect when employee scheduled for multiple shifts on same day, display warning
 
