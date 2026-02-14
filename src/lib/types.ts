@@ -412,3 +412,71 @@ export interface WorkOrderNotification {
     priority_match?: boolean
   }
 }
+
+export type PartStatus = 'In Stock' | 'Low Stock' | 'Out of Stock' | 'On Order' | 'Discontinued'
+
+export type PartCategory = 'Electrical' | 'Mechanical' | 'Hydraulic' | 'Pneumatic' | 'Consumable' | 'Safety' | 'Tool' | 'Other'
+
+export interface PartInventoryItem {
+  part_id: string
+  part_number: string
+  part_name: string
+  description: string
+  category: PartCategory
+  manufacturer: string
+  supplier: string
+  unit_cost: number
+  quantity_on_hand: number
+  minimum_stock_level: number
+  reorder_quantity: number
+  unit_of_measure: string
+  location: string
+  status: PartStatus
+  compatible_equipment: string[]
+  linked_sop_ids: string[]
+  linked_asset_ids: string[]
+  last_ordered_date: string | null
+  last_used_date: string | null
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export interface PartTransaction {
+  transaction_id: string
+  part_id: string
+  transaction_type: 'Purchase' | 'Use' | 'Return' | 'Adjustment' | 'Transfer'
+  quantity: number
+  unit_cost: number
+  total_cost: number
+  work_order_id: string | null
+  employee_id: string | null
+  from_location: string | null
+  to_location: string | null
+  notes: string
+  created_at: string
+  created_by: string
+}
+
+export interface PartUsageHistory {
+  part_id: string
+  part_name: string
+  total_used: number
+  times_used: number
+  average_per_use: number
+  last_30_days: number
+  last_90_days: number
+  linked_work_orders: string[]
+}
+
+export interface InventoryAlert {
+  alert_id: string
+  part_id: string
+  alert_type: 'Low Stock' | 'Out of Stock' | 'Expiring Soon' | 'Slow Moving' | 'Overstocked'
+  severity: 'Low' | 'Medium' | 'High' | 'Critical'
+  message: string
+  recommended_action: string
+  created_at: string
+  resolved: boolean
+  resolved_at: string | null
+}

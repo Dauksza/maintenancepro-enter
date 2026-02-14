@@ -10,7 +10,9 @@ import type {
   EmployeeSchedule,
   Message,
   CertificationReminder,
-  WorkOrderNotification
+  WorkOrderNotification,
+  PartInventoryItem,
+  PartTransaction
 } from '@/lib/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -34,6 +36,7 @@ import { NotificationCenter } from '@/components/NotificationCenter'
 import { NotificationBell } from '@/components/NotificationBell'
 import { NotificationToastManager } from '@/components/NotificationToastManager'
 import { NotificationPreferencesDialog, type NotificationPreferences } from '@/components/NotificationPreferences'
+import { PartsInventory } from '@/components/PartsInventory'
 import { 
   Wrench, 
   ClipboardText, 
@@ -48,7 +51,8 @@ import {
   Sparkle,
   UserGear,
   Certificate,
-  Package
+  Package,
+  Toolbox
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -61,6 +65,7 @@ import {
   generateSampleSkillMatrix,
   generateSampleSchedules
 } from '@/lib/employee-utils'
+import { generateSampleParts } from '@/lib/inventory-utils'
 import { isOverdue } from '@/lib/maintenance-utils'
 import { generateRemindersFromSkillMatrix, getReminderCounts } from '@/lib/certification-utils'
 import {
@@ -84,6 +89,8 @@ function App() {
   const [messages, setMessages] = useKV<Message[]>('employee-messages', [])
   const [reminders, setReminders] = useKV<CertificationReminder[]>('certification-reminders', [])
   const [notifications, setNotifications] = useKV<WorkOrderNotification[]>('work-order-notifications', [])
+  const [parts, setParts] = useKV<PartInventoryItem[]>('parts-inventory', [])
+  const [partTransactions, setPartTransactions] = useKV<PartTransaction[]>('part-transactions', [])
   const [notificationPreferences, setNotificationPreferences] = useKV<NotificationPreferences>(
     'notification-preferences',
     {
@@ -179,6 +186,7 @@ function App() {
     const sampleEmployees = generateSampleEmployees()
     const sampleSkills = generateSampleSkillMatrix()
     const sampleSchedules = generateSampleSchedules()
+    const sampleParts = generateSampleParts()
     
     setWorkOrders(sampleWOs)
     setSOPs(sampleSOPs)
@@ -186,6 +194,7 @@ function App() {
     setEmployees(sampleEmployees)
     setSkillMatrix(sampleSkills)
     setSchedules(sampleSchedules)
+    setParts(sampleParts)
     
     toast.success('Sample data loaded successfully')
   }
@@ -450,7 +459,7 @@ function App() {
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-6xl grid-cols-10">
+          <TabsList className="grid w-full max-w-7xl grid-cols-11">
             <TabsTrigger value="tracking" className="flex items-center gap-2">
               <Wrench size={18} />
               Tracking
@@ -478,6 +487,10 @@ function App() {
             <TabsTrigger value="assets" className="flex items-center gap-2">
               <Package size={18} />
               Assets
+            </TabsTrigger>
+            <TabsTrigger value="parts" className="flex items-center gap-2">
+              <Toolbox size={18} />
+              Parts
             </TabsTrigger>
             <TabsTrigger value="certifications" className="flex items-center gap-2">
               <Certificate size={18} />
@@ -719,6 +732,48 @@ function App() {
 
           <TabsContent value="assets" className="space-y-6 animate-fade-in">
             <AssetsAreasManagement employees={safeEmployees} />
+          </TabsContent>
+
+          <TabsContent value="parts" className="space-y-6 animate-fade-in">
+            <PartsInventory
+              parts={parts || []}
+              transactions={partTransactions || []}
+              onAddPart={(part) => setParts((current) => [...(current || []), part])}
+              onUpdatePart={(partId, updates) => {
+                setParts((current) =>
+                  (current || []).map(p => p.part_id === partId ? { ...p, ...updates } : p)
+                )
+              }}
+              onAddTransaction={(transaction) => {
+                setPartTransactions((current) => [...(current || []), transaction])
+                const part = (parts || []).find(p => p.part_id === transaction.part_id)
+                if (part) {
+                  let newQuantity = part.quantity_on_hand
+                  switch (transaction.transaction_type) {
+                    case 'Purchase':
+                    case 'Return':
+                      newQuantity += transaction.quantity
+                      break
+                    case 'Use':
+                    case 'Transfer':
+                      newQuantity -= transaction.quantity
+                      break
+                    case 'Adjustment':
+                      newQuantity = transaction.quantity
+                      break
+                  }
+                  const status = newQuantity === 0 ? 'Out of Stock' : 
+                                newQuantity <= part.minimum_stock_level ? 'Low Stock' : 'In Stock'
+                  setParts((current) =>
+                    (current || []).map(p => 
+                      p.part_id === transaction.part_id 
+                        ? { ...p, quantity_on_hand: Math.max(0, newQuantity), status, updated_at: transaction.created_at }
+                        : p
+                    )
+                  )
+                }
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="certifications" className="space-y-6 animate-fade-in">
