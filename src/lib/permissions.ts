@@ -23,7 +23,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
       { resource: 'sops', actions: ['create', 'read', 'update'] },
       { resource: 'forms', actions: ['create', 'read', 'update', 'delete'] },
       { resource: 'analytics', actions: ['read'] },
-      { resource: 'schedules', actions: ['create', 'read', 'update', 'delete', 'execute'] }
+      { resource: 'schedules', actions: ['create', 'read', 'update', 'delete', 'execute'] },
+      { resource: 'database', actions: ['read'] }
     ],
     can_view_tabs: ['*'],
     can_edit_own_data: true,
@@ -179,6 +180,7 @@ export function getAvailableTabs(userRole: UserRole | undefined): string[] {
 
   if (roleConfig.can_view_tabs.includes('*')) {
     return [
+      'dashboard',
       'tracking',
       'timeline',
       'resources',
@@ -190,7 +192,8 @@ export function getAvailableTabs(userRole: UserRole | undefined): string[] {
       'forms',
       'certifications',
       'sops',
-      'analytics'
+      'analytics',
+      'database'
     ]
   }
 

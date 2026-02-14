@@ -44,6 +44,7 @@ import { FormsInspections } from '@/components/FormsInspections'
 import { GlobalSearch } from '@/components/GlobalSearch'
 import { CustomizableDashboard } from '@/components/CustomizableDashboard'
 import { UserProfileMenu } from '@/components/UserProfileMenu'
+import { DatabaseManagement } from '@/components/DatabaseManagement'
 import { 
   Wrench, 
   ClipboardText, 
@@ -62,7 +63,8 @@ import {
   Toolbox,
   CheckSquare,
   MagnifyingGlass,
-  House
+  House,
+  Database
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -489,7 +491,7 @@ function App() {
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-7xl grid-cols-13">
+          <TabsList className="grid w-full max-w-7xl grid-cols-14">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <House size={18} />
               Dashboard
@@ -564,6 +566,12 @@ function App() {
               <TabsTrigger value="analytics" className="flex items-center gap-2">
                 <ChartBar size={18} />
                 Analytics
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'database') && (
+              <TabsTrigger value="database" className="flex items-center gap-2">
+                <Database size={18} />
+                Database
               </TabsTrigger>
             )}
           </TabsList>
@@ -928,6 +936,10 @@ function App() {
             ) : (
               <AnalyticsDashboard workOrders={safeWorkOrders} />
             )}
+          </TabsContent>
+
+          <TabsContent value="database" className="space-y-6 animate-fade-in">
+            <DatabaseManagement />
           </TabsContent>
         </Tabs>
       </main>
