@@ -40,6 +40,9 @@ export interface WorkOrder {
   is_overdue: boolean
   auto_generated: boolean
   linked_sop_ids?: string[]
+  area_id?: string | null
+  required_skill_ids?: string[]
+  required_asset_ids?: string[]
 }
 
 export interface SOP {
@@ -256,4 +259,119 @@ export interface CertificationRenewalStats {
     skill_name: string
     renewed_date: string
   }>
+}
+
+export type AssetStatus = 'Operational' | 'Under Maintenance' | 'Out of Service' | 'Decommissioned'
+
+export type AssetCategory = 'Equipment' | 'Vehicle' | 'Tool' | 'Instrument' | 'Facility'
+
+export interface Asset {
+  asset_id: string
+  asset_name: string
+  asset_type: string
+  category: AssetCategory
+  status: AssetStatus
+  area_id: string | null
+  assigned_employee_ids: string[]
+  required_skill_ids: string[]
+  maintenance_task_ids: string[]
+  linked_sop_ids: string[]
+  manufacturer: string
+  model: string
+  serial_number: string
+  purchase_date: string | null
+  warranty_expiry: string | null
+  availability_windows: AvailabilityWindow[]
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AvailabilityWindow {
+  day_of_week: number
+  start_time: string
+  end_time: string
+}
+
+export interface Area {
+  area_id: string
+  area_name: string
+  department: string
+  zone: string
+  parent_area_id: string | null
+  assigned_employee_ids: string[]
+  asset_ids: string[]
+  priority_task_ids: string[]
+  capacity_hours_per_day: number
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Skill {
+  skill_id: string
+  skill_name: string
+  skill_category: string
+  description: string
+  requires_certification: boolean
+  certification_duration_days: number | null
+  linked_sop_ids: string[]
+  required_for_asset_ids: string[]
+  required_for_task_ids: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface TaskDependency {
+  task_id: string
+  depends_on_task_id: string
+  dependency_type: 'finish_to_start' | 'start_to_start' | 'finish_to_finish'
+}
+
+export interface RecurrenceRule {
+  frequency: MaintenanceFrequency
+  interval: number
+  end_date: string | null
+  max_occurrences: number | null
+}
+
+export interface SchedulingConstraint {
+  constraint_type: 'required_skill' | 'required_asset' | 'required_area' | 'time_window' | 'dependency'
+  constraint_value: string
+  is_strict: boolean
+}
+
+export interface SchedulingConflict {
+  conflict_type: 'skill_mismatch' | 'employee_unavailable' | 'asset_unavailable' | 'capacity_exceeded' | 'dependency_violation'
+  severity: 'warning' | 'error'
+  description: string
+  work_order_id: string
+  employee_id?: string
+  asset_id?: string
+  suggested_resolution?: string
+}
+
+export interface EnhancedWorkOrder extends WorkOrder {
+  required_skill_ids: string[]
+  optional_skill_ids: string[]
+  required_asset_ids: string[]
+  area_id: string | null
+  dependencies: TaskDependency[]
+  recurrence_rule: RecurrenceRule | null
+  constraints: SchedulingConstraint[]
+}
+
+export interface SchedulingPreview {
+  work_order_id: string
+  current_assignment: {
+    technician: string | null
+    date: string | null
+  }
+  proposed_assignment: {
+    technician: string
+    date: string
+  }
+  conflicts: SchedulingConflict[]
+  score: number
+  reason: string
 }

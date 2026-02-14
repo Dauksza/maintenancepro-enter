@@ -26,6 +26,8 @@ import { CapacityPlanning } from '@/components/CapacityPlanning'
 import { AutoSchedulerDialog } from '@/components/AutoSchedulerDialog'
 import { EmployeeManagement } from '@/components/EmployeeManagement'
 import { CertificationReminders } from '@/components/CertificationReminders'
+import { AssetsAreasManagement } from '@/components/AssetsAreasManagement'
+import { EnhancedAutoSchedulerDialog } from '@/components/EnhancedAutoSchedulerDialog'
 import { 
   Wrench, 
   ClipboardText, 
@@ -39,7 +41,8 @@ import {
   Gauge,
   Sparkle,
   UserGear,
-  Certificate
+  Certificate,
+  Package
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -299,10 +302,10 @@ function App() {
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-6xl grid-cols-9">
+          <TabsList className="grid w-full max-w-6xl grid-cols-10">
             <TabsTrigger value="tracking" className="flex items-center gap-2">
               <Wrench size={18} />
-              Maintenance Tracking
+              Tracking
             </TabsTrigger>
             <TabsTrigger value="timeline" className="flex items-center gap-2">
               <ChartLineUp size={18} />
@@ -324,13 +327,17 @@ function App() {
               <UserGear size={18} />
               Employees
             </TabsTrigger>
+            <TabsTrigger value="assets" className="flex items-center gap-2">
+              <Package size={18} />
+              Assets
+            </TabsTrigger>
             <TabsTrigger value="certifications" className="flex items-center gap-2">
               <Certificate size={18} />
-              Certifications
+              Certs
             </TabsTrigger>
             <TabsTrigger value="sops" className="flex items-center gap-2">
               <ClipboardText size={18} />
-              SOP Library
+              SOPs
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <ChartBar size={18} />
@@ -549,6 +556,10 @@ function App() {
             )}
           </TabsContent>
 
+          <TabsContent value="assets" className="space-y-6 animate-fade-in">
+            <AssetsAreasManagement employees={safeEmployees} />
+          </TabsContent>
+
           <TabsContent value="certifications" className="space-y-6 animate-fade-in">
             {safeEmployees.length === 0 ? (
               <div className="bg-card border rounded-lg p-12 text-center">
@@ -625,6 +636,13 @@ function App() {
       <AutoSchedulerDialog
         open={autoSchedulerOpen}
         onClose={() => setAutoSchedulerOpen(false)}
+        workOrders={safeWorkOrders}
+        onScheduleComplete={handleAutoScheduleComplete}
+      />
+
+      <EnhancedAutoSchedulerDialog
+        open={false}
+        onClose={() => {}}
         workOrders={safeWorkOrders}
         onScheduleComplete={handleAutoScheduleComplete}
       />

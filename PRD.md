@@ -89,6 +89,41 @@ This is a multi-module enterprise system with sophisticated data relationships, 
 - **Progression**: System evaluates rules → Identifies matching conditions → Executes actions → Logs automation events → Notifies relevant users
 - **Success criteria**: Overdue detection real-time, recurring tasks auto-created on schedule, completed_at stamped accurately
 
+### Enhanced Auto-Scheduler with Skills, Areas & Assets
+- **Functionality**: Intelligent work order scheduling that considers employee skills, work areas, asset requirements, availability, and capacity with conflict detection and scoring
+- **Purpose**: Optimize task assignments by matching the right employees to the right work based on multiple factors, reducing manual scheduling effort and improving resource utilization
+- **Trigger**: User clicks "Auto-Schedule" button from header or work order tracking view
+- **Progression**: Select scheduling options (date range, priority method, skill/area/asset consideration) → Generate preview showing success/failure predictions → Review scoring and conflicts → Confirm schedule → System assigns technicians and dates to work orders → Display success metrics (scheduled count, average score, employees used)
+- **Success criteria**: Successfully schedules work orders with skill matching, respects employee capacity limits, detects conflicts (skill mismatch, unavailable employee, missing asset), provides clear reasoning for failures, allows partial matches when configured, calculates assignment scores (0-100), supports multiple prioritization strategies (priority, date, duration, skill match)
+
+### Asset Management with Assignments
+- **Functionality**: Complete CRUD for physical assets (equipment, vehicles, tools, instruments, facilities) with area assignments, employee assignments, required skills, maintenance history, and warranty tracking
+- **Purpose**: Track facility assets, link them to work orders, ensure only qualified employees operate equipment, and maintain service history
+- **Trigger**: User navigates to Assets tab
+- **Progression**: View asset inventory table → Click "Add Asset" → Guided wizard (basic info → classification → assignments → skill requirements → review) → Save asset → Assets appear in inventory with filters → Can assign to areas and employees → Link to work orders → Track maintenance tasks
+- **Success criteria**: Assets persist correctly, wizard validates required fields, can search/filter assets, area and employee assignments work, skill requirements enforced, status tracking (Operational/Under Maintenance/Out of Service/Decommissioned), serial numbers and warranty dates tracked
+
+### Area & Zone Management
+- **Functionality**: Define work areas, zones, and departments with employee assignments, asset tracking, and daily capacity limits
+- **Purpose**: Organize facility into logical areas, assign employees to zones, track which assets belong where, and manage area-specific capacity
+- **Trigger**: User navigates to Areas tab within Assets section
+- **Progression**: View areas table → Click "Add Area" → Enter name, department, zone → Assign employees → Set daily capacity hours → Save → Areas appear in table → Can filter work orders by area → Auto-scheduler considers area assignments
+- **Success criteria**: Areas persist correctly, employees can be assigned to multiple areas, assets linked to areas, capacity hours tracked, work orders can be filtered by area, scheduler prioritizes employees assigned to task area
+
+### Skills Catalog & Certification Tracking
+- **Functionality**: Define technical skills and certifications with categories, descriptions, certification requirements, duration, and linking to assets/tasks
+- **Purpose**: Centralize skill definitions, track which skills require certification, define skill-asset relationships, enable skill-based scheduling
+- **Trigger**: User navigates to Skills tab within Assets section
+- **Progression**: View skills catalog → Click "Add Skill" → Enter name, category, description → Mark if certification required → Set certification duration → Link to assets/SOPs → Save → Skills appear as cards → Can search/filter → Skills used in employee skill matrix and auto-scheduler
+- **Success criteria**: Skills persist with all metadata, certification requirements tracked, skills linkable to assets and work orders, auto-scheduler can filter employees by skill match, skill catalog searchable, displays skill count per asset
+
+### Guided Wizards for Data Entry
+- **Functionality**: Multi-step guided creation flows for employees, assets, skills, and areas with validation, progress tracking, review screens, and smart defaults
+- **Purpose**: Reduce data entry errors, guide users through complex object creation, ensure required fields completed, provide visual feedback on progress
+- **Trigger**: User clicks "Add [Entity]" button
+- **Progression**: Wizard opens → Step 1: Basic info → Step 2: Specific details → Step 3: Assignments/relationships → Step 4: Optional fields → Step 5: Review summary → Confirm → Entity created → Success notification
+- **Success criteria**: Wizards validate each step before proceeding, show progress bar, display review screen with all entered data, allow back navigation, provide field-level validation messages, support dropdown suggestions from existing data, handle custom values (new department, new position), reset form on completion
+
 ## Edge Case Handling
 
 - **Empty Excel Sheets**: Display clear message indicating which required sheets are missing, prevent partial imports
@@ -105,6 +140,15 @@ This is a multi-module enterprise system with sophisticated data relationships, 
 - **Dismissed Reminders Reappearing**: Track dismissal state separately, only regenerate if certification date changes
 - **Message Delivery**: Support both individual and broadcast messages, track read status, prevent duplicate sends
 - **Schedule Conflicts**: Detect when employee scheduled for multiple shifts on same day, display warning
+- **No Active Employees**: Auto-scheduler displays warning if no active employees available, prevents scheduling attempt
+- **Skill Mismatch**: Enhanced scheduler detects when no employees have required skills, provides clear conflict message with suggested resolution
+- **Asset Unavailability**: When asset assigned to work order is marked as "Out of Service", scheduler flags conflict
+- **Over-Capacity Scheduling**: Prevent assigning more hours than employee daily capacity, show remaining capacity in real-time
+- **Area-Employee Mismatch**: When scheduling work in area with no assigned employees, scheduler either skips or allows partial match based on settings
+- **Circular Dependencies**: Prevent tasks from depending on themselves or creating dependency loops
+- **Weekend Scheduling**: Respect weekend toggle, skip Saturday/Sunday when disabled
+- **Empty Wizards**: Prevent wizard completion if required fields missing, show validation errors
+- **Duplicate Asset Serial Numbers**: Warn when entering duplicate serial number, allow override with confirmation
 
 ## Design Direction
 
