@@ -124,3 +124,73 @@ export interface DailyCapacityStatus {
   is_overallocated: boolean
   work_orders: WorkOrder[]
 }
+
+export type SkillLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert'
+
+export type EmployeeStatus = 'Active' | 'On Leave' | 'Inactive'
+
+export type ShiftType = 'Day Shift' | 'Night Shift' | 'Rotating' | 'On Call'
+
+export interface Employee {
+  employee_id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone: string
+  position: string
+  department: string
+  status: EmployeeStatus
+  shift: ShiftType
+  hire_date: string
+  emergency_contact_name: string
+  emergency_contact_phone: string
+  certifications: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface SkillMatrixEntry {
+  employee_id: string
+  skill_category: string
+  skill_name: string
+  level: SkillLevel
+  certified: boolean
+  certification_date: string | null
+  expiry_date: string | null
+  notes: string
+}
+
+export interface EmployeeSchedule {
+  schedule_id: string
+  employee_id: string
+  date: string
+  shift_start: string
+  shift_end: string
+  hours: number
+  notes: string
+  created_at: string
+}
+
+export interface Message {
+  message_id: string
+  from_employee_id: string
+  to_employee_id: string | null
+  subject: string
+  body: string
+  is_read: boolean
+  is_broadcast: boolean
+  priority: 'Normal' | 'High' | 'Urgent'
+  created_at: string
+  read_at: string | null
+}
+
+export interface EmployeeAnalytics {
+  total_employees: number
+  active_employees: number
+  on_leave: number
+  by_department: Array<{ department: string; count: number }>
+  by_shift: Array<{ shift: ShiftType; count: number }>
+  skill_coverage: Array<{ skill: string; employee_count: number; avg_level: number }>
+  certification_expiring_soon: Array<{ employee_id: string; skill: string; expiry_date: string }>
+  work_order_completion_by_tech: Array<{ technician: string; completed: number; avg_time: number }>
+}

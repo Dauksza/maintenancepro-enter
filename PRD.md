@@ -68,6 +68,13 @@ This is a multi-module enterprise system with sophisticated data relationships, 
 - **Progression**: View technician capacity overview → Click "Add Capacity Limit" → Enter technician name and daily hour limit → Save → View weekly utilization heatmap → Identify overallocated days → Drill down to see specific work orders
 - **Success criteria**: Capacity limits persist correctly, utilization calculations accurate, heatmap color-codes by percentage (green ≤50%, yellow 50-75%, orange 75-100%, red >100%), overallocation warnings appear in Resources view and Work Order detail panel, metrics show total capacity, scheduled hours, and utilization percentage
 
+### Employee Management System
+- **Functionality**: Comprehensive employee directory with contact information, skill matrix tracking with certification management, schedule management with shift assignments, performance analytics, and internal messaging system
+- **Purpose**: Centralize workforce management, track employee competencies and certifications, coordinate shift schedules, monitor performance metrics, and facilitate team communication
+- **Trigger**: User navigates to Employees tab
+- **Progression**: View employee directory → Filter by department/status → Select employee for details → View contact info/skills/schedule → Navigate to Skills Matrix → View skill coverage across workforce → Check certification expiry dates → View schedules → Track weekly hours → Send messages → View analytics
+- **Success criteria**: Employee data persists correctly, skill levels and certifications display accurately, schedules show shift assignments with totals, messaging system supports broadcasts and priority levels, analytics calculate department distribution, shift coverage, skill coverage, and work order performance by technician
+
 ### Automation Rules Engine
 - **Functionality**: Auto-mark overdue tasks, trigger notifications, auto-schedule recurring maintenance, stamp completion dates
 - **Purpose**: Reduce manual tracking overhead and ensure maintenance compliance
@@ -84,6 +91,10 @@ This is a multi-module enterprise system with sophisticated data relationships, 
 - **Missing Frequency Keywords**: If task description lacks frequency terms, don't auto-schedule but flag for manual review
 - **Concurrent Edits**: Use optimistic locking with last-write-wins, show toast notification if data was modified
 - **Large Datasets**: Implement virtual scrolling, lazy loading for SOP details, pagination for analytics
+- **Missing Employee Data**: When employee schedules reference non-existent employees, display warning and allow creation
+- **Expired Certifications**: Highlight employees with expired certifications in skill matrix with visual warnings
+- **Message Delivery**: Support both individual and broadcast messages, track read status, prevent duplicate sends
+- **Schedule Conflicts**: Detect when employee scheduled for multiple shifts on same day, display warning
 
 ## Design Direction
 
@@ -178,13 +189,20 @@ Animations should reinforce **operational responsiveness and data state changes*
   - Package (spare parts)
   - User (technician assignment)
   - Users (resource allocation)
-  - UserGear (technician management)
+  - UserGear (employee management)
+  - UserCircle (employee profile)
   - Gauge (capacity planning)
   - Clock (time/downtime)
   - CaretLeft/CaretRight (navigation)
   - ChartLineUp (timeline view)
   - Rows (week view)
   - TrendUp (utilization metrics)
+  - Certificate (certifications and skills)
+  - Phone (contact)
+  - EnvelopeSimple (email)
+  - ChatCircle (messaging)
+  - PaperPlaneTilt (send message)
+  - Briefcase (department)
 
 - **Spacing**:
   - Grid padding: 16px horizontal, 12px vertical
@@ -204,3 +222,7 @@ Animations should reinforce **operational responsiveness and data state changes*
   - SOP viewer becomes full-screen modal with scroll sections
   - Calendar view switches to vertical week-only view on mobile with touch-optimized drag interactions
   - Resource allocation view switches to single-technician view with swipe to change technician, simplified workload indicators
+  - Employee directory shows stacked cards instead of grid
+  - Skill matrix becomes scrollable table with sticky employee column
+  - Schedule view shows single employee at a time with swipe navigation
+  - Messaging system uses bottom sheet for compose, full-screen for reading

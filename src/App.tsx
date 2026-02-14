@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
-import type { WorkOrder, SOP, SparesLabor, ExcelImportData } from '@/lib/types'
+import type { 
+  WorkOrder, 
+  SOP, 
+  SparesLabor, 
+  ExcelImportData,
+  Employee,
+  SkillMatrixEntry,
+  EmployeeSchedule,
+  Message
+} from '@/lib/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
@@ -14,6 +23,7 @@ import { TimelineView } from '@/components/TimelineView'
 import { ResourceAllocationView } from '@/components/ResourceAllocationView'
 import { CapacityPlanning } from '@/components/CapacityPlanning'
 import { AutoSchedulerDialog } from '@/components/AutoSchedulerDialog'
+import { EmployeeManagement } from '@/components/EmployeeManagement'
 import { 
   Wrench, 
   ClipboardText, 
@@ -25,7 +35,8 @@ import {
   ChartLineUp,
   Users,
   Gauge,
-  Sparkle
+  Sparkle,
+  UserGear
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -33,6 +44,11 @@ import {
   generateSampleSparesLabor,
   exportToExcel
 } from '@/lib/excel-parser'
+import { 
+  generateSampleEmployees,
+  generateSampleSkillMatrix,
+  generateSampleSchedules
+} from '@/lib/employee-utils'
 import { isOverdue } from '@/lib/maintenance-utils'
 import { toast } from 'sonner'
 
@@ -40,6 +56,10 @@ function App() {
   const [workOrders, setWorkOrders] = useKV<WorkOrder[]>('maintenance-work-orders', [])
   const [sops, setSOPs] = useKV<SOP[]>('sop-library', [])
   const [sparesLabor, setSparesLabor] = useKV<SparesLabor[]>('spares-labor', [])
+  const [employees, setEmployees] = useKV<Employee[]>('employees', [])
+  const [skillMatrix, setSkillMatrix] = useKV<SkillMatrixEntry[]>('skill-matrix', [])
+  const [schedules, setSchedules] = useKV<EmployeeSchedule[]>('employee-schedules', [])
+  const [messages, setMessages] = useKV<Message[]>('employee-messages', [])
   
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -104,10 +124,16 @@ function App() {
     const sampleWOs = generateSampleWorkOrders()
     const sampleSOPs = generateSampleSOPs()
     const sampleSpares = generateSampleSparesLabor()
+    const sampleEmployees = generateSampleEmployees()
+    const sampleSkills = generateSampleSkillMatrix()
+    const sampleSchedules = generateSampleSchedules()
     
     setWorkOrders(sampleWOs)
     setSOPs(sampleSOPs)
     setSparesLabor(sampleSpares)
+    setEmployees(sampleEmployees)
+    setSkillMatrix(sampleSkills)
+    setSchedules(sampleSchedules)
     
     toast.success('Sample data loaded successfully')
   }
@@ -149,9 +175,51 @@ function App() {
     })
   }
 
+  const handleUpdateEmployee = (id: string, updates: Partial<Employee>) => {
+    setEmployees((current) =>
+      (current || []).map(emp => emp.employee_id === id ? { ...emp, ...updates } : emp)
+    )
+    toast.success('Employee updated')
+  }
+
+  const handleAddEmployee = (employee: Employee) => {
+    setEmployees((current) => [...(current || []), employee])
+    toast.success('Employee added')
+  }
+
+  const handleUpdateSkill = (employeeId: string, skill: SkillMatrixEntry) => {
+    setSkillMatrix((current) => {
+      const existing = (current || []).findIndex(
+        s => s.employee_id === employeeId && s.skill_name === skill.skill_name
+      )
+      if (existing >= 0) {
+        const updated = [...(current || [])]
+        updated[existing] = skill
+        return updated
+      }
+      return [...(current || []), skill]
+    })
+    toast.success('Skill updated')
+  }
+
+  const handleUpdateSchedule = (scheduleId: string, updates: Partial<EmployeeSchedule>) => {
+    setSchedules((current) =>
+      (current || []).map(sch => sch.schedule_id === scheduleId ? { ...sch, ...updates } : sch)
+    )
+    toast.success('Schedule updated')
+  }
+
+  const handleSendMessage = (message: Message) => {
+    setMessages((current) => [...(current || []), message])
+  }
+
   const safeWorkOrders = workOrders || []
   const safeSOPs = sops || []
   const safeSparesLabor = sparesLabor || []
+  const safeEmployees = employees || []
+  const safeSkillMatrix = skillMatrix || []
+  const safeSchedules = schedules || []
+  const safeMessages = messages || []
   const overdueCount = safeWorkOrders.filter(wo => wo.is_overdue).length
 
   return (
@@ -207,7 +275,7 @@ function App() {
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-6xl grid-cols-7">
+          <TabsList className="grid w-full max-w-6xl grid-cols-8">
             <TabsTrigger value="tracking" className="flex items-center gap-2">
               <Wrench size={18} />
               Maintenance Tracking
@@ -227,6 +295,10 @@ function App() {
             <TabsTrigger value="calendar" className="flex items-center gap-2">
               <CalendarBlank size={18} />
               Calendar
+            </TabsTrigger>
+            <TabsTrigger value="employees" className="flex items-center gap-2">
+              <UserGear size={18} />
+              Employees
             </TabsTrigger>
             <TabsTrigger value="sops" className="flex items-center gap-2">
               <ClipboardText size={18} />
@@ -417,6 +489,34 @@ function App() {
               <SOPLibrary
                 sops={safeSOPs}
                 onGenerateWorkOrders={handleGenerateWorkOrders}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="employees" className="space-y-6 animate-fade-in">
+            {safeEmployees.length === 0 ? (
+              <div className="bg-card border rounded-lg p-12 text-center">
+                <UserGear size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-xl font-semibold mb-2">No Employees in System</h3>
+                <p className="text-muted-foreground mb-6">
+                  Load sample employee data to get started with team management
+                </p>
+                <Button onClick={handleLoadSampleData}>
+                  Load Sample Data
+                </Button>
+              </div>
+            ) : (
+              <EmployeeManagement
+                employees={safeEmployees}
+                skillMatrix={safeSkillMatrix}
+                schedules={safeSchedules}
+                messages={safeMessages}
+                workOrders={safeWorkOrders}
+                onUpdateEmployee={handleUpdateEmployee}
+                onAddEmployee={handleAddEmployee}
+                onUpdateSkill={handleUpdateSkill}
+                onUpdateSchedule={handleUpdateSchedule}
+                onSendMessage={handleSendMessage}
               />
             )}
           </TabsContent>
