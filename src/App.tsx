@@ -28,6 +28,7 @@ import { EmployeeManagement } from '@/components/EmployeeManagement'
 import { CertificationReminders } from '@/components/CertificationReminders'
 import { AssetsAreasManagement } from '@/components/AssetsAreasManagement'
 import { EnhancedAutoSchedulerDialog } from '@/components/EnhancedAutoSchedulerDialog'
+import { NewWorkOrderDialog } from '@/components/NewWorkOrderDialog'
 import { 
   Wrench, 
   ClipboardText, 
@@ -73,6 +74,8 @@ function App() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [autoSchedulerOpen, setAutoSchedulerOpen] = useState(false)
+  const [newWorkOrderOpen, setNewWorkOrderOpen] = useState(false)
+  const [cloneWorkOrder, setCloneWorkOrder] = useState<WorkOrder | null>(null)
   const [activeTab, setActiveTab] = useState('tracking')
 
   useEffect(() => {
@@ -120,6 +123,15 @@ function App() {
 
   const handleGenerateWorkOrders = (newWorkOrders: WorkOrder[]) => {
     setWorkOrders((current) => [...(current || []), ...newWorkOrders])
+  }
+
+  const handleCreateWorkOrder = (workOrder: WorkOrder) => {
+    setWorkOrders((current) => [...(current || []), workOrder])
+  }
+
+  const handleCloneWorkOrder = (workOrder: WorkOrder) => {
+    setCloneWorkOrder(workOrder)
+    setNewWorkOrderOpen(true)
   }
 
   const handleImportComplete = (data: ExcelImportData) => {
@@ -279,6 +291,13 @@ function App() {
                   </Button>
                 </>
               )}
+              <Button 
+                onClick={() => setNewWorkOrderOpen(true)}
+                className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus size={18} weight="bold" />
+                New Work Order
+              </Button>
               <Button variant="outline" onClick={() => setImportOpen(true)}>
                 <UploadSimple size={18} />
                 Import Excel
@@ -353,15 +372,24 @@ function App() {
                   Track and manage maintenance tasks across all equipment
                 </p>
               </div>
-              {overdueCount > 0 && (
+              <div className="flex gap-2">
                 <Button 
-                  onClick={() => setAutoSchedulerOpen(true)}
-                  className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+                  onClick={() => setNewWorkOrderOpen(true)}
+                  className="gap-2"
                 >
-                  <Sparkle size={18} weight="fill" />
-                  Auto-Schedule {overdueCount} Overdue
+                  <Plus size={18} weight="bold" />
+                  New Work Order
                 </Button>
-              )}
+                {overdueCount > 0 && (
+                  <Button 
+                    onClick={() => setAutoSchedulerOpen(true)}
+                    className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+                  >
+                    <Sparkle size={18} weight="fill" />
+                    Auto-Schedule {overdueCount} Overdue
+                  </Button>
+                )}
+              </div>
             </div>
 
             {safeWorkOrders.length === 0 ? (
@@ -369,10 +397,14 @@ function App() {
                 <Wrench size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
                 <h3 className="text-xl font-semibold mb-2">No Work Orders Yet</h3>
                 <p className="text-muted-foreground mb-6">
-                  Import Excel/CSV data or load sample work orders to get started
+                  Create a new work order, import Excel/CSV data, or load sample work orders to get started
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Button onClick={() => setImportOpen(true)}>
+                  <Button onClick={() => setNewWorkOrderOpen(true)}>
+                    <Plus size={18} />
+                    Create Work Order
+                  </Button>
+                  <Button variant="outline" onClick={() => setImportOpen(true)}>
                     <UploadSimple size={18} />
                     Import Excel/CSV
                   </Button>
@@ -623,6 +655,7 @@ function App() {
           setSelectedWorkOrder(null)
         }}
         onUpdate={handleUpdateWorkOrder}
+        onClone={handleCloneWorkOrder}
         sparesLabor={safeSparesLabor}
         allWorkOrders={safeWorkOrders}
         employees={safeEmployees}
@@ -648,6 +681,21 @@ function App() {
         onClose={() => {}}
         workOrders={safeWorkOrders}
         onScheduleComplete={handleAutoScheduleComplete}
+      />
+
+      <NewWorkOrderDialog
+        open={newWorkOrderOpen}
+        onClose={() => {
+          setNewWorkOrderOpen(false)
+          setCloneWorkOrder(null)
+        }}
+        onCreateWorkOrder={handleCreateWorkOrder}
+        workOrders={safeWorkOrders}
+        employees={safeEmployees}
+        skillMatrix={safeSkillMatrix}
+        sops={safeSOPs}
+        sparesLabor={safeSparesLabor}
+        cloneFrom={cloneWorkOrder}
       />
     </div>
   )

@@ -44,6 +44,7 @@ interface WorkOrderDetailProps {
   open: boolean
   onClose: () => void
   onUpdate: (id: string, updates: Partial<WorkOrder>) => void
+  onClone?: (workOrder: WorkOrder) => void
   sparesLabor: SparesLabor[]
   allWorkOrders: WorkOrder[]
   employees?: Employee[]
@@ -56,6 +57,7 @@ export function WorkOrderDetail({
   open, 
   onClose, 
   onUpdate,
+  onClone,
   sparesLabor,
   allWorkOrders,
   employees = [],
@@ -598,9 +600,23 @@ export function WorkOrderDetail({
                     </Button>
                   </>
                 ) : (
-                  <Button onClick={() => setEditMode(true)} className="flex-1">
-                    Edit Work Order
+                  <>
+                    <Button onClick={() => setEditMode(true)} className="flex-1">
+                      Edit Work Order
                     </Button>
+                    {onClone && (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          onClone(workOrder)
+                          onClose()
+                        }} 
+                        className="flex-1"
+                      >
+                        Clone
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
