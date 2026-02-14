@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { Employee, SkillMatrixEntry, EmployeeSchedule, Message, WorkOrder } from '@/lib/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -15,7 +15,8 @@ import {
   ChatCircle,
   Plus,
   MagnifyingGlass,
-  FunnelSimple
+  FunnelSimple,
+  UserPlus
 } from '@phosphor-icons/react'
 import { EmployeeDirectory } from './EmployeeDirectory'
 import { SkillMatrix } from './SkillMatrix'
@@ -23,6 +24,7 @@ import { EmployeeScheduleView } from './EmployeeScheduleView'
 import { EmployeeAnalyticsDashboard } from './EmployeeAnalyticsDashboard'
 import { MessagingSystem } from './MessagingSystem'
 import { EmployeeDetailDialog } from './EmployeeDetailDialog'
+import { AddEmployeeWizard } from './wizards/AddEmployeeWizard'
 
 interface EmployeeManagementProps {
   employees: Employee[]
@@ -52,6 +54,7 @@ export function EmployeeManagement({
   const [activeTab, setActiveTab] = useState('directory')
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [addWizardOpen, setAddWizardOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
   const handleSelectEmployee = (employee: Employee) => {
@@ -59,8 +62,23 @@ export function EmployeeManagement({
     setDetailOpen(true)
   }
 
+  const handleAddEmployeeComplete = (employee: Employee) => {
+    onAddEmployee(employee)
+    setAddWizardOpen(false)
+  }
+
   const activeEmployees = employees.filter(e => e.status === 'Active')
   const totalEmployees = employees.length
+
+  const existingDepartments = useMemo(() => 
+    Array.from(new Set(employees.map(e => e.department))).sort(),
+    [employees]
+  )
+
+  const existingPositions = useMemo(() => 
+    Array.from(new Set(employees.map(e => e.position))).sort(),
+    [employees]
+  )
 
   return (
     <div className="space-y-6">
@@ -72,6 +90,13 @@ export function EmployeeManagement({
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button 
+            onClick={() => setAddWizardOpen(true)}
+            className="gap-2"
+          >
+            <UserPlus size={18} weight="bold" />
+            Add Employee
+          </Button>
           <div className="flex items-center gap-2 px-4 py-2 bg-card rounded-lg border">
             <Users size={20} className="text-primary" weight="fill" />
             <div className="text-sm">
@@ -171,6 +196,16 @@ export function EmployeeManagement({
         onUpdate={onUpdateEmployee}
         skillMatrix={skillMatrix.filter(s => s.employee_id === selectedEmployee?.employee_id)}
         schedules={schedules.filter(s => s.employee_id === selectedEmployee?.employee_id)}
+        existingDepartments={existingDepartments}
+        existingPositions={existingPositions}
+      />
+
+      <AddEmployeeWizard
+        open={addWizardOpen}
+        onClose={() => setAddWizardOpen(false)}
+        onComplete={handleAddEmployeeComplete}
+        existingDepartments={existingDepartments}
+        existingPositions={existingPositions}
       />
     </div>
   )

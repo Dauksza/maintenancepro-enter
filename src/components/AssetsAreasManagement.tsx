@@ -24,6 +24,8 @@ import {
   Users
 } from '@phosphor-icons/react'
 import { AddAssetWizard } from '@/components/wizards/AddAssetWizard'
+import { AddAreaWizard } from '@/components/wizards/AddAreaWizard'
+import { AddSkillWizard } from '@/components/wizards/AddSkillWizard'
 import { toast } from 'sonner'
 
 interface AssetsAreasManagementProps {
@@ -60,60 +62,6 @@ export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps)
   const handleAddSkill = (skill: Skill) => {
     setSkills((current) => [...(current || []), skill])
     toast.success('Skill added successfully')
-  }
-
-  const handleQuickAddArea = () => {
-    const areaName = prompt('Enter area name:')
-    if (!areaName) return
-
-    const department = prompt('Enter department:')
-    if (!department) return
-
-    const zone = prompt('Enter zone:')
-    if (!zone) return
-
-    const newArea: Area = {
-      area_id: `AREA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      area_name: areaName.trim(),
-      department: department.trim(),
-      zone: zone.trim(),
-      parent_area_id: null,
-      assigned_employee_ids: [],
-      asset_ids: [],
-      priority_task_ids: [],
-      capacity_hours_per_day: 40,
-      notes: '',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-
-    handleAddArea(newArea)
-  }
-
-  const handleQuickAddSkill = () => {
-    const skillName = prompt('Enter skill name:')
-    if (!skillName) return
-
-    const skillCategory = prompt('Enter skill category:')
-    if (!skillCategory) return
-
-    const requiresCert = confirm('Does this skill require certification?')
-
-    const newSkill: Skill = {
-      skill_id: `SKILL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      skill_name: skillName.trim(),
-      skill_category: skillCategory.trim(),
-      description: '',
-      requires_certification: requiresCert,
-      certification_duration_days: requiresCert ? 365 : null,
-      linked_sop_ids: [],
-      required_for_asset_ids: [],
-      required_for_task_ids: [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-
-    handleAddSkill(newSkill)
   }
 
   const filteredAssets = safeAssets.filter(asset =>
@@ -259,7 +207,7 @@ export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps)
                     Zones, departments, and locations
                   </CardDescription>
                 </div>
-                <Button onClick={handleQuickAddArea} className="gap-2">
+                <Button onClick={() => setAreaWizardOpen(true)} className="gap-2">
                   <Plus size={18} />
                   Add Area
                 </Button>
@@ -283,7 +231,7 @@ export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps)
                   <p className="text-muted-foreground mb-4">
                     Create areas to organize work by location or department
                   </p>
-                  <Button onClick={handleQuickAddArea}>
+                  <Button onClick={() => setAreaWizardOpen(true)}>
                     <Plus size={18} />
                     Add First Area
                   </Button>
@@ -342,7 +290,7 @@ export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps)
                     Technical skills and certifications
                   </CardDescription>
                 </div>
-                <Button onClick={handleQuickAddSkill} className="gap-2">
+                <Button onClick={() => setSkillWizardOpen(true)} className="gap-2">
                   <Plus size={18} />
                   Add Skill
                 </Button>
@@ -366,7 +314,7 @@ export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps)
                   <p className="text-muted-foreground mb-4">
                     Define skills to track employee competencies
                   </p>
-                  <Button onClick={handleQuickAddSkill}>
+                  <Button onClick={() => setSkillWizardOpen(true)}>
                     <Plus size={18} />
                     Add First Skill
                   </Button>
@@ -418,6 +366,22 @@ export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps)
         areas={safeAreas}
         skills={safeSkills}
         employees={employees}
+      />
+
+      <AddAreaWizard
+        open={areaWizardOpen}
+        onClose={() => setAreaWizardOpen(false)}
+        onComplete={handleAddArea}
+        existingDepartments={Array.from(new Set(safeAreas.map(a => a.department)))}
+        existingZones={Array.from(new Set(safeAreas.map(a => a.zone)))}
+        employees={employees}
+      />
+
+      <AddSkillWizard
+        open={skillWizardOpen}
+        onClose={() => setSkillWizardOpen(false)}
+        onComplete={handleAddSkill}
+        existingCategories={Array.from(new Set(safeSkills.map(s => s.skill_category)))}
       />
     </div>
   )

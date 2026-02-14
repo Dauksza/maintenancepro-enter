@@ -26,7 +26,6 @@ import { CalendarView } from '@/components/CalendarView'
 import { TimelineView } from '@/components/TimelineView'
 import { ResourceAllocationView } from '@/components/ResourceAllocationView'
 import { CapacityPlanning } from '@/components/CapacityPlanning'
-import { AutoSchedulerDialog } from '@/components/AutoSchedulerDialog'
 import { EmployeeManagement } from '@/components/EmployeeManagement'
 import { CertificationReminders } from '@/components/CertificationReminders'
 import { AssetsAreasManagement } from '@/components/AssetsAreasManagement'
@@ -853,16 +852,9 @@ function App() {
         onImportComplete={handleImportComplete}
       />
 
-      <AutoSchedulerDialog
+      <EnhancedAutoSchedulerDialog
         open={autoSchedulerOpen}
         onClose={() => setAutoSchedulerOpen(false)}
-        workOrders={safeWorkOrders}
-        onScheduleComplete={handleAutoScheduleComplete}
-      />
-
-      <EnhancedAutoSchedulerDialog
-        open={false}
-        onClose={() => {}}
         workOrders={safeWorkOrders}
         onScheduleComplete={handleAutoScheduleComplete}
       />

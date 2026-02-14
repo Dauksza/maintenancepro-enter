@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Employee, SkillMatrixEntry, EmployeeSchedule } from '@/lib/types'
 import {
   Dialog,
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 import { 
   Phone, 
   EnvelopeSimple, 
@@ -17,9 +19,11 @@ import {
   Certificate,
   User,
   Briefcase,
-  Clock
+  Clock,
+  PencilSimple
 } from '@phosphor-icons/react'
 import { getEmployeeFullName } from '@/lib/employee-utils'
+import { EditEmployeeDialog } from './EditEmployeeDialog'
 
 interface EmployeeDetailDialogProps {
   employee: Employee | null
@@ -28,6 +32,8 @@ interface EmployeeDetailDialogProps {
   onUpdate: (id: string, updates: Partial<Employee>) => void
   skillMatrix: SkillMatrixEntry[]
   schedules: EmployeeSchedule[]
+  existingDepartments?: string[]
+  existingPositions?: string[]
 }
 
 export function EmployeeDetailDialog({
@@ -36,8 +42,12 @@ export function EmployeeDetailDialog({
   onClose,
   onUpdate,
   skillMatrix,
-  schedules
+  schedules,
+  existingDepartments = [],
+  existingPositions = []
 }: EmployeeDetailDialogProps) {
+  const [editOpen, setEditOpen] = useState(false)
+  
   if (!employee) return null
 
   const getInitials = (emp: Employee) => {
@@ -79,31 +89,41 @@ export function EmployeeDetailDialog({
   const totalHoursThisWeek = recentSchedules.reduce((sum, s) => sum + s.hours, 0)
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-start gap-4">
-            <Avatar className="h-16 w-16 bg-primary/10">
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xl">
-                {getInitials(employee)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <DialogTitle className="text-2xl">{getEmployeeFullName(employee)}</DialogTitle>
-              <DialogDescription className="text-base mt-1">
-                {employee.position} • {employee.department}
-              </DialogDescription>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="outline" className={getStatusColor(employee.status)}>
-                  {employee.status}
-                </Badge>
-                <Badge variant="secondary">{employee.shift}</Badge>
+    <>
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-start gap-4">
+              <Avatar className="h-16 w-16 bg-primary/10">
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xl">
+                  {getInitials(employee)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <DialogTitle className="text-2xl">{getEmployeeFullName(employee)}</DialogTitle>
+                <DialogDescription className="text-base mt-1">
+                  {employee.position} • {employee.department}
+                </DialogDescription>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className={getStatusColor(employee.status)}>
+                    {employee.status}
+                  </Badge>
+                  <Badge variant="secondary">{employee.shift}</Badge>
+                </div>
               </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => setEditOpen(true)}
+              >
+                <PencilSimple size={16} />
+                Edit
+              </Button>
             </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
-        <Tabs defaultValue="info" className="mt-6">
+          <Tabs defaultValue="info" className="mt-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="info">Contact Info</TabsTrigger>
             <TabsTrigger value="skills">Skills</TabsTrigger>
@@ -326,5 +346,15 @@ export function EmployeeDetailDialog({
         </Tabs>
       </DialogContent>
     </Dialog>
+
+    <EditEmployeeDialog
+      employee={employee}
+      open={editOpen}
+      onClose={() => setEditOpen(false)}
+      onSave={onUpdate}
+      existingDepartments={existingDepartments}
+      existingPositions={existingPositions}
+    />
+  </>
   )
 }
