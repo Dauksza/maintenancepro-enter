@@ -650,3 +650,127 @@ export interface FormAnalytics {
   top_issues: Array<{ issue: string; count: number }>
   corrective_actions_pending: number
 }
+
+export type UserRole = 'Admin' | 'Manager' | 'Supervisor' | 'Technician' | 'Viewer'
+
+export interface Permission {
+  resource: string
+  actions: Array<'create' | 'read' | 'update' | 'delete' | 'execute'>
+}
+
+export interface RolePermissions {
+  role: UserRole
+  permissions: Permission[]
+  can_view_tabs: string[]
+  can_edit_own_data: boolean
+  can_edit_all_data: boolean
+  can_approve: boolean
+  can_manage_users: boolean
+  can_configure_system: boolean
+}
+
+export interface UserProfile {
+  user_id: string
+  employee_id: string | null
+  username: string
+  display_name: string
+  email: string
+  role: UserRole
+  avatar_url?: string
+  is_owner: boolean
+  preferences: UserPreferences
+  created_at: string
+  updated_at: string
+  last_login_at: string
+}
+
+export interface UserPreferences {
+  theme?: 'light' | 'dark'
+  dashboard_layout: DashboardWidget[]
+  default_view?: string
+  notifications_enabled: boolean
+  email_notifications: boolean
+  show_completed_work_orders: boolean
+  items_per_page: number
+  timezone?: string
+  language?: string
+}
+
+export type DashboardWidgetType = 
+  | 'work-orders-overview'
+  | 'overdue-tasks'
+  | 'my-assignments'
+  | 'certifications'
+  | 'analytics-chart'
+  | 'capacity-planning'
+  | 'recent-activity'
+  | 'parts-inventory'
+  | 'upcoming-maintenance'
+  | 'notifications'
+  | 'quick-stats'
+  | 'calendar'
+
+export interface DashboardWidget {
+  widget_id: string
+  type: DashboardWidgetType
+  title: string
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+  visible: boolean
+  config?: Record<string, unknown>
+  refresh_interval?: number
+}
+
+export type SearchResultType = 
+  | 'work-order'
+  | 'employee'
+  | 'asset'
+  | 'part'
+  | 'sop'
+  | 'form-template'
+  | 'form-submission'
+  | 'area'
+
+export interface SearchResult {
+  id: string
+  type: SearchResultType
+  title: string
+  subtitle?: string
+  description?: string
+  status?: string
+  priority?: string
+  metadata?: Record<string, string>
+  url?: string
+  score: number
+  highlight?: string
+}
+
+export interface SearchFilters {
+  types?: SearchResultType[]
+  status?: string[]
+  date_range?: { start: string; end: string }
+  assigned_to?: string
+  created_by?: string
+  priority?: PriorityLevel[]
+}
+
+export interface GlobalSearchQuery {
+  query: string
+  filters: SearchFilters
+  limit: number
+  offset: number
+}
+
+export interface AuditLogEntry {
+  log_id: string
+  user_id: string
+  user_name: string
+  action: string
+  resource_type: string
+  resource_id: string
+  resource_name: string
+  changes?: Record<string, { old: unknown; new: unknown }>
+  ip_address?: string
+  user_agent?: string
+  timestamp: string
+}

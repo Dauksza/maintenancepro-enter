@@ -14,7 +14,9 @@ import type {
   PartInventoryItem,
   PartTransaction,
   FormTemplate,
-  FormSubmission
+  FormSubmission,
+  UserRole,
+  UserProfile
 } from '@/lib/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -39,6 +41,9 @@ import { NotificationToastManager } from '@/components/NotificationToastManager'
 import { NotificationPreferencesDialog, type NotificationPreferences } from '@/components/NotificationPreferences'
 import { PartsInventory } from '@/components/PartsInventory'
 import { FormsInspections } from '@/components/FormsInspections'
+import { GlobalSearch } from '@/components/GlobalSearch'
+import { CustomizableDashboard } from '@/components/CustomizableDashboard'
+import { UserProfileMenu } from '@/components/UserProfileMenu'
 import { 
   Wrench, 
   ClipboardText, 
@@ -55,7 +60,9 @@ import {
   Certificate,
   Package,
   Toolbox,
-  CheckSquare
+  CheckSquare,
+  MagnifyingGlass,
+  House
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -81,6 +88,7 @@ import {
   markNotificationAsAccepted,
   markNotificationAsRejected
 } from '@/lib/notification-utils'
+import { canViewTab, hasPermission } from '@/lib/permissions'
 import { toast } from 'sonner'
 
 function App() {
@@ -97,6 +105,7 @@ function App() {
   const [partTransactions, setPartTransactions] = useKV<PartTransaction[]>('part-transactions', [])
   const [formTemplates, setFormTemplates] = useKV<FormTemplate[]>('form-templates', generatePremadeTemplates())
   const [formSubmissions, setFormSubmissions] = useKV<FormSubmission[]>('form-submissions', [])
+  const [userProfile, setUserProfile] = useKV<UserProfile | null>('user-profile', null)
   const [notificationPreferences, setNotificationPreferences] = useKV<NotificationPreferences>(
     'notification-preferences',
     {
@@ -120,7 +129,26 @@ function App() {
   const [autoSchedulerOpen, setAutoSchedulerOpen] = useState(false)
   const [newWorkOrderOpen, setNewWorkOrderOpen] = useState(false)
   const [cloneWorkOrder, setCloneWorkOrder] = useState<WorkOrder | null>(null)
-  const [activeTab, setActiveTab] = useState('tracking')
+  const [activeTab, setActiveTab] = useState('dashboard')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Technician')
+
+  useEffect(() => {
+    if (userProfile?.role) {
+      setCurrentUserRole(userProfile.role)
+    }
+  }, [userProfile])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -385,6 +413,15 @@ function App() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setSearchOpen(true)}
+                className="gap-2 min-w-[240px] justify-start text-muted-foreground"
+              >
+                <MagnifyingGlass size={18} />
+                Search...
+                <kbd className="ml-auto px-2 py-1 text-xs bg-muted rounded">⌘K</kbd>
+              </Button>
               <NotificationPreferencesDialog
                 preferences={notificationPreferences || {
                   enabled: true,
@@ -421,7 +458,7 @@ function App() {
                   {certificationCounts.critical} Cert{certificationCounts.critical === 1 ? '' : 's'} Expiring
                 </Button>
               )}
-              {overdueCount > 0 && (
+              {overdueCount > 0 && hasPermission(currentUserRole, 'schedules', 'execute') && (
                 <>
                   <div className="bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-semibold animate-pulse">
                     {overdueCount} Overdue
@@ -435,29 +472,16 @@ function App() {
                   </Button>
                 </>
               )}
-              <Button 
-                onClick={() => setNewWorkOrderOpen(true)}
-                className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <Plus size={18} weight="bold" />
-                New Work Order
-              </Button>
-              <Button variant="outline" onClick={() => setImportOpen(true)}>
-                <UploadSimple size={18} />
-                Import Excel
-              </Button>
-              {(safeWorkOrders.length > 0 || safeSOPs.length > 0 || safeSparesLabor.length > 0) && (
-                <Button variant="outline" onClick={handleExportData}>
-                  <DownloadSimple size={18} />
-                  Export Excel
+              {hasPermission(currentUserRole, 'work-orders', 'create') && (
+                <Button 
+                  onClick={() => setNewWorkOrderOpen(true)}
+                  className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus size={18} weight="bold" />
+                  New Work Order
                 </Button>
               )}
-              {safeWorkOrders.length === 0 && (
-                <Button onClick={handleLoadSampleData}>
-                  <Plus size={18} />
-                  Load Sample Data
-                </Button>
-              )}
+              <UserProfileMenu onRoleChange={setCurrentUserRole} />
             </div>
           </div>
         </div>
@@ -465,56 +489,95 @@ function App() {
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-7xl grid-cols-12">
-            <TabsTrigger value="tracking" className="flex items-center gap-2">
-              <Wrench size={18} />
-              Tracking
+          <TabsList className="grid w-full max-w-7xl grid-cols-13">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <House size={18} />
+              Dashboard
             </TabsTrigger>
-            <TabsTrigger value="timeline" className="flex items-center gap-2">
-              <ChartLineUp size={18} />
-              Timeline
-            </TabsTrigger>
-            <TabsTrigger value="resources" className="flex items-center gap-2">
-              <Users size={18} />
-              Resources
-            </TabsTrigger>
-            <TabsTrigger value="capacity" className="flex items-center gap-2">
-              <Gauge size={18} />
-              Capacity
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="flex items-center gap-2">
-              <CalendarBlank size={18} />
-              Calendar
-            </TabsTrigger>
-            <TabsTrigger value="employees" className="flex items-center gap-2">
-              <UserGear size={18} />
-              Employees
-            </TabsTrigger>
-            <TabsTrigger value="assets" className="flex items-center gap-2">
-              <Package size={18} />
-              Assets
-            </TabsTrigger>
-            <TabsTrigger value="parts" className="flex items-center gap-2">
-              <Toolbox size={18} />
-              Parts
-            </TabsTrigger>
-            <TabsTrigger value="forms" className="flex items-center gap-2">
-              <CheckSquare size={18} />
-              Forms
-            </TabsTrigger>
-            <TabsTrigger value="certifications" className="flex items-center gap-2">
-              <Certificate size={18} />
-              Certs
-            </TabsTrigger>
-            <TabsTrigger value="sops" className="flex items-center gap-2">
-              <ClipboardText size={18} />
-              SOPs
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <ChartBar size={18} />
-              Analytics
-            </TabsTrigger>
+            {canViewTab(currentUserRole, 'tracking') && (
+              <TabsTrigger value="tracking" className="flex items-center gap-2">
+                <Wrench size={18} />
+                Tracking
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'timeline') && (
+              <TabsTrigger value="timeline" className="flex items-center gap-2">
+                <ChartLineUp size={18} />
+                Timeline
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'resources') && (
+              <TabsTrigger value="resources" className="flex items-center gap-2">
+                <Users size={18} />
+                Resources
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'capacity') && (
+              <TabsTrigger value="capacity" className="flex items-center gap-2">
+                <Gauge size={18} />
+                Capacity
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'calendar') && (
+              <TabsTrigger value="calendar" className="flex items-center gap-2">
+                <CalendarBlank size={18} />
+                Calendar
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'employees') && (
+              <TabsTrigger value="employees" className="flex items-center gap-2">
+                <UserGear size={18} />
+                Employees
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'assets') && (
+              <TabsTrigger value="assets" className="flex items-center gap-2">
+                <Package size={18} />
+                Assets
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'parts') && (
+              <TabsTrigger value="parts" className="flex items-center gap-2">
+                <Toolbox size={18} />
+                Parts
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'forms') && (
+              <TabsTrigger value="forms" className="flex items-center gap-2">
+                <CheckSquare size={18} />
+                Forms
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'certifications') && (
+              <TabsTrigger value="certifications" className="flex items-center gap-2">
+                <Certificate size={18} />
+                Certs
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'sops') && (
+              <TabsTrigger value="sops" className="flex items-center gap-2">
+                <ClipboardText size={18} />
+                SOPs
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'analytics') && (
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <ChartBar size={18} />
+                Analytics
+              </TabsTrigger>
+            )}
           </TabsList>
+
+          <TabsContent value="dashboard" className="space-y-6 animate-fade-in">
+            <CustomizableDashboard
+              workOrders={safeWorkOrders}
+              employees={safeEmployees}
+              parts={parts || []}
+              certifications={reminders || []}
+              onSelectWorkOrder={handleSelectWorkOrder}
+              userEmployeeId={userProfile?.employee_id || undefined}
+            />
+          </TabsContent>
 
           <TabsContent value="tracking" className="space-y-6 animate-fade-in">
             <div className="flex items-center justify-between">
@@ -923,6 +986,19 @@ function App() {
           }}
         />
       )}
+
+      <GlobalSearch
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        workOrders={safeWorkOrders}
+        employees={safeEmployees}
+        assets={[]}
+        parts={parts || []}
+        sops={safeSOPs}
+        formTemplates={formTemplates || []}
+        formSubmissions={formSubmissions || []}
+        onSelectWorkOrder={handleSelectWorkOrder}
+      />
     </div>
   )
 }
