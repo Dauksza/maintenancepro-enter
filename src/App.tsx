@@ -426,6 +426,22 @@ function App() {
                 Search...
                 <kbd className="ml-auto px-2 py-1 text-xs bg-muted rounded">⌘K</kbd>
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => setImportOpen(true)}
+                className="gap-2"
+              >
+                <UploadSimple size={18} />
+                Import
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleExportData}
+                className="gap-2"
+              >
+                <DownloadSimple size={18} />
+                Export
+              </Button>
               <NotificationPreferencesDialog
                 preferences={notificationPreferences || {
                   enabled: true,
@@ -485,7 +501,11 @@ function App() {
                   New Work Order
                 </Button>
               )}
-              <UserProfileMenu onRoleChange={setCurrentUserRole} />
+              <UserProfileMenu 
+                onRoleChange={setCurrentUserRole}
+                onOpenImport={() => setImportOpen(true)}
+                onExportData={handleExportData}
+              />
             </div>
           </div>
         </div>

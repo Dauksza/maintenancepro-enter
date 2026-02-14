@@ -11,6 +11,16 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -23,14 +33,22 @@ import {
 } from '@phosphor-icons/react'
 import type { UserProfile, UserRole } from '@/lib/types'
 import { DEFAULT_USER_PREFERENCES } from '@/lib/permissions'
+import { ViewProfileDialog } from '@/components/ViewProfileDialog'
+import { SettingsDialog } from '@/components/SettingsDialog'
+import { toast } from 'sonner'
 
 interface UserProfileMenuProps {
   onRoleChange?: (role: UserRole) => void
+  onOpenImport?: () => void
+  onExportData?: () => void
 }
 
-export function UserProfileMenu({ onRoleChange }: UserProfileMenuProps) {
+export function UserProfileMenu({ onRoleChange, onOpenImport, onExportData }: UserProfileMenuProps) {
   const [userProfile, setUserProfile] = useKV<UserProfile | null>('user-profile', null)
   const [githubUser, setGithubUser] = useState<any>(null)
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false)
 
   useEffect(() => {
     async function loadUser() {
@@ -84,6 +102,14 @@ export function UserProfileMenu({ onRoleChange }: UserProfileMenuProps) {
       }
     })
     onRoleChange?.(newRole)
+  }
+
+  const handleSignOut = () => {
+    setUserProfile(null)
+    toast.success('Signed out successfully')
+    setTimeout(() => {
+      window.location.reload()
+    }, 500)
   }
 
   const getRoleColor = (role: UserRole) => {
@@ -180,23 +206,53 @@ export function UserProfileMenu({ onRoleChange }: UserProfileMenuProps) {
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
-        <DropdownMenuItem className="gap-2">
+        <DropdownMenuItem className="gap-2" onClick={() => setProfileDialogOpen(true)}>
           <UserCircle size={16} />
           View Profile
         </DropdownMenuItem>
         
-        <DropdownMenuItem className="gap-2">
+        <DropdownMenuItem className="gap-2" onClick={() => setSettingsDialogOpen(true)}>
           <GearSix size={16} />
           Settings
         </DropdownMenuItem>
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive">
+        <DropdownMenuItem 
+          className="gap-2 text-destructive focus:text-destructive"
+          onClick={() => setSignOutDialogOpen(true)}
+        >
           <SignOut size={16} />
           Sign Out
         </DropdownMenuItem>
       </DropdownMenuContent>
+
+      <ViewProfileDialog 
+        open={profileDialogOpen} 
+        onClose={() => setProfileDialogOpen(false)} 
+      />
+
+      <SettingsDialog
+        open={settingsDialogOpen}
+        onClose={() => setSettingsDialogOpen(false)}
+        onOpenImport={onOpenImport}
+        onExportData={onExportData}
+      />
+
+      <AlertDialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign Out</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to sign out? Your data is saved and will be available when you return.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSignOut}>Sign Out</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DropdownMenu>
   )
 }
