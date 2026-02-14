@@ -13,6 +13,7 @@ import { CalendarView } from '@/components/CalendarView'
 import { TimelineView } from '@/components/TimelineView'
 import { ResourceAllocationView } from '@/components/ResourceAllocationView'
 import { CapacityPlanning } from '@/components/CapacityPlanning'
+import { AutoSchedulerDialog } from '@/components/AutoSchedulerDialog'
 import { 
   Wrench, 
   ClipboardText, 
@@ -23,7 +24,8 @@ import {
   CalendarBlank,
   ChartLineUp,
   Users,
-  Gauge
+  Gauge,
+  Sparkle
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -42,6 +44,7 @@ function App() {
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [autoSchedulerOpen, setAutoSchedulerOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('tracking')
 
   useEffect(() => {
@@ -128,6 +131,24 @@ function App() {
     }
   }
 
+  const handleAutoScheduleComplete = (scheduledOrders: WorkOrder[]) => {
+    setWorkOrders((current) => {
+      const currentOrders = current || []
+      const updatedOrders = [...currentOrders]
+      
+      scheduledOrders.forEach(scheduledOrder => {
+        const index = updatedOrders.findIndex(
+          wo => wo.work_order_id === scheduledOrder.work_order_id
+        )
+        if (index !== -1) {
+          updatedOrders[index] = scheduledOrder
+        }
+      })
+      
+      return updatedOrders
+    })
+  }
+
   const safeWorkOrders = workOrders || []
   const safeSOPs = sops || []
   const safeSparesLabor = sparesLabor || []
@@ -150,9 +171,18 @@ function App() {
             </div>
             <div className="flex items-center gap-3">
               {overdueCount > 0 && (
-                <div className="bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-semibold animate-pulse">
-                  {overdueCount} Overdue
-                </div>
+                <>
+                  <div className="bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-semibold animate-pulse">
+                    {overdueCount} Overdue
+                  </div>
+                  <Button 
+                    onClick={() => setAutoSchedulerOpen(true)}
+                    className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+                  >
+                    <Sparkle size={18} weight="fill" />
+                    Auto-Schedule
+                  </Button>
+                </>
               )}
               <Button variant="outline" onClick={() => setImportOpen(true)}>
                 <UploadSimple size={18} />
@@ -216,6 +246,15 @@ function App() {
                   Track and manage maintenance tasks across all equipment
                 </p>
               </div>
+              {overdueCount > 0 && (
+                <Button 
+                  onClick={() => setAutoSchedulerOpen(true)}
+                  className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+                >
+                  <Sparkle size={18} weight="fill" />
+                  Auto-Schedule {overdueCount} Overdue
+                </Button>
+              )}
             </div>
 
             {safeWorkOrders.length === 0 ? (
@@ -432,6 +471,13 @@ function App() {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onImportComplete={handleImportComplete}
+      />
+
+      <AutoSchedulerDialog
+        open={autoSchedulerOpen}
+        onClose={() => setAutoSchedulerOpen(false)}
+        workOrders={safeWorkOrders}
+        onScheduleComplete={handleAutoScheduleComplete}
       />
     </div>
   )
