@@ -224,7 +224,7 @@ function scheduleWorkOrder(
   const targetArea = areas.find(a => a.area_id === workOrder.area_id || a.area_name === workOrder.equipment_area)
 
   const eligibleEmployees = employees.filter(emp => {
-    if (options.considerSkills && requiredSkills.length > 0) {
+    if (options.considerSkills && requiredSkills.length > 0 && skillMatrix.length > 0) {
       const empSkills = skillMatrix.filter(sm => sm.employee_id === emp.employee_id)
       const hasRequiredSkills = requiredSkills.every(reqSkill => {
         const empSkill = empSkills.find(es => es.skill_name === reqSkill.skill_name)
@@ -233,10 +233,10 @@ function scheduleWorkOrder(
         return SKILL_LEVEL_WEIGHTS[empSkill.level] >= SKILL_LEVEL_WEIGHTS[options.minSkillLevel]
       })
       
-      if (!hasRequiredSkills) return false
+      if (!hasRequiredSkills && !options.allowPartialMatch) return false
     }
 
-    if (options.considerAreas && targetArea) {
+    if (options.considerAreas && targetArea && targetArea.assigned_employee_ids.length > 0) {
       if (!targetArea.assigned_employee_ids.includes(emp.employee_id)) {
         return options.allowPartialMatch
       }
@@ -246,16 +246,34 @@ function scheduleWorkOrder(
   })
 
   if (eligibleEmployees.length === 0) {
+    let reason = 'No eligible employees'
+    if (options.considerSkills && requiredSkills.length > 0) {
+      reason = `No employees with required skills: ${requiredSkills.map(s => s.skill_name).join(', ')}`
+    } else if (options.considerAreas && targetArea) {
+      reason = `No employees assigned to area: ${targetArea.area_name}`
+    }
+    
     conflicts.push({
       conflict_type: 'skill_mismatch',
       severity: 'error',
-      description: 'No employees with required skills available',
+      description: reason,
       work_order_id: workOrder.work_order_id,
-      suggested_resolution: 'Assign employees with required skills or allow partial matches'
+      suggested_resolution: 'Assign employees with required skills/areas or enable partial matches'
     })
     
-    return { success: false, reason: 'No eligible employees', conflicts }
+    return { success: false, reason, conflicts }
   }
+
+  type ScoredEmployee = {
+    employee: Employee
+    score: SchedulingScore
+    date: Date
+    dateStr: string
+    currentLoad: number
+    dailyLimit: number
+  }
+
+  const candidates: ScoredEmployee[] = []
 
   for (let dayOffset = 0; dayOffset <= maxDaysAhead; dayOffset++) {
     const candidateDate = addDays(startDate, dayOffset)
@@ -284,53 +302,70 @@ function scheduleWorkOrder(
           dailyLimit
         )
 
-        const scheduledWorkOrder: WorkOrder = {
-          ...workOrder,
-          assigned_technician: empName,
-          scheduled_date: dateStr,
-          status: 'Scheduled (Not Started)',
-          updated_at: new Date().toISOString()
-        }
-
-        const currentCapacity = employeeCapacityMap.get(employee.employee_id)
-        if (currentCapacity) {
-          currentCapacity.set(dateStr, currentLoad + workOrder.estimated_downtime_hours)
-        }
-
-        const preview: SchedulingPreview = {
-          work_order_id: workOrder.work_order_id,
-          current_assignment: {
-            technician: workOrder.assigned_technician,
-            date: workOrder.scheduled_date
-          },
-          proposed_assignment: {
-            technician: empName,
-            date: dateStr
-          },
-          conflicts: [],
-          score: score.total,
-          reason: `Best match: ${score.skillMatch}% skill, ${score.workload}% capacity available`
-        }
-
-        return { 
-          success: true, 
-          scheduledWorkOrder, 
-          employeeId: employee.employee_id,
-          preview 
-        }
+        candidates.push({
+          employee,
+          score,
+          date: candidateDate,
+          dateStr,
+          currentLoad,
+          dailyLimit
+        })
       }
     }
   }
 
-  conflicts.push({
-    conflict_type: 'capacity_exceeded',
-    severity: 'error',
-    description: 'All eligible employees at capacity for scheduling window',
-    work_order_id: workOrder.work_order_id,
-    suggested_resolution: 'Extend scheduling window or increase employee capacity'
-  })
+  if (candidates.length === 0) {
+    conflicts.push({
+      conflict_type: 'capacity_exceeded',
+      severity: 'error',
+      description: `No available capacity within ${maxDaysAhead} days`,
+      work_order_id: workOrder.work_order_id,
+      suggested_resolution: 'Extend scheduling window or increase employee capacity limits'
+    })
 
-  return { success: false, reason: 'All employees at capacity', conflicts }
+    return { success: false, reason: 'All employees at capacity', conflicts }
+  }
+
+  candidates.sort((a, b) => b.score.total - a.score.total)
+  
+  const best = candidates[0]
+  const empName = `${best.employee.first_name} ${best.employee.last_name}`
+
+  const scheduledWorkOrder: WorkOrder = {
+    ...workOrder,
+    assigned_technician: empName,
+    scheduled_date: best.dateStr,
+    status: 'Scheduled (Not Started)',
+    is_overdue: false,
+    updated_at: new Date().toISOString()
+  }
+
+  const currentCapacity = employeeCapacityMap.get(best.employee.employee_id)
+  if (currentCapacity) {
+    currentCapacity.set(best.dateStr, best.currentLoad + workOrder.estimated_downtime_hours)
+  }
+
+  const preview: SchedulingPreview = {
+    work_order_id: workOrder.work_order_id,
+    current_assignment: {
+      technician: workOrder.assigned_technician,
+      date: workOrder.scheduled_date
+    },
+    proposed_assignment: {
+      technician: empName,
+      date: best.dateStr
+    },
+    conflicts: [],
+    score: best.score.total,
+    reason: `Best match (score: ${best.score.total}/100) - Skills: ${best.score.skillMatch}%, Area: ${best.score.areaMatch}%, Workload: ${best.score.workload}%`
+  }
+
+  return { 
+    success: true, 
+    scheduledWorkOrder, 
+    employeeId: best.employee.employee_id,
+    preview 
+  }
 }
 
 function calculateSchedulingScore(
