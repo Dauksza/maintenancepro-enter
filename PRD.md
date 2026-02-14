@@ -56,10 +56,17 @@ This is a multi-module enterprise system with sophisticated data relationships, 
 
 ### Resource Allocation View
 - **Functionality**: Technician-centric timeline showing workload distribution across days with visual capacity indicators and drag-to-reassign capabilities
-- **Purpose**: Balance workload across technicians, identify over-allocated resources, and enable rapid work order reassignment
+- **Purpose**: Balance workload across technicians, identify over-allocated resources, and enable rapid work order reassignment with capacity awareness
 - **Trigger**: User navigates to Resources tab
-- **Progression**: View technician rows with timeline → See daily workload heatmap (light/moderate/heavy/critical) → Drag work order between technicians or days → View workload metrics (total hours, avg per tech) → Click work order for details
-- **Success criteria**: Workload heatmap accurately shows daily hour totals, drag-and-drop reassigns both technician and date, unassigned work orders displayed separately, tooltip shows detailed breakdown, metrics calculate correctly
+- **Progression**: View technician rows with timeline → See daily workload heatmap (capacity-based: green/yellow/orange/red) → Capacity warnings for overallocated days → Drag work order between technicians or days → View workload metrics (total hours, avg per tech) → Click work order for details
+- **Success criteria**: Workload heatmap accurately shows daily hour totals vs capacity limits, drag-and-drop reassigns both technician and date, unassigned work orders displayed separately, tooltip shows detailed breakdown including capacity, metrics calculate correctly, overallocation warnings visible
+
+### Capacity Planning
+- **Functionality**: Configure daily hour limits per technician, monitor utilization percentages, and identify capacity conflicts
+- **Purpose**: Prevent technician overallocation, optimize resource distribution, and maintain realistic scheduling
+- **Trigger**: User navigates to Capacity tab
+- **Progression**: View technician capacity overview → Click "Add Capacity Limit" → Enter technician name and daily hour limit → Save → View weekly utilization heatmap → Identify overallocated days → Drill down to see specific work orders
+- **Success criteria**: Capacity limits persist correctly, utilization calculations accurate, heatmap color-codes by percentage (green ≤50%, yellow 50-75%, orange 75-100%, red >100%), overallocation warnings appear in Resources view and Work Order detail panel, metrics show total capacity, scheduled hours, and utilization percentage
 
 ### Automation Rules Engine
 - **Functionality**: Auto-mark overdue tasks, trigger notifications, auto-schedule recurring maintenance, stamp completion dates
@@ -147,7 +154,8 @@ Animations should reinforce **operational responsiveness and data state changes*
   - **Frequency Parser Display**: Visual timeline showing Daily→Weekly→Monthly→Yearly with labor hours inline
   - **Work Order Timeline**: Custom Gantt chart with drag-to-reschedule, color-coded by priority, grouped by equipment
   - **Drag-and-Drop Calendar**: Custom calendar grid with native HTML5 drag-and-drop, visual drop zones, color-coded work order cards with left border status indicators, responsive month/week view toggle
-  - **Resource Allocation Timeline**: Technician-row timeline with daily workload heatmap (color-coded by hours: green 0-2h, yellow 2-4h, orange 4-6h, red >6h), drag work orders horizontally for rescheduling or vertically for reassignment, summary cards showing total technicians, total workload, and average per technician
+  - **Resource Allocation Timeline**: Technician-row timeline with daily workload heatmap (color-coded by capacity utilization: green ≤50%, yellow 50-75%, orange 75-100%, red >100%), capacity warning icons for overallocated days, drag work orders horizontally for rescheduling or vertically for reassignment, summary cards showing total technicians, total workload, and average per technician
+  - **Capacity Planning Dashboard**: Configurable technician capacity limits, weekly utilization heatmap showing scheduled hours vs capacity, metrics cards for total capacity/utilization/overallocated days, table view with per-technician breakdown, dialog for adding/editing capacity limits with validation
 
 - **States**:
   - Buttons: Default solid primary, hover with brightness increase, active with slight scale down, disabled with reduced opacity
@@ -170,10 +178,13 @@ Animations should reinforce **operational responsiveness and data state changes*
   - Package (spare parts)
   - User (technician assignment)
   - Users (resource allocation)
+  - UserGear (technician management)
+  - Gauge (capacity planning)
   - Clock (time/downtime)
   - CaretLeft/CaretRight (navigation)
   - ChartLineUp (timeline view)
   - Rows (week view)
+  - TrendUp (utilization metrics)
 
 - **Spacing**:
   - Grid padding: 16px horizontal, 12px vertical

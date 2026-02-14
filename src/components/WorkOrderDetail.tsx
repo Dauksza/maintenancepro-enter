@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import type { WorkOrder, SOP, SparesLabor } from '@/lib/types'
+import { useState, useEffect } from 'react'
+import { useKV } from '@github/spark/hooks'
+import type { WorkOrder, SOP, SparesLabor, TechnicianCapacity } from '@/lib/types'
 import {
   Sheet,
   SheetContent,
@@ -22,8 +23,10 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { X, Package, Clock, Calendar as CalendarIcon } from '@phosphor-icons/react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { X, Package, Clock, Calendar as CalendarIcon, Warning } from '@phosphor-icons/react'
 import { formatDate, formatDateTime, findMatchingSparesLabor } from '@/lib/maintenance-utils'
+import { checkCapacityConflict } from '@/lib/capacity-utils'
 import { cn } from '@/lib/utils'
 
 interface WorkOrderDetailProps {
@@ -32,6 +35,7 @@ interface WorkOrderDetailProps {
   onClose: () => void
   onUpdate: (id: string, updates: Partial<WorkOrder>) => void
   sparesLabor: SparesLabor[]
+  allWorkOrders: WorkOrder[]
 }
 
 export function WorkOrderDetail({ 
@@ -39,10 +43,32 @@ export function WorkOrderDetail({
   open, 
   onClose, 
   onUpdate,
-  sparesLabor 
+  sparesLabor,
+  allWorkOrders
 }: WorkOrderDetailProps) {
   const [editMode, setEditMode] = useState(false)
   const [formData, setFormData] = useState<Partial<WorkOrder>>({})
+  const [capacities] = useKV<TechnicianCapacity[]>('technician-capacities', [])
+  const [capacityWarning, setCapacityWarning] = useState<{
+    hasConflict: boolean
+    currentHours: number
+    capacityLimit: number
+    utilizationPercent: number
+  } | null>(null)
+
+  const safeCapacities = capacities || []
+
+  useEffect(() => {
+    if (editMode && workOrder) {
+      const updatedWorkOrder = { ...workOrder, ...formData }
+      const otherWorkOrders = allWorkOrders.filter(wo => wo.work_order_id !== workOrder.work_order_id)
+      
+      const conflict = checkCapacityConflict(updatedWorkOrder, otherWorkOrders, safeCapacities)
+      setCapacityWarning(conflict)
+    } else {
+      setCapacityWarning(null)
+    }
+  }, [editMode, formData, workOrder, allWorkOrders, safeCapacities])
 
   if (!workOrder) return null
 
@@ -235,6 +261,18 @@ export function WorkOrderDetail({
               <p className="mt-1 text-sm">{currentData.terminal}</p>
             </div>
           </div>
+
+          {editMode && capacityWarning && capacityWarning.hasConflict && (
+            <Alert variant="destructive">
+              <Warning size={18} weight="fill" />
+              <AlertTitle>Capacity Warning</AlertTitle>
+              <AlertDescription>
+                {currentData.assigned_technician} will be overallocated on this date.
+                Current load: {capacityWarning.currentHours.toFixed(1)}h / {capacityWarning.capacityLimit}h
+                ({capacityWarning.utilizationPercent.toFixed(0)}% utilization)
+              </AlertDescription>
+            </Alert>
+          )}
 
           {matchingSpares && (
             <>

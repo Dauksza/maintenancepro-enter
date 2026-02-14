@@ -12,6 +12,7 @@ import { ExcelImport } from '@/components/ExcelImport'
 import { CalendarView } from '@/components/CalendarView'
 import { TimelineView } from '@/components/TimelineView'
 import { ResourceAllocationView } from '@/components/ResourceAllocationView'
+import { CapacityPlanning } from '@/components/CapacityPlanning'
 import { 
   Wrench, 
   ClipboardText, 
@@ -21,7 +22,8 @@ import {
   DownloadSimple,
   CalendarBlank,
   ChartLineUp,
-  Users
+  Users,
+  Gauge
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -175,7 +177,7 @@ function App() {
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-6xl grid-cols-6">
+          <TabsList className="grid w-full max-w-6xl grid-cols-7">
             <TabsTrigger value="tracking" className="flex items-center gap-2">
               <Wrench size={18} />
               Maintenance Tracking
@@ -187,6 +189,10 @@ function App() {
             <TabsTrigger value="resources" className="flex items-center gap-2">
               <Users size={18} />
               Resources
+            </TabsTrigger>
+            <TabsTrigger value="capacity" className="flex items-center gap-2">
+              <Gauge size={18} />
+              Capacity
             </TabsTrigger>
             <TabsTrigger value="calendar" className="flex items-center gap-2">
               <CalendarBlank size={18} />
@@ -310,6 +316,10 @@ function App() {
             )}
           </TabsContent>
 
+          <TabsContent value="capacity" className="space-y-6 animate-fade-in">
+            <CapacityPlanning workOrders={safeWorkOrders} />
+          </TabsContent>
+
           <TabsContent value="calendar" className="space-y-6 animate-fade-in">
             {safeWorkOrders.length === 0 ? (
               <div className="bg-card border rounded-lg p-12 text-center">
@@ -415,6 +425,7 @@ function App() {
         }}
         onUpdate={handleUpdateWorkOrder}
         sparesLabor={safeSparesLabor}
+        allWorkOrders={safeWorkOrders}
       />
 
       <ExcelImport

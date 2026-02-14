@@ -107,3 +107,20 @@ export interface AnalyticsData {
   overdueCount: number
   overdueTrend: Array<{ date: string; count: number }>
 }
+
+export interface TechnicianCapacity {
+  technician_name: string
+  daily_hour_limit: number
+  created_at: string
+  updated_at: string
+}
+
+export interface DailyCapacityStatus {
+  date: string
+  technician: string
+  scheduled_hours: number
+  capacity_limit: number
+  utilization_percent: number
+  is_overallocated: boolean
+  work_orders: WorkOrder[]
+}

@@ -1,15 +1,17 @@
 import { useState, useMemo, useRef } from 'react'
+import { useKV } from '@github/spark/hooks'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, startOfWeek, endOfWeek, differenceInDays, addDays, parseISO, isSameDay, differenceInMinutes } from 'date-fns'
-import type { WorkOrder } from '@/lib/types'
+import type { WorkOrder, TechnicianCapacity } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { CaretLeft, CaretRight, User, Clock, Wrench } from '@phosphor-icons/react'
+import { CaretLeft, CaretRight, User, Clock, Wrench, Warning } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { calculateDailyCapacity } from '@/lib/capacity-utils'
 
 interface ResourceAllocationViewProps {
   workOrders: WorkOrder[]
@@ -62,6 +64,9 @@ export function ResourceAllocationView({ workOrders, onUpdateWorkOrder, onSelect
   const [dragStartX, setDragStartX] = useState(0)
   const [dragCurrentX, setDragCurrentX] = useState(0)
   const timelineRef = useRef<HTMLDivElement>(null)
+  
+  const [capacities] = useKV<TechnicianCapacity[]>('technician-capacities', [])
+  const safeCapacities = capacities || []
 
   const { dateRange, days, technicianWorkloads, timelineWidth } = useMemo(() => {
     let start: Date
@@ -234,20 +239,24 @@ export function ResourceAllocationView({ workOrders, onUpdateWorkOrder, onSelect
     }
   }
 
-  const getDailyWorkloadColor = (hours: number): string => {
+  const getDailyWorkloadColor = (hours: number, capacity: number): string => {
     if (hours === 0) return 'bg-transparent'
-    if (hours <= 2) return 'bg-green-100'
-    if (hours <= 4) return 'bg-yellow-100'
-    if (hours <= 6) return 'bg-orange-100'
-    return 'bg-red-100'
+    const utilization = capacity > 0 ? (hours / capacity) * 100 : (hours / 8) * 100
+    
+    if (utilization > 100) return 'bg-red-100'
+    if (utilization > 75) return 'bg-orange-100'
+    if (utilization > 50) return 'bg-yellow-100'
+    return 'bg-green-100'
   }
 
-  const getDailyWorkloadIntensity = (hours: number): string => {
+  const getDailyWorkloadIntensity = (hours: number, capacity: number): string => {
     if (hours === 0) return 'opacity-0'
-    if (hours <= 2) return 'opacity-30'
-    if (hours <= 4) return 'opacity-50'
-    if (hours <= 6) return 'opacity-70'
-    return 'opacity-90'
+    const utilization = capacity > 0 ? (hours / capacity) * 100 : (hours / 8) * 100
+    
+    if (utilization > 100) return 'opacity-90'
+    if (utilization > 75) return 'opacity-70'
+    if (utilization > 50) return 'opacity-50'
+    return 'opacity-30'
   }
 
   const viewModeLabel = useMemo(() => {
@@ -282,19 +291,23 @@ export function ResourceAllocationView({ workOrders, onUpdateWorkOrder, onSelect
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 bg-green-100 border border-green-200 rounded" />
-                <span>Light (&le;2h)</span>
+                <span>&le;50% capacity</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded" />
-                <span>Moderate (2-4h)</span>
+                <span>50-75%</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 bg-orange-100 border border-orange-200 rounded" />
-                <span>Heavy (4-6h)</span>
+                <span>75-100%</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 bg-red-100 border border-red-200 rounded" />
-                <span>Critical (&gt;6h)</span>
+                <span>&gt;100%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Warning size={14} className="text-destructive" weight="fill" />
+                <span>Over capacity</span>
               </div>
             </div>
             
@@ -386,6 +399,14 @@ export function ResourceAllocationView({ workOrders, onUpdateWorkOrder, onSelect
                             const dateKey = format(day, 'yyyy-MM-dd')
                             const dayLoad = tech.dailyLoad.get(dateKey)
                             const hours = dayLoad?.hours || 0
+                            
+                            const capacityStatus = calculateDailyCapacity(
+                              day,
+                              tech.technician,
+                              workOrders,
+                              safeCapacities
+                            )
+                            const isOverallocated = capacityStatus.is_overallocated
 
                             return (
                               <TooltipProvider key={dayIndex} delayDuration={200}>
@@ -393,12 +414,18 @@ export function ResourceAllocationView({ workOrders, onUpdateWorkOrder, onSelect
                                   <TooltipTrigger asChild>
                                     <div
                                       className={cn(
-                                        'flex-1 border-l first:border-l-0 transition-colors',
-                                        getDailyWorkloadColor(hours),
-                                        getDailyWorkloadIntensity(hours),
+                                        'flex-1 border-l first:border-l-0 transition-colors relative',
+                                        getDailyWorkloadColor(hours, capacityStatus.capacity_limit),
+                                        getDailyWorkloadIntensity(hours, capacityStatus.capacity_limit),
                                         isSameDay(day, new Date()) && 'bg-primary/5'
                                       )}
-                                    />
+                                    >
+                                      {isOverallocated && (
+                                        <div className="absolute top-1 right-1">
+                                          <Warning size={12} className="text-destructive" weight="fill" />
+                                        </div>
+                                      )}
+                                    </div>
                                   </TooltipTrigger>
                                   {hours > 0 && (
                                     <TooltipContent>
@@ -407,11 +434,19 @@ export function ResourceAllocationView({ workOrders, onUpdateWorkOrder, onSelect
                                           {format(day, 'MMM dd, yyyy')}
                                         </div>
                                         <div className="text-muted-foreground">
-                                          {hours.toFixed(1)}h workload
+                                          {hours.toFixed(1)}h / {capacityStatus.capacity_limit}h capacity
+                                        </div>
+                                        <div className="text-muted-foreground">
+                                          {capacityStatus.utilization_percent.toFixed(0)}% utilization
                                         </div>
                                         <div className="text-muted-foreground">
                                           {dayLoad?.workOrders.length} work orders
                                         </div>
+                                        {isOverallocated && (
+                                          <div className="text-destructive font-semibold pt-1 border-t">
+                                            ⚠ Over capacity!
+                                          </div>
+                                        )}
                                       </div>
                                     </TooltipContent>
                                   )}
