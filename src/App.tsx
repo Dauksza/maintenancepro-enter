@@ -625,6 +625,9 @@ function App() {
         onUpdate={handleUpdateWorkOrder}
         sparesLabor={safeSparesLabor}
         allWorkOrders={safeWorkOrders}
+        employees={safeEmployees}
+        skillMatrix={safeSkillMatrix}
+        reminders={reminders || []}
       />
 
       <ExcelImport
