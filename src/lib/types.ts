@@ -480,3 +480,173 @@ export interface InventoryAlert {
   resolved: boolean
   resolved_at: string | null
 }
+
+export type FormFieldType = 
+  | 'text' 
+  | 'textarea' 
+  | 'number' 
+  | 'date' 
+  | 'time' 
+  | 'datetime'
+  | 'checkbox' 
+  | 'radio' 
+  | 'select' 
+  | 'signature' 
+  | 'photo' 
+  | 'file'
+  | 'rating'
+  | 'hazard-level'
+
+export type HazardLevel = 'Low' | 'Medium' | 'High' | 'Extreme'
+
+export type FormStatus = 'Draft' | 'Active' | 'Archived'
+
+export type SubmissionStatus = 'In Progress' | 'Completed' | 'Approved' | 'Rejected' | 'Requires Action'
+
+export interface FormField {
+  field_id: string
+  field_type: FormFieldType
+  label: string
+  description?: string
+  required: boolean
+  options?: string[]
+  validation?: {
+    min?: number
+    max?: number
+    minLength?: number
+    maxLength?: number
+    pattern?: string
+  }
+  conditional?: {
+    show_if_field: string
+    show_if_value: string | boolean | number
+  }
+  order: number
+}
+
+export interface FormSection {
+  section_id: string
+  title: string
+  description?: string
+  fields: FormField[]
+  order: number
+  repeatable?: boolean
+}
+
+export interface FormTemplate {
+  template_id: string
+  template_name: string
+  template_type: 'JHA' | 'Inspection' | 'Safety' | 'Quality' | 'Audit' | 'Custom'
+  description: string
+  category: string
+  is_premade: boolean
+  sections: FormSection[]
+  version: number
+  status: FormStatus
+  requires_approval: boolean
+  approval_workflow?: string[]
+  linked_sop_ids: string[]
+  linked_asset_ids: string[]
+  linked_work_order_types: WorkOrderType[]
+  created_by: string
+  created_at: string
+  updated_at: string
+  tags: string[]
+}
+
+export interface JHAHazard {
+  hazard_id: string
+  job_step: string
+  hazard_description: string
+  hazard_level: HazardLevel
+  potential_consequences: string
+  controls: string[]
+  ppe_required: string[]
+  responsible_person: string
+  order: number
+}
+
+export interface InspectionItem {
+  item_id: string
+  item_name: string
+  acceptance_criteria: string
+  is_compliant: boolean | null
+  measurement_value?: string
+  notes?: string
+  photo_urls?: string[]
+  inspector: string
+  inspected_at?: string
+  order: number
+}
+
+export interface FormSubmission {
+  submission_id: string
+  template_id: string
+  template_name: string
+  submitted_by: string
+  submitted_by_name: string
+  submission_date: string
+  status: SubmissionStatus
+  work_order_id?: string
+  asset_id?: string
+  area_id?: string
+  field_responses: Record<string, FormFieldResponse>
+  jha_hazards?: JHAHazard[]
+  inspection_items?: InspectionItem[]
+  signatures: FormSignature[]
+  attachments: FormAttachment[]
+  approval_history: FormApproval[]
+  score?: number
+  issues_identified: number
+  corrective_actions_required: string[]
+  notes: string
+  created_at: string
+  updated_at: string
+  completed_at?: string
+}
+
+export interface FormFieldResponse {
+  field_id: string
+  field_label: string
+  value: string | number | boolean | string[] | null
+  answered_at: string
+}
+
+export interface FormSignature {
+  signature_id: string
+  signer_name: string
+  signer_role: string
+  signature_data: string
+  signed_at: string
+}
+
+export interface FormAttachment {
+  attachment_id: string
+  file_name: string
+  file_type: string
+  file_size: number
+  file_url: string
+  uploaded_by: string
+  uploaded_at: string
+}
+
+export interface FormApproval {
+  approval_id: string
+  approver_id: string
+  approver_name: string
+  approval_status: 'Approved' | 'Rejected' | 'Pending'
+  comments: string
+  approved_at: string
+}
+
+export interface FormAnalytics {
+  total_submissions: number
+  submissions_by_status: Record<SubmissionStatus, number>
+  submissions_by_template: Array<{ template_name: string; count: number }>
+  average_completion_time: number
+  compliance_rate: number
+  issues_by_severity: Record<HazardLevel, number>
+  submissions_by_date: Array<{ date: string; count: number }>
+  top_issues: Array<{ issue: string; count: number }>
+  corrective_actions_pending: number
+}

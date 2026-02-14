@@ -12,7 +12,9 @@ import type {
   CertificationReminder,
   WorkOrderNotification,
   PartInventoryItem,
-  PartTransaction
+  PartTransaction,
+  FormTemplate,
+  FormSubmission
 } from '@/lib/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -36,6 +38,7 @@ import { NotificationBell } from '@/components/NotificationBell'
 import { NotificationToastManager } from '@/components/NotificationToastManager'
 import { NotificationPreferencesDialog, type NotificationPreferences } from '@/components/NotificationPreferences'
 import { PartsInventory } from '@/components/PartsInventory'
+import { FormsInspections } from '@/components/FormsInspections'
 import { 
   Wrench, 
   ClipboardText, 
@@ -51,7 +54,8 @@ import {
   UserGear,
   Certificate,
   Package,
-  Toolbox
+  Toolbox,
+  CheckSquare
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -65,6 +69,7 @@ import {
   generateSampleSchedules
 } from '@/lib/employee-utils'
 import { generateSampleParts } from '@/lib/inventory-utils'
+import { generatePremadeTemplates } from '@/lib/form-utils'
 import { isOverdue } from '@/lib/maintenance-utils'
 import { generateRemindersFromSkillMatrix, getReminderCounts } from '@/lib/certification-utils'
 import {
@@ -90,6 +95,8 @@ function App() {
   const [notifications, setNotifications] = useKV<WorkOrderNotification[]>('work-order-notifications', [])
   const [parts, setParts] = useKV<PartInventoryItem[]>('parts-inventory', [])
   const [partTransactions, setPartTransactions] = useKV<PartTransaction[]>('part-transactions', [])
+  const [formTemplates, setFormTemplates] = useKV<FormTemplate[]>('form-templates', generatePremadeTemplates())
+  const [formSubmissions, setFormSubmissions] = useKV<FormSubmission[]>('form-submissions', [])
   const [notificationPreferences, setNotificationPreferences] = useKV<NotificationPreferences>(
     'notification-preferences',
     {
@@ -458,7 +465,7 @@ function App() {
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-7xl grid-cols-11">
+          <TabsList className="grid w-full max-w-7xl grid-cols-12">
             <TabsTrigger value="tracking" className="flex items-center gap-2">
               <Wrench size={18} />
               Tracking
@@ -490,6 +497,10 @@ function App() {
             <TabsTrigger value="parts" className="flex items-center gap-2">
               <Toolbox size={18} />
               Parts
+            </TabsTrigger>
+            <TabsTrigger value="forms" className="flex items-center gap-2">
+              <CheckSquare size={18} />
+              Forms
             </TabsTrigger>
             <TabsTrigger value="certifications" className="flex items-center gap-2">
               <Certificate size={18} />
@@ -771,6 +782,34 @@ function App() {
                     )
                   )
                 }
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="forms" className="space-y-6 animate-fade-in">
+            <FormsInspections
+              templates={formTemplates || []}
+              submissions={formSubmissions || []}
+              onCreateTemplate={(template) => {
+                setFormTemplates((current) => [...(current || []), template])
+              }}
+              onUpdateTemplate={(templateId, updates) => {
+                setFormTemplates((current) =>
+                  (current || []).map(t => t.template_id === templateId ? { ...t, ...updates } : t)
+                )
+              }}
+              onDeleteTemplate={(templateId) => {
+                setFormTemplates((current) =>
+                  (current || []).filter(t => t.template_id !== templateId)
+                )
+              }}
+              onCreateSubmission={(submission) => {
+                setFormSubmissions((current) => [...(current || []), submission])
+              }}
+              onUpdateSubmission={(submissionId, updates) => {
+                setFormSubmissions((current) =>
+                  (current || []).map(s => s.submission_id === submissionId ? { ...s, ...updates } : s)
+                )
               }}
             />
           </TabsContent>
