@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { RootCauseAnalysis } from '@/components/RootCauseAnalysis'
 import {
   Brain,
   TrendUp,
@@ -35,7 +36,8 @@ import {
   Package,
   Sparkle,
   Lightning,
-  Clock
+  Clock,
+  Target
 } from '@phosphor-icons/react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
@@ -275,6 +277,10 @@ export function PredictiveMaintenanceDashboard({
           <TabsTrigger value="parts" className="gap-2">
             <Package size={16} />
             Parts Analysis
+          </TabsTrigger>
+          <TabsTrigger value="root-cause" className="gap-2">
+            <Target size={16} />
+            Root Cause Analysis
           </TabsTrigger>
         </TabsList>
 
@@ -588,6 +594,18 @@ export function PredictiveMaintenanceDashboard({
               </ScrollArea>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="root-cause" className="space-y-4">
+          <RootCauseAnalysis 
+            workOrders={workOrders}
+            onSelectWorkOrder={(workOrderId) => {
+              const wo = workOrders.find(w => w.work_order_id === workOrderId)
+              if (wo && onCreateWorkOrder) {
+                onCreateWorkOrder(wo.equipment_area, wo.scheduled_date, wo.priority_level)
+              }
+            }}
+          />
         </TabsContent>
       </Tabs>
     </div>

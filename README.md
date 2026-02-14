@@ -66,6 +66,20 @@ MaintenancePro is an enterprise-level maintenance management application that he
 - **Configurable Preferences**: Control notification types, thresholds, and auto-accept rules
 - **Toast Manager**: Non-intrusive notifications with action buttons
 
+### 🧠 ML-Powered Predictive Maintenance
+- **Failure Prediction**: Probabilistic forecasting of equipment failures based on historical patterns
+- **Pattern Recognition**: Identifies recurring maintenance cycles and trends
+- **Capacity Forecasting**: Predicts future maintenance workload and downtime
+- **Parts Usage Analysis**: Smart inventory management with depletion predictions
+
+### 🎯 Root Cause Analysis (NEW)
+- **Pattern Detection**: ML algorithms identify common failure patterns across work orders
+- **Failure Clustering**: Groups equipment failures by symptoms and root causes
+- **Causal Relationships**: Detects cascading failures between related equipment
+- **Timeline Analysis**: Tracks failure acceleration and identifies critical periods
+- **Task Complexity**: Evaluates maintenance task difficulty and recommends improvements
+- **Prevention Strategies**: AI-generated recommendations to prevent future failures
+
 ## 🛠️ Technology Stack
 
 - **Frontend**: React 19, TypeScript 5.7
@@ -101,6 +115,8 @@ src/
 │   ├── skill-matcher.ts
 │   ├── certification-utils.ts
 │   ├── notification-utils.ts
+│   ├── ml-utils.ts     # Predictive ML algorithms
+│   ├── root-cause-analysis.ts # RCA pattern detection
 │   └── maintenance-utils.ts
 ├── hooks/              # Custom React hooks
 ├── App.tsx             # Main application component

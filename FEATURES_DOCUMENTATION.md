@@ -1,12 +1,13 @@
-# Global Search, Dashboard, and Permissions - Feature Documentation
+# MaintenancePro CMMS - Feature Documentation
 
 ## Overview
 
-This document describes the three major features added to MaintenancePro CMMS:
+This document describes the major features in MaintenancePro CMMS:
 
 1. **Global Search** - Unified search across all system entities
 2. **Customizable Dashboard** - Personalized workspace with configurable widgets
 3. **Role-Based Permissions** - Granular access control system
+4. **ML-Powered Root Cause Analysis** - Pattern detection and failure analysis (NEW)
 
 ---
 
@@ -260,6 +261,191 @@ State Update (if allowed)
     ↓
 KV Store Persistence
 ```
+
+---
+
+## 4. ML-Powered Root Cause Analysis
+
+### Overview
+
+The Root Cause Analysis (RCA) system uses machine learning algorithms to analyze historical work order data and identify common failure patterns, equipment relationships, and recurring maintenance issues. This proactive approach helps teams understand **why** failures occur, not just when.
+
+### Key Features
+
+#### Pattern Recognition
+- **Automatic Detection**: ML algorithms identify recurring failure patterns
+- **Keyword Extraction**: NLP-based analysis of task descriptions and comments
+- **Similarity Clustering**: Groups related failures using advanced algorithms
+- **Trend Analysis**: Tracks if patterns are increasing, decreasing, or stable
+- **Confidence Scoring**: Indicates reliability of each pattern (0-100%)
+
+#### Failure Clustering
+- **Equipment-Specific Analysis**: Groups failures by equipment
+- **Symptom Identification**: Extracts common symptoms from work order text
+- **Root Cause Hypothesis**: AI-generated theories about failure causes
+- **Recurring Interval Detection**: Identifies if failures happen on a schedule
+- **Prevention Strategies**: Actionable recommendations to prevent future failures
+
+#### Causal Relationships
+- **Cascading Failure Detection**: Identifies when one equipment failure leads to another
+- **Correlation Strength**: Measures how strongly two equipment areas are linked
+- **Time Lag Analysis**: Calculates typical delay between cause and effect
+- **Example Tracking**: Provides concrete work order examples of relationships
+
+#### Timeline Analysis
+- **Failure Acceleration Warning**: Detects when time between failures is decreasing
+- **Critical Period Identification**: Highlights time windows with multiple failures
+- **Interval Tracking**: Monitors time since last failure for each equipment
+- **Visual Timeline**: Chronological view of all failures per equipment
+
+#### Task Complexity Analysis
+- **Complexity Scoring**: Evaluates difficulty of maintenance tasks (0-100%)
+- **Completion Time Tracking**: Monitors how long tasks typically take
+- **Failure Rate Calculation**: Identifies tasks that often need rework
+- **Improvement Recommendations**: Suggests procedure changes, training needs
+
+### Pattern Types Detected
+
+The system automatically recognizes these failure categories:
+
+**Mechanical Failures**
+- Keywords: wear, broken, crack, bearing, seal
+- Causes: Component wear, improper lubrication, excessive load
+- Prevention: Reduce operating hours, improve lubrication, use premium parts
+
+**Fluid System Issues**
+- Keywords: leak, oil, hydraulic, pressure
+- Causes: Seal degradation, fitting looseness, thermal cycling
+- Prevention: Upgrade seals, weekly inspections, proper torque
+
+**Electrical Problems**
+- Keywords: electrical, circuit, voltage, power
+- Causes: Connection corrosion, loose terminals, insulation breakdown
+- Prevention: Thermographic inspections, corrosion protection, grounding
+
+**Calibration Drift**
+- Keywords: calibrate, adjust, alignment, drift
+- Causes: Component aging, environmental factors, mechanical wear
+- Prevention: Increase calibration frequency, control environment
+
+### Usage
+
+1. **Navigate to RCA**
+   - Go to "Predictive ML" tab
+   - Select "Root Cause Analysis" sub-tab
+   
+2. **View Overview Dashboard**
+   - Total patterns identified
+   - Failure clusters detected
+   - Causal relationships found
+   - Equipment with accelerating failures
+
+3. **Analyze Patterns**
+   - Click on any pattern to expand details
+   - Review contributing factors
+   - Implement prevention strategies
+   - View related work orders
+
+4. **Investigate Clusters**
+   - Examine equipment-specific failure groups
+   - Read AI-generated root cause hypotheses
+   - Follow recommended prevention strategies
+   - Track total downtime impact
+
+5. **Explore Relationships**
+   - Identify cascading failures between equipment
+   - Plan coordinated maintenance
+   - Prevent secondary failures
+
+6. **Monitor Timelines**
+   - Watch for failure acceleration warnings (red flag)
+   - Investigate critical periods
+   - Adjust PM schedules based on actual intervals
+
+7. **Review Task Complexity**
+   - Identify tasks needing better procedures
+   - Plan technician training
+   - Pre-stage parts for complex tasks
+
+### Minimum Data Requirements
+
+For meaningful analysis:
+- **Minimum**: 5+ work orders total
+- **Pattern Detection**: 3+ similar work orders
+- **Timeline Analysis**: 2+ occurrences per equipment
+- **Optimal**: 50+ work orders, 6+ months history
+
+### Confidence Scores
+
+- **90-100%**: Very high confidence - strong, consistent pattern
+- **70-89%**: High confidence - reliable pattern
+- **50-69%**: Moderate confidence - emerging pattern
+- **30-49%**: Low confidence - insufficient data
+- **<30%**: Very low confidence - more data needed
+
+### Technical Implementation
+
+- **Location**: `/src/components/RootCauseAnalysis.tsx`
+- **Algorithms**: `/src/lib/root-cause-analysis.ts`
+- **Integration**: Embedded in Predictive Maintenance Dashboard
+- **Performance**: Client-side analysis, 200-500ms for 100 work orders
+
+### Algorithms Used
+
+1. **Text Similarity**: Jaccard coefficient for keyword matching
+2. **Clustering**: Density-based clustering with similarity thresholds
+3. **Time Series**: Interval analysis with trend detection
+4. **Correlation**: Temporal correlation analysis with lag detection
+5. **NLP**: Keyword extraction and stop word filtering
+
+### Best Practices
+
+✅ **Do:**
+- Provide detailed task descriptions
+- Include symptoms and root causes in comments
+- Update completion times accurately
+- Mark work orders completed when done
+
+❌ **Don't:**
+- Use generic descriptions like "fix equipment"
+- Leave fields blank
+- Create duplicate work orders
+- Cancel without reason
+
+### Data Quality Impact
+
+**High Quality Data → Better Analysis:**
+- Detailed descriptions = Better pattern recognition
+- Complete dates = Accurate interval analysis
+- Consistent terminology = Stronger clustering
+- Thorough comments = More accurate root cause theories
+
+### Integration Points
+
+- **Predictive Maintenance**: Patterns feed into failure predictions
+- **Work Orders**: Click through to view related work orders
+- **Parts Inventory**: Prevention strategies suggest spare parts needs
+- **Employee Training**: Task complexity identifies training requirements
+
+### Performance Characteristics
+
+- Analysis runs entirely in browser (no server required)
+- Results cached until data changes
+- Scales well to 1000+ work orders
+- All data processed locally for privacy
+
+### Future Enhancements
+
+Planned improvements:
+1. **LLM Integration**: AI-powered natural language insights
+2. **Seasonal Analysis**: Detect seasonal failure patterns
+3. **Cost Impact**: Calculate financial impact of failures
+4. **Automatic Actions**: Auto-create work orders for high-risk patterns
+5. **Team Collaboration**: Share insights and confirm root causes
+
+### Documentation
+
+For complete details, see: **ROOT_CAUSE_ANALYSIS.md**
 
 ---
 
