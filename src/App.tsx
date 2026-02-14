@@ -491,7 +491,7 @@ function App() {
 
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-7xl grid-cols-14">
+          <TabsList className="inline-flex w-full max-w-full overflow-x-auto flex-wrap gap-1">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <House size={18} />
               Dashboard

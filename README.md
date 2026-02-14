@@ -68,14 +68,17 @@ MaintenancePro is an enterprise-level maintenance management application that he
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: React 19, TypeScript
+- **Frontend**: React 19, TypeScript 5.7
 - **Styling**: Tailwind CSS v4, shadcn/ui v4 components
-- **State Management**: React hooks with Spark KV persistence
+- **State Management**: React hooks with Spark KV persistence (spark.kv API)
 - **Data Visualization**: Recharts, D3.js
 - **Forms**: React Hook Form with Zod validation
-- **Icons**: Phosphor Icons
+- **Icons**: Phosphor Icons v2
 - **Animations**: Framer Motion
-- **Build Tool**: Vite
+- **Excel Processing**: XLSX library
+- **Date Handling**: date-fns
+- **Build Tool**: Vite 7
+- **Runtime**: Spark Runtime with persistent KV store
 
 ## 📁 Project Structure
 
