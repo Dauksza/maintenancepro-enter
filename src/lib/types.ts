@@ -375,3 +375,40 @@ export interface SchedulingPreview {
   score: number
   reason: string
 }
+
+export type WorkOrderNotificationType =
+  | 'Assignment Suggestion'
+  | 'Assignment Changed'
+  | 'Work Order Created'
+  | 'Work Order Updated'
+  | 'Work Order Overdue'
+  | 'Work Order Completed'
+  | 'Priority Escalated'
+  | 'Skill Match'
+
+export type WorkOrderNotificationStatus = 'Unread' | 'Read' | 'Accepted' | 'Rejected' | 'Dismissed'
+
+export interface WorkOrderNotification {
+  notification_id: string
+  employee_id: string
+  work_order_id: string
+  type: WorkOrderNotificationType
+  title: string
+  message: string
+  status: WorkOrderNotificationStatus
+  priority: NotificationPriority
+  action_url?: string
+  action_label?: string
+  match_score?: number
+  reasons?: string[]
+  created_at: string
+  read_at: string | null
+  responded_at: string | null
+  metadata?: {
+    previous_technician?: string
+    suggested_by?: 'auto-scheduler' | 'skill-matcher' | 'manual'
+    skill_matches?: string[]
+    area_match?: boolean
+    priority_match?: boolean
+  }
+}

@@ -9,7 +9,8 @@ import type {
   SkillMatrixEntry,
   EmployeeSchedule,
   Message,
-  CertificationReminder
+  CertificationReminder,
+  WorkOrderNotification
 } from '@/lib/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,10 @@ import { CertificationReminders } from '@/components/CertificationReminders'
 import { AssetsAreasManagement } from '@/components/AssetsAreasManagement'
 import { EnhancedAutoSchedulerDialog } from '@/components/EnhancedAutoSchedulerDialog'
 import { NewWorkOrderDialog } from '@/components/NewWorkOrderDialog'
+import { NotificationCenter } from '@/components/NotificationCenter'
+import { NotificationBell } from '@/components/NotificationBell'
+import { NotificationToastManager } from '@/components/NotificationToastManager'
+import { NotificationPreferencesDialog, type NotificationPreferences } from '@/components/NotificationPreferences'
 import { 
   Wrench, 
   ClipboardText, 
@@ -58,6 +63,15 @@ import {
 } from '@/lib/employee-utils'
 import { isOverdue } from '@/lib/maintenance-utils'
 import { generateRemindersFromSkillMatrix, getReminderCounts } from '@/lib/certification-utils'
+import {
+  generateSkillMatchNotifications,
+  generateAutoSchedulerNotifications,
+  generateAssignmentChangeNotification,
+  generateOverdueNotification,
+  markNotificationAsRead,
+  markNotificationAsAccepted,
+  markNotificationAsRejected
+} from '@/lib/notification-utils'
 import { toast } from 'sonner'
 
 function App() {
@@ -69,6 +83,23 @@ function App() {
   const [schedules, setSchedules] = useKV<EmployeeSchedule[]>('employee-schedules', [])
   const [messages, setMessages] = useKV<Message[]>('employee-messages', [])
   const [reminders, setReminders] = useKV<CertificationReminder[]>('certification-reminders', [])
+  const [notifications, setNotifications] = useKV<WorkOrderNotification[]>('work-order-notifications', [])
+  const [notificationPreferences, setNotificationPreferences] = useKV<NotificationPreferences>(
+    'notification-preferences',
+    {
+      enabled: true,
+      showToasts: true,
+      playSound: false,
+      notifyOnAssignmentSuggestions: true,
+      notifyOnAssignmentChanges: true,
+      notifyOnWorkOrderCreated: false,
+      notifyOnWorkOrderOverdue: true,
+      notifyOnPriorityEscalation: true,
+      minimumMatchScore: 60,
+      autoAcceptHighMatchScore: false,
+      autoAcceptThreshold: 90
+    }
+  )
   
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -127,6 +158,7 @@ function App() {
 
   const handleCreateWorkOrder = (workOrder: WorkOrder) => {
     setWorkOrders((current) => [...(current || []), workOrder])
+    handleGenerateNotificationsForWorkOrder(workOrder)
   }
 
   const handleCloneWorkOrder = (workOrder: WorkOrder) => {
@@ -193,6 +225,13 @@ function App() {
       
       return updatedOrders
     })
+
+    if (notificationPreferences?.enabled && notificationPreferences?.notifyOnAssignmentSuggestions) {
+      const newNotifications = generateAutoSchedulerNotifications(scheduledOrders, safeEmployees)
+      if (newNotifications.length > 0) {
+        setNotifications((current) => [...(current || []), ...newNotifications])
+      }
+    }
   }
 
   const handleUpdateEmployee = (id: string, updates: Partial<Employee>) => {
@@ -233,6 +272,70 @@ function App() {
     setMessages((current) => [...(current || []), message])
   }
 
+  const handleUpdateNotification = (notificationId: string, updates: Partial<WorkOrderNotification>) => {
+    setNotifications((current) =>
+      (current || []).map(n => n.notification_id === notificationId ? { ...n, ...updates } : n)
+    )
+  }
+
+  const handleAcceptAssignment = (notificationId: string, workOrderId: string) => {
+    const notification = (notifications || []).find(n => n.notification_id === notificationId)
+    if (!notification) return
+
+    const workOrder = safeWorkOrders.find(wo => wo.work_order_id === workOrderId)
+    if (!workOrder) return
+
+    const employee = safeEmployees.find(e => e.employee_id === notification.employee_id)
+    if (!employee) return
+
+    const technicianName = `${employee.first_name} ${employee.last_name}`
+    
+    handleUpdateWorkOrder(workOrderId, {
+      assigned_technician: technicianName
+    })
+
+    const updated = markNotificationAsAccepted(notification)
+    handleUpdateNotification(notificationId, updated)
+
+    toast.success(`Assignment accepted for work order ${workOrderId}`)
+  }
+
+  const handleRejectAssignment = (notificationId: string, workOrderId: string) => {
+    const notification = (notifications || []).find(n => n.notification_id === notificationId)
+    if (!notification) return
+
+    const updated = markNotificationAsRejected(notification)
+    handleUpdateNotification(notificationId, updated)
+
+    toast.info('Assignment suggestion declined')
+  }
+
+  const handleMarkNotificationAsRead = (notificationId: string) => {
+    const notification = (notifications || []).find(n => n.notification_id === notificationId)
+    if (!notification) return
+
+    const updated = markNotificationAsRead(notification)
+    handleUpdateNotification(notificationId, updated)
+  }
+
+  const handleGenerateNotificationsForWorkOrder = (workOrder: WorkOrder) => {
+    if (!notificationPreferences?.enabled || !notificationPreferences?.notifyOnAssignmentSuggestions) {
+      return
+    }
+
+    const newNotifications = generateSkillMatchNotifications(
+      workOrder,
+      safeEmployees,
+      safeSkillMatrix,
+      safeWorkOrders
+    ).filter(n => n.match_score && n.match_score >= (notificationPreferences?.minimumMatchScore || 60))
+
+    if (newNotifications.length > 0) {
+      setNotifications((current) => [...(current || []), ...newNotifications])
+      toast.success(`${newNotifications.length} technician${newNotifications.length > 1 ? 's' : ''} notified of new assignment`)
+    }
+  }
+
   const safeWorkOrders = workOrders || []
   const safeSOPs = sops || []
   const safeSparesLabor = sparesLabor || []
@@ -267,6 +370,32 @@ function App() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <NotificationPreferencesDialog
+                preferences={notificationPreferences || {
+                  enabled: true,
+                  showToasts: true,
+                  playSound: false,
+                  notifyOnAssignmentSuggestions: true,
+                  notifyOnAssignmentChanges: true,
+                  notifyOnWorkOrderCreated: false,
+                  notifyOnWorkOrderOverdue: true,
+                  notifyOnPriorityEscalation: true,
+                  minimumMatchScore: 60,
+                  autoAcceptHighMatchScore: false,
+                  autoAcceptThreshold: 90
+                }}
+                onSave={setNotificationPreferences}
+              />
+              <NotificationCenter
+                notifications={notifications || []}
+                onUpdateNotification={handleUpdateNotification}
+                onAcceptAssignment={handleAcceptAssignment}
+                onRejectAssignment={handleRejectAssignment}
+                onViewWorkOrder={(woId) => {
+                  const wo = safeWorkOrders.find(w => w.work_order_id === woId)
+                  if (wo) handleSelectWorkOrder(wo)
+                }}
+              />
               {certificationCounts.critical > 0 && (
                 <Button 
                   onClick={() => setActiveTab('certifications')}
@@ -697,6 +826,17 @@ function App() {
         sparesLabor={safeSparesLabor}
         cloneFrom={cloneWorkOrder}
       />
+
+      {notificationPreferences?.showToasts && (
+        <NotificationToastManager
+          notifications={notifications || []}
+          onAcceptAssignment={handleAcceptAssignment}
+          onViewWorkOrder={(woId) => {
+            const wo = safeWorkOrders.find(w => w.work_order_id === woId)
+            if (wo) handleSelectWorkOrder(wo)
+          }}
+        />
+      )}
     </div>
   )
 }
