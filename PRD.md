@@ -124,6 +124,13 @@ This is a multi-module enterprise system with sophisticated data relationships, 
 - **Progression**: Wizard opens → Step 1: Basic info → Step 2: Specific details → Step 3: Assignments/relationships → Step 4: Optional fields → Step 5: Review summary → Confirm → Entity created → Success notification
 - **Success criteria**: Wizards validate each step before proceeding, show progress bar, display review screen with all entered data, allow back navigation, provide field-level validation messages, support dropdown suggestions from existing data, handle custom values (new department, new position), reset form on completion
 
+### Predictive Maintenance with Machine Learning
+- **Functionality**: Analyze historical work order data using machine learning algorithms to predict equipment failures, forecast maintenance loads, optimize inventory, and provide actionable insights with confidence scoring
+- **Purpose**: Enable proactive maintenance planning by identifying high-risk equipment before failures occur, optimize resource allocation through accurate workload forecasting, reduce unplanned downtime through early intervention, and improve parts inventory management with usage predictions
+- **Trigger**: User navigates to Predictive ML tab, or runs on-demand analysis via "Refresh Analysis" button
+- **Progression**: System collects historical work orders → Analyzes maintenance patterns (frequency, downtime, failure rates, trends) → Generates failure predictions with risk levels (Critical/High/Medium/Low) → Creates 90-day maintenance forecast → Analyzes parts usage patterns → Calculates prediction confidence and accuracy metrics → Displays Action Required panel with critical items → User reviews predictions in tabs (Predictions/Patterns/Forecast/Parts) → User creates preventive work orders from high-risk equipment → System continuously learns from new data
+- **Success criteria**: Patterns identify average maintenance frequency within ±10% accuracy, failure predictions achieve 70%+ accuracy rate, confidence scores correlate with actual prediction accuracy, forecast correctly predicts maintenance load trends, parts depletion dates accurate within ±1 week, risk levels match actual failure rates, recommendations actionable and specific, charts update in real-time, analysis completes in <2 seconds for 1000+ work orders, all predictions traceable with contributing factors, model metrics displayed (training days, accuracy, confidence, equipment tracked), Action Required panel highlights critical items with one-click work order creation
+
 ## Edge Case Handling
 
 - **Empty Excel Sheets**: Display clear message indicating which required sheets are missing, prevent partial imports
@@ -148,6 +155,12 @@ This is a multi-module enterprise system with sophisticated data relationships, 
 - **Circular Dependencies**: Prevent tasks from depending on themselves or creating dependency loops
 - **Weekend Scheduling**: Respect weekend toggle, skip Saturday/Sunday when disabled
 - **Empty Wizards**: Prevent wizard completion if required fields missing, show validation errors
+- **Insufficient ML Training Data**: Display "No Training Data Available" message when less than 2 maintenance events per equipment, prevent unreliable predictions
+- **High Variance Patterns**: When maintenance intervals vary significantly, reduce confidence scores and display warning about prediction reliability
+- **Missing Completion Dates**: Exclude incomplete work orders from pattern analysis to prevent skewed predictions
+- **Equipment Name Changes**: Detect similar equipment names and suggest consolidation to improve pattern accuracy
+- **Seasonal Patterns**: Parts analysis detects seasonality factor, adjusts predictions for seasonal usage variations
+- **Stale Predictions**: Cache predictions with timestamp, automatically refresh when underlying data changes significantly
 - **Duplicate Asset Serial Numbers**: Warn when entering duplicate serial number, allow override with confirmation
 
 ## Design Direction

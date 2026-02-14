@@ -45,6 +45,7 @@ import { GlobalSearch } from '@/components/GlobalSearch'
 import { CustomizableDashboard } from '@/components/CustomizableDashboard'
 import { UserProfileMenu } from '@/components/UserProfileMenu'
 import { DatabaseManagement } from '@/components/DatabaseManagement'
+import { PredictiveMaintenanceDashboard } from '@/components/PredictiveMaintenanceDashboard'
 import { 
   Wrench, 
   ClipboardText, 
@@ -64,7 +65,8 @@ import {
   CheckSquare,
   MagnifyingGlass,
   House,
-  Database
+  Database,
+  Brain
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -568,6 +570,12 @@ function App() {
                 Analytics
               </TabsTrigger>
             )}
+            {canViewTab(currentUserRole, 'predictive') && (
+              <TabsTrigger value="predictive" className="flex items-center gap-2">
+                <Brain size={18} />
+                Predictive ML
+              </TabsTrigger>
+            )}
             {canViewTab(currentUserRole, 'database') && (
               <TabsTrigger value="database" className="flex items-center gap-2">
                 <Database size={18} />
@@ -936,6 +944,37 @@ function App() {
             ) : (
               <AnalyticsDashboard workOrders={safeWorkOrders} />
             )}
+          </TabsContent>
+
+          <TabsContent value="predictive" className="space-y-6 animate-fade-in">
+            <PredictiveMaintenanceDashboard
+              workOrders={safeWorkOrders}
+              employees={safeEmployees}
+              parts={parts || []}
+              partTransactions={partTransactions || []}
+              onCreateWorkOrder={(equipment, date, priority) => {
+                setCloneWorkOrder({
+                  work_order_id: `WO-${Date.now()}`,
+                  equipment_area: equipment,
+                  priority_level: priority as any,
+                  status: 'Scheduled (Not Started)',
+                  type: 'Maintenance',
+                  task: `Predictive maintenance for ${equipment}`,
+                  comments_description: 'Auto-generated from ML prediction',
+                  scheduled_date: date,
+                  estimated_downtime_hours: 2,
+                  assigned_technician: null,
+                  entered_by: null,
+                  terminal: 'Hanceville Terminal',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  completed_at: null,
+                  is_overdue: false,
+                  auto_generated: true
+                })
+                setNewWorkOrderOpen(true)
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="database" className="space-y-6 animate-fade-in">

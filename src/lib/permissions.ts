@@ -23,6 +23,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
       { resource: 'sops', actions: ['create', 'read', 'update'] },
       { resource: 'forms', actions: ['create', 'read', 'update', 'delete'] },
       { resource: 'analytics', actions: ['read'] },
+      { resource: 'predictive', actions: ['read', 'execute'] },
       { resource: 'schedules', actions: ['create', 'read', 'update', 'delete', 'execute'] },
       { resource: 'database', actions: ['read'] }
     ],
@@ -43,6 +44,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
       { resource: 'sops', actions: ['read'] },
       { resource: 'forms', actions: ['create', 'read', 'update'] },
       { resource: 'analytics', actions: ['read'] },
+      { resource: 'predictive', actions: ['read'] },
       { resource: 'schedules', actions: ['read', 'update'] }
     ],
     can_view_tabs: [
@@ -57,7 +59,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
       'forms',
       'certifications',
       'sops',
-      'analytics'
+      'analytics',
+      'predictive'
     ],
     can_edit_own_data: true,
     can_edit_all_data: false,
@@ -193,6 +196,7 @@ export function getAvailableTabs(userRole: UserRole | undefined): string[] {
       'certifications',
       'sops',
       'analytics',
+      'predictive',
       'database'
     ]
   }
