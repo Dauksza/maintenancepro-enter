@@ -149,7 +149,25 @@ function App() {
   const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Technician')
 
-  const validTabs = ['dashboard', 'tracking', 'timeline', 'resources', 'capacity', 'calendar', 'employees', 'assets', 'parts', 'forms', 'certifications', 'sops', 'analytics', 'predictive', 'database']
+  const validTabs = [
+    'dashboard',
+    'tracking',
+    'timeline',
+    'resources',
+    'capacity',
+    'calendar',
+    'employees',
+    'assets',
+    'parts',
+    'forms',
+    'certifications',
+    'sops',
+    'analytics',
+    'predictive',
+    'database',
+    'pm-schedules',
+    'templates'
+  ]
   const safeActiveTab = activeTab && validTabs.includes(activeTab) ? activeTab : 'dashboard'
 
   useEffect(() => {
@@ -301,12 +319,8 @@ function App() {
       return updatedOrders
     })
 
-    if (notificationPreferences?.enabled && notificationPreferences?.notifyOnAssignmentSuggestions) {
-      const newNotifications = generateAutoSchedulerNotifications(scheduledOrders, safeEmployees)
-      if (newNotifications.length > 0) {
-        setNotifications((current) => [...(current || []), ...newNotifications])
-      }
-    }
+    // Auto-scheduled work orders are automatically accepted without notifications
+    // No notifications are generated for auto-scheduler assignments
   }
 
   const handleUpdateEmployee = (id: string, updates: Partial<Employee>) => {
