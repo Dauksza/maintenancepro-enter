@@ -43,6 +43,59 @@ export interface WorkOrder {
   area_id?: string | null
   required_skill_ids?: string[]
   required_asset_ids?: string[]
+  dependencies?: TaskDependency[]
+  recurrence_rule?: RecurrenceRule | null
+  template_id?: string | null
+  attachments?: WorkOrderAttachment[]
+  verification_required?: boolean
+  verified_by?: string | null
+  verified_at?: string | null
+}
+
+export type AttachmentType = 'photo' | 'document' | 'video' | 'pdf' | 'other'
+
+export interface WorkOrderAttachment {
+  attachment_id: string
+  work_order_id: string
+  file_name: string
+  file_type: AttachmentType
+  file_size_bytes: number
+  file_url: string
+  thumbnail_url?: string | null
+  uploaded_by: string
+  uploaded_at: string
+  description?: string | null
+}
+
+export interface WorkOrderTemplate {
+  template_id: string
+  template_name: string
+  description: string
+  type: WorkOrderType
+  priority_level: PriorityLevel
+  estimated_downtime_hours: number
+  task_template: string
+  comments_template: string
+  required_skill_ids: string[]
+  required_asset_ids: string[]
+  linked_sop_ids: string[]
+  recurrence_rule: RecurrenceRule | null
+  checklist_items: ChecklistItem[]
+  is_active: boolean
+  usage_count: number
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ChecklistItem {
+  item_id: string
+  description: string
+  is_required: boolean
+  order: number
+  completed: boolean
+  completed_by?: string | null
+  completed_at?: string | null
 }
 
 export interface SOP {
@@ -272,6 +325,8 @@ export interface Asset {
   category: AssetCategory
   status: AssetStatus
   area_id: string | null
+  parent_asset_id: string | null
+  child_asset_ids: string[]
   assigned_employee_ids: string[]
   required_skill_ids: string[]
   maintenance_task_ids: string[]
@@ -282,9 +337,25 @@ export interface Asset {
   purchase_date: string | null
   warranty_expiry: string | null
   availability_windows: AvailabilityWindow[]
+  meter_readings: MeterReading[]
+  last_maintenance_date: string | null
+  next_maintenance_date: string | null
+  downtime_hours_ytd: number
+  criticality_rating: 'Low' | 'Medium' | 'High' | 'Critical'
   notes: string
   created_at: string
   updated_at: string
+}
+
+export interface MeterReading {
+  reading_id: string
+  asset_id: string
+  meter_type: 'hours' | 'cycles' | 'distance' | 'production_units' | 'other'
+  reading_value: number
+  reading_unit: string
+  recorded_by: string
+  recorded_at: string
+  notes?: string | null
 }
 
 export interface AvailabilityWindow {
