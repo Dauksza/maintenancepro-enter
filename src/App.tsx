@@ -133,7 +133,7 @@ function App() {
   const [autoSchedulerOpen, setAutoSchedulerOpen] = useState(false)
   const [newWorkOrderOpen, setNewWorkOrderOpen] = useState(false)
   const [cloneWorkOrder, setCloneWorkOrder] = useState<WorkOrder | null>(null)
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useKV<string>('active-tab', 'dashboard')
   const [searchOpen, setSearchOpen] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Technician')
 
@@ -405,43 +405,52 @@ function App() {
     <div className="min-h-screen bg-background grid-pattern">
       <Toaster position="top-right" />
       
-      <header className="bg-card border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-[1600px] mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-primary tracking-tight">
-                MaintenancePro
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Enterprise CMMS & SOP Management System
-              </p>
-            </div>
+      <header className="bg-card/95 backdrop-blur-md border-b sticky top-0 z-10 shadow-sm">
+        <div className="max-w-[1600px] mx-auto px-6">
+          <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary text-primary-foreground">
+                <Wrench size={20} weight="bold" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-primary tracking-tight leading-tight">
+                  MaintenancePro
+                </h1>
+                <p className="text-xs text-muted-foreground leading-tight">
+                  Enterprise CMMS
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 onClick={() => setSearchOpen(true)}
-                className="gap-2 min-w-[240px] justify-start text-muted-foreground"
+                className="gap-2 min-w-[220px] justify-start text-muted-foreground h-9 text-sm"
               >
-                <MagnifyingGlass size={18} />
+                <MagnifyingGlass size={16} />
                 Search...
-                <kbd className="ml-auto px-2 py-1 text-xs bg-muted rounded">⌘K</kbd>
+                <kbd className="ml-auto px-1.5 py-0.5 text-[10px] bg-muted rounded font-mono">⌘K</kbd>
               </Button>
+              <div className="w-px h-6 bg-border mx-1" />
               <Button
-                variant="outline"
+                variant="ghost"
+                size="icon"
                 onClick={() => setImportOpen(true)}
-                className="gap-2"
+                className="h-9 w-9"
+                title="Import data"
               >
                 <UploadSimple size={18} />
-                Import
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
+                size="icon"
                 onClick={handleExportData}
-                className="gap-2"
+                className="h-9 w-9"
+                title="Export data"
               >
                 <DownloadSimple size={18} />
-                Export
               </Button>
+              <div className="w-px h-6 bg-border mx-1" />
               <NotificationPreferencesDialog
                 preferences={notificationPreferences || {
                   enabled: true,
@@ -472,22 +481,24 @@ function App() {
                 <Button 
                   onClick={() => setActiveTab('certifications')}
                   variant="outline"
-                  className="gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  size="sm"
+                  className="gap-1.5 border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground h-9"
                 >
-                  <Certificate size={18} weight="fill" />
-                  {certificationCounts.critical} Cert{certificationCounts.critical === 1 ? '' : 's'} Expiring
+                  <Certificate size={16} weight="fill" />
+                  {certificationCounts.critical} Expiring
                 </Button>
               )}
               {overdueCount > 0 && hasPermission(currentUserRole, 'schedules', 'execute') && (
                 <>
-                  <div className="bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-semibold animate-pulse">
+                  <div className="bg-destructive/10 text-destructive px-2.5 py-1 rounded-full text-xs font-semibold border border-destructive/20">
                     {overdueCount} Overdue
                   </div>
                   <Button 
                     onClick={() => setAutoSchedulerOpen(true)}
-                    className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+                    size="sm"
+                    className="gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90 h-9"
                   >
-                    <Sparkle size={18} weight="fill" />
+                    <Sparkle size={16} weight="fill" />
                     Auto-Schedule
                   </Button>
                 </>
@@ -495,9 +506,10 @@ function App() {
               {hasPermission(currentUserRole, 'work-orders', 'create') && (
                 <Button 
                   onClick={() => setNewWorkOrderOpen(true)}
-                  className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                  size="sm"
+                  className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 h-9"
                 >
-                  <Plus size={18} weight="bold" />
+                  <Plus size={16} weight="bold" />
                   New Work Order
                 </Button>
               )}
@@ -511,94 +523,94 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto px-6 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="inline-flex w-full max-w-full overflow-x-auto flex-wrap gap-1">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <House size={18} />
+      <main className="max-w-[1600px] mx-auto px-6 py-6">
+        <Tabs value={activeTab || 'dashboard'} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="inline-flex w-full max-w-full overflow-x-auto gap-0.5 p-1 bg-muted/60 backdrop-blur-sm rounded-lg border border-border/50">
+            <TabsTrigger value="dashboard" className="flex items-center gap-1.5 text-sm rounded-md">
+              <House size={16} />
               Dashboard
             </TabsTrigger>
             {canViewTab(currentUserRole, 'tracking') && (
-              <TabsTrigger value="tracking" className="flex items-center gap-2">
-                <Wrench size={18} />
+              <TabsTrigger value="tracking" className="flex items-center gap-1.5 text-sm rounded-md">
+                <Wrench size={16} />
                 Tracking
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'timeline') && (
-              <TabsTrigger value="timeline" className="flex items-center gap-2">
-                <ChartLineUp size={18} />
+              <TabsTrigger value="timeline" className="flex items-center gap-1.5 text-sm rounded-md">
+                <ChartLineUp size={16} />
                 Timeline
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'resources') && (
-              <TabsTrigger value="resources" className="flex items-center gap-2">
-                <Users size={18} />
+              <TabsTrigger value="resources" className="flex items-center gap-1.5 text-sm rounded-md">
+                <Users size={16} />
                 Resources
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'capacity') && (
-              <TabsTrigger value="capacity" className="flex items-center gap-2">
-                <Gauge size={18} />
+              <TabsTrigger value="capacity" className="flex items-center gap-1.5 text-sm rounded-md">
+                <Gauge size={16} />
                 Capacity
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'calendar') && (
-              <TabsTrigger value="calendar" className="flex items-center gap-2">
-                <CalendarBlank size={18} />
+              <TabsTrigger value="calendar" className="flex items-center gap-1.5 text-sm rounded-md">
+                <CalendarBlank size={16} />
                 Calendar
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'employees') && (
-              <TabsTrigger value="employees" className="flex items-center gap-2">
-                <UserGear size={18} />
+              <TabsTrigger value="employees" className="flex items-center gap-1.5 text-sm rounded-md">
+                <UserGear size={16} />
                 Employees
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'assets') && (
-              <TabsTrigger value="assets" className="flex items-center gap-2">
-                <Package size={18} />
+              <TabsTrigger value="assets" className="flex items-center gap-1.5 text-sm rounded-md">
+                <Package size={16} />
                 Assets
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'parts') && (
-              <TabsTrigger value="parts" className="flex items-center gap-2">
-                <Toolbox size={18} />
+              <TabsTrigger value="parts" className="flex items-center gap-1.5 text-sm rounded-md">
+                <Toolbox size={16} />
                 Parts
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'forms') && (
-              <TabsTrigger value="forms" className="flex items-center gap-2">
-                <CheckSquare size={18} />
+              <TabsTrigger value="forms" className="flex items-center gap-1.5 text-sm rounded-md">
+                <CheckSquare size={16} />
                 Forms
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'certifications') && (
-              <TabsTrigger value="certifications" className="flex items-center gap-2">
-                <Certificate size={18} />
+              <TabsTrigger value="certifications" className="flex items-center gap-1.5 text-sm rounded-md">
+                <Certificate size={16} />
                 Certs
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'sops') && (
-              <TabsTrigger value="sops" className="flex items-center gap-2">
-                <ClipboardText size={18} />
+              <TabsTrigger value="sops" className="flex items-center gap-1.5 text-sm rounded-md">
+                <ClipboardText size={16} />
                 SOPs
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'analytics') && (
-              <TabsTrigger value="analytics" className="flex items-center gap-2">
-                <ChartBar size={18} />
+              <TabsTrigger value="analytics" className="flex items-center gap-1.5 text-sm rounded-md">
+                <ChartBar size={16} />
                 Analytics
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'predictive') && (
-              <TabsTrigger value="predictive" className="flex items-center gap-2">
-                <Brain size={18} />
-                Predictive ML
+              <TabsTrigger value="predictive" className="flex items-center gap-1.5 text-sm rounded-md">
+                <Brain size={16} />
+                Predictive
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'database') && (
-              <TabsTrigger value="database" className="flex items-center gap-2">
-                <Database size={18} />
+              <TabsTrigger value="database" className="flex items-center gap-1.5 text-sm rounded-md">
+                <Database size={16} />
                 Database
               </TabsTrigger>
             )}

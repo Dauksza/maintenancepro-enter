@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { PartInventoryItem, PartTransaction } from '@/lib/types'
 import {
   Dialog,
@@ -30,8 +30,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Package, Clock, ShoppingCart, TrendUp } from '@phosphor-icons/react'
-import { format } from 'date-fns'
+import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns'
 import { toast } from 'sonner'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+} from 'recharts'
 
 interface PartDetailDialogProps {
   open: boolean
@@ -341,17 +352,146 @@ export function PartDetailDialog({
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Usage Analytics</CardTitle>
-                <CardDescription>Historical usage patterns and trends</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground py-8">
-                  Usage analytics coming soon
-                </p>
-              </CardContent>
-            </Card>
+            {(() => {
+              const monthlyData = Array.from({ length: 6 }, (_, i) => {
+                const monthDate = subMonths(new Date(), 5 - i)
+                const monthStart = startOfMonth(monthDate)
+                const monthEnd = endOfMonth(monthDate)
+                const monthTxns = transactions.filter(t => {
+                  const txnDate = new Date(t.created_at)
+                  return isWithinInterval(txnDate, { start: monthStart, end: monthEnd })
+                })
+                const used = monthTxns
+                  .filter(t => t.transaction_type === 'Use')
+                  .reduce((sum, t) => sum + t.quantity, 0)
+                const purchased = monthTxns
+                  .filter(t => t.transaction_type === 'Purchase')
+                  .reduce((sum, t) => sum + t.quantity, 0)
+                return {
+                  month: format(monthDate, 'MMM yyyy'),
+                  used,
+                  purchased,
+                }
+              })
+
+              const totalUsed = transactions
+                .filter(t => t.transaction_type === 'Use')
+                .reduce((sum, t) => sum + t.quantity, 0)
+              const totalPurchased = transactions
+                .filter(t => t.transaction_type === 'Purchase')
+                .reduce((sum, t) => sum + t.quantity, 0)
+              const avgMonthlyUse = monthlyData.length > 0
+                ? Math.round(monthlyData.reduce((s, m) => s + m.used, 0) / monthlyData.length)
+                : 0
+              const monthsUntilEmpty = avgMonthlyUse > 0
+                ? Math.round(part.quantity_on_hand / avgMonthlyUse * 10) / 10
+                : null
+
+              return (
+                <>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                      <CardContent className="pt-4 pb-3 px-4">
+                        <p className="text-sm text-muted-foreground">Total Used</p>
+                        <p className="text-2xl font-bold">{totalUsed}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4 pb-3 px-4">
+                        <p className="text-sm text-muted-foreground">Total Purchased</p>
+                        <p className="text-2xl font-bold">{totalPurchased}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4 pb-3 px-4">
+                        <p className="text-sm text-muted-foreground">Avg Monthly Use</p>
+                        <p className="text-2xl font-bold">
+                          {avgMonthlyUse}
+                          {monthsUntilEmpty !== null && (
+                            <span className="text-sm font-normal text-muted-foreground ml-2">
+                              (~{monthsUntilEmpty} mo. remaining)
+                            </span>
+                          )}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Monthly Usage vs. Purchases</CardTitle>
+                      <CardDescription>Last 6 months of transaction activity</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {transactions.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">
+                          No transaction data available yet. Record transactions to see analytics.
+                        </p>
+                      ) : (
+                        <ResponsiveContainer width="100%" height={250}>
+                          <BarChart data={monthlyData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0.01 255)" />
+                            <XAxis dataKey="month" fontSize={12} />
+                            <YAxis fontSize={12} />
+                            <Tooltip />
+                            <Bar dataKey="used" name="Used" fill="oklch(0.58 0.20 25)" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="purchased" name="Purchased" fill="oklch(0.62 0.17 145)" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {transactions.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Stock Level Trend</CardTitle>
+                        <CardDescription>How your stock level has changed over time</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <LineChart data={(() => {
+                            const sorted = [...transactions].sort(
+                              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                            )
+                            let running = part.quantity_on_hand
+                            // Walk backwards to reconstruct past levels
+                            const points = sorted.map(t => {
+                              const delta = t.transaction_type === 'Use' || t.transaction_type === 'Transfer'
+                                ? t.quantity
+                                : t.transaction_type === 'Purchase' || t.transaction_type === 'Return'
+                                  ? -t.quantity
+                                  : 0
+                              return { date: format(new Date(t.created_at), 'MMM d'), delta, qty: 0 }
+                            })
+                            // Reconstruct forward from current stock minus net changes
+                            const totalDelta = points.reduce((s, p) => s + p.delta, 0)
+                            let level = part.quantity_on_hand + totalDelta
+                            return points.map(p => {
+                              level -= p.delta
+                              return { date: p.date, stock: Math.max(0, level) }
+                            })
+                          })()}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0.01 255)" />
+                            <XAxis dataKey="date" fontSize={12} />
+                            <YAxis fontSize={12} />
+                            <Tooltip />
+                            <Line
+                              type="monotone"
+                              dataKey="stock"
+                              name="Stock Level"
+                              stroke="oklch(0.35 0.12 255)"
+                              strokeWidth={2}
+                              dot={false}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )
+            })()}
           </TabsContent>
         </Tabs>
       </DialogContent>
