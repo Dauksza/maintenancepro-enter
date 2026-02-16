@@ -45,7 +45,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
       { resource: 'forms', actions: ['create', 'read', 'update'] },
       { resource: 'analytics', actions: ['read'] },
       { resource: 'predictive', actions: ['read'] },
-      { resource: 'schedules', actions: ['read', 'update'] }
+      { resource: 'schedules', actions: ['read', 'update'] },
+      { resource: 'pm-schedules', actions: ['read'] },
+      { resource: 'templates', actions: ['read'] }
     ],
     can_view_tabs: [
       'tracking',
@@ -60,7 +62,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
       'certifications',
       'sops',
       'analytics',
-      'predictive'
+      'predictive',
+      'pm-schedules',
+      'templates'
     ],
     can_edit_own_data: true,
     can_edit_all_data: false,
