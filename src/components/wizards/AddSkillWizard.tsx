@@ -55,9 +55,6 @@ export function AddSkillWizard({
   const [linkedSopIds, setLinkedSopIds] = useState<string[]>([])
   const [linkedAssetIds, setLinkedAssetIds] = useState<string[]>([])
 
-  const safeSops = sops || []
-  const safeAssets = assets || []
-
   const steps: WizardStep[] = ['basic', 'certification', 'links', 'review']
   const stepIndex = steps.indexOf(currentStep)
   const progress = ((stepIndex + 1) / steps.length) * 100
@@ -260,13 +257,13 @@ export function AddSkillWizard({
                 <ClipboardText size={20} className="text-primary" />
                 <Label className="text-base font-medium">Linked SOPs</Label>
               </div>
-              {safeSops.length === 0 ? (
+              {(sops || []).length === 0 ? (
                 <div className="p-4 bg-muted rounded-lg text-center text-muted-foreground text-sm">
                   No SOPs available. Import SOPs from the SOP Library to link them here.
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[180px] overflow-y-auto rounded-lg border p-2">
-                  {safeSops.map(sop => (
+                  {(sops || []).map(sop => (
                     <label
                       key={sop.sop_id}
                       className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer transition-colors"
@@ -302,13 +299,13 @@ export function AddSkillWizard({
                 <Package size={20} className="text-primary" />
                 <Label className="text-base font-medium">Required for Assets</Label>
               </div>
-              {safeAssets.length === 0 ? (
+              {(assets || []).length === 0 ? (
                 <div className="p-4 bg-muted rounded-lg text-center text-muted-foreground text-sm">
                   No assets available. Add assets from the Assets tab to link them here.
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[180px] overflow-y-auto rounded-lg border p-2">
-                  {safeAssets.map(asset => (
+                  {(assets || []).map(asset => (
                     <label
                       key={asset.asset_id}
                       className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer transition-colors"

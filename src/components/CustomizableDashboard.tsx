@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useKV } from '@github/spark/hooks'
 import type { DashboardWidget, WorkOrder, Employee, PartInventoryItem, CertificationReminder, AuditLogEntry } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -99,7 +99,7 @@ export function CustomizableDashboard({
   ])
 
   const [editMode, setEditMode] = useState(false)
-  const [activityLog, setActivityLog] = useKV<AuditLogEntry[]>('activity-log', [])
+  const [activityLog] = useKV<AuditLogEntry[]>('activity-log', [])
 
   const toggleWidgetVisibility = (widgetId: string) => {
     setWidgets((current) =>
