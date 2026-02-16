@@ -159,53 +159,14 @@ export function UserProfileMenu({ onRoleChange, onOpenImport, onExportData }: Us
                 </p>
               </div>
             </div>
-            <Badge className={getRoleColor(userProfile.role)}>
-              {userProfile.role}
+            <Badge className="bg-green-600">
+              Full Access
             </Badge>
           </div>
         </DropdownMenuLabel>
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="gap-2">
-            <ShieldCheck size={16} />
-            Change Role
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuItem onClick={() => handleRoleChange('Admin')}>
-              <div className="flex items-center justify-between w-full">
-                <span>Admin</span>
-                {userProfile.role === 'Admin' && <span className="text-primary">✓</span>}
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleRoleChange('Manager')}>
-              <div className="flex items-center justify-between w-full">
-                <span>Manager</span>
-                {userProfile.role === 'Manager' && <span className="text-primary">✓</span>}
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleRoleChange('Supervisor')}>
-              <div className="flex items-center justify-between w-full">
-                <span>Supervisor</span>
-                {userProfile.role === 'Supervisor' && <span className="text-primary">✓</span>}
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleRoleChange('Technician')}>
-              <div className="flex items-center justify-between w-full">
-                <span>Technician</span>
-                {userProfile.role === 'Technician' && <span className="text-primary">✓</span>}
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleRoleChange('Viewer')}>
-              <div className="flex items-center justify-between w-full">
-                <span>Viewer</span>
-                {userProfile.role === 'Viewer' && <span className="text-primary">✓</span>}
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-
         <DropdownMenuItem className="gap-2" onClick={() => setProfileDialogOpen(true)}>
           <UserCircle size={16} />
           View Profile
