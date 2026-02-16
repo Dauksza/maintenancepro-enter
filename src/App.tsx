@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useKV } from '@github/spark/hooks'
 import type { 
   WorkOrder, 
@@ -110,6 +110,7 @@ function App() {
   const [formTemplates, setFormTemplates] = useKV<FormTemplate[]>('form-templates', generatePremadeTemplates())
   const [formSubmissions, setFormSubmissions] = useKV<FormSubmission[]>('form-submissions', [])
   const [userProfile, setUserProfile] = useKV<UserProfile | null>('user-profile', null)
+  const [hasSeededData, setHasSeededData] = useKV<boolean>('has-seeded-data', false)
   const [notificationPreferences, setNotificationPreferences] = useKV<NotificationPreferences>(
     'notification-preferences',
     {
@@ -220,7 +221,7 @@ function App() {
     setSparesLabor((current) => [...(current || []), ...data.sparesLabor])
   }
 
-  const handleLoadSampleData = () => {
+  const handleLoadSampleData = useCallback(() => {
     const sampleWOs = generateSampleWorkOrders()
     const sampleSOPs = generateSampleSOPs()
     const sampleSpares = generateSampleSparesLabor()
@@ -228,6 +229,7 @@ function App() {
     const sampleSkills = generateSampleSkillMatrix()
     const sampleSchedules = generateSampleSchedules()
     const sampleParts = generateSampleParts()
+    const sampleReminders = generateRemindersFromSkillMatrix(sampleSkills, sampleEmployees)
     
     setWorkOrders(sampleWOs)
     setSOPs(sampleSOPs)
@@ -236,9 +238,21 @@ function App() {
     setSkillMatrix(sampleSkills)
     setSchedules(sampleSchedules)
     setParts(sampleParts)
+    setReminders(sampleReminders)
+    setHasSeededData(true)
     
     toast.success('Sample data loaded successfully')
-  }
+  }, [
+    setWorkOrders,
+    setSOPs,
+    setSparesLabor,
+    setEmployees,
+    setSkillMatrix,
+    setSchedules,
+    setParts,
+    setReminders,
+    setHasSeededData
+  ])
 
   const handleExportData = () => {
     if (safeWorkOrders.length === 0 && safeSOPs.length === 0 && safeSparesLabor.length === 0) {
@@ -393,7 +407,36 @@ function App() {
   const safeSkillMatrix = skillMatrix || []
   const safeSchedules = schedules || []
   const safeMessages = messages || []
+  const safeReminders = reminders || []
   const overdueCount = safeWorkOrders.filter(wo => wo.is_overdue).length
+  const initialSeedCheck = useRef(false)
+
+  useEffect(() => {
+    if (initialSeedCheck.current) return
+    initialSeedCheck.current = true
+
+    if (hasSeededData) return
+
+    const hasExistingData = [
+      safeWorkOrders.length,
+      safeSOPs.length,
+      safeSparesLabor.length,
+      safeEmployees.length,
+      safeSkillMatrix.length,
+      safeSchedules.length,
+      (parts || []).length,
+      safeReminders.length
+    ].some(count => count > 0)
+
+    if (!hasExistingData) {
+      handleLoadSampleData()
+    } else {
+      setHasSeededData(true)
+    }
+  }, [
+    hasSeededData,
+    handleLoadSampleData
+  ])
 
   const certificationCounts = useMemo(() => {
     const currentReminders = generateRemindersFromSkillMatrix(
