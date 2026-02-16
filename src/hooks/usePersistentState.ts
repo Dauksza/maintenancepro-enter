@@ -28,11 +28,7 @@ export function usePersistentState<T>(
     }
   }, [key, state]);
 
-  const updateState = useCallback((value: T | ((prev: T) => T)) => {
-    setState(value);
-  }, []);
-
-  return [state, updateState];
+  return [state, setState];
 }
 
 /**

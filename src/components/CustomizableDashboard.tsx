@@ -24,6 +24,9 @@ import {
 import { cn } from '@/lib/utils'
 import { getActionIcon, getResourceTypeLabel } from '@/lib/activity-log'
 
+// Animation constants
+const STAGGER_DELAY_MS = 50
+
 interface CustomizableDashboardProps {
   workOrders: WorkOrder[]
   employees: Employee[]
@@ -405,7 +408,7 @@ export function CustomizableDashboard({
                         <div
                           key={part.part_id}
                           className="p-3 rounded-lg border bg-orange-50 dark:bg-orange-950/20 transition-all hover:shadow-md animate-slide-in-right"
-                          style={{ animationDelay: `${index * 50}ms` }}
+                          style={{ animationDelay: `${index * STAGGER_DELAY_MS}ms` }}
                         >
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <span className="font-semibold text-sm">{part.part_name}</span>

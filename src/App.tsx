@@ -139,6 +139,7 @@ function App() {
   const [cloneWorkOrder, setCloneWorkOrder] = useState<WorkOrder | null>(null)
   const [activeTab, setActiveTab] = useKV<string>('active-tab', 'dashboard')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Technician')
 
   const validTabs = ['dashboard', 'tracking', 'timeline', 'resources', 'capacity', 'calendar', 'employees', 'assets', 'parts', 'forms', 'certifications', 'sops', 'analytics', 'predictive', 'database']
@@ -460,11 +461,7 @@ function App() {
     'ctrl+i': () => setImportOpen(true),
     'cmd+e': handleExportData,
     'ctrl+e': handleExportData,
-    '?': () => {
-      // Trigger keyboard shortcuts dialog
-      const keyboardBtn = document.querySelector('[aria-label="Keyboard shortcuts"]') as HTMLButtonElement
-      keyboardBtn?.click()
-    }
+    '?': () => setKeyboardShortcutsOpen(true)
   })
 
   return (
@@ -529,12 +526,10 @@ function App() {
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Export to Excel</TooltipContent>
               </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <KeyboardShortcutsDialog />
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Keyboard shortcuts</TooltipContent>
-              </Tooltip>
+              <KeyboardShortcutsDialog 
+                open={keyboardShortcutsOpen}
+                onOpenChange={setKeyboardShortcutsOpen}
+              />
               <div className="w-px h-6 bg-border mx-1" />
               <NotificationPreferencesDialog
                 preferences={notificationPreferences || {

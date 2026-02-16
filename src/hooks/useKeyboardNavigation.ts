@@ -82,7 +82,7 @@ export function useKeyboardShortcuts(shortcuts: Record<string, () => void>) {
       }
 
       // Check for Cmd/Ctrl + key combinations
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
       const modifier = isMac ? event.metaKey : event.ctrlKey;
 
       for (const [key, handler] of Object.entries(shortcuts)) {
