@@ -656,19 +656,21 @@ function App() {
             </div>
 
             {safeWorkOrders.length === 0 ? (
-              <div className="bg-card border rounded-lg p-12 text-center">
-                <Wrench size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                  <Wrench size={32} className="text-primary" weight="duotone" />
+                </div>
                 <h3 className="text-xl font-semibold mb-2">No Work Orders Yet</h3>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Create a new work order, import Excel/CSV data, or load sample work orders to get started
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Button onClick={() => setNewWorkOrderOpen(true)}>
-                    <Plus size={18} />
+                  <Button onClick={() => setNewWorkOrderOpen(true)} className="gap-2">
+                    <Plus size={16} />
                     Create Work Order
                   </Button>
-                  <Button variant="outline" onClick={() => setImportOpen(true)}>
-                    <UploadSimple size={18} />
+                  <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+                    <UploadSimple size={16} />
                     Import Excel/CSV
                   </Button>
                   <Button variant="outline" onClick={handleLoadSampleData}>
@@ -696,15 +698,17 @@ function App() {
             </div>
 
             {safeWorkOrders.length === 0 ? (
-              <div className="bg-card border rounded-lg p-12 text-center">
-                <ChartLineUp size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                  <ChartLineUp size={32} className="text-primary" weight="duotone" />
+                </div>
                 <h3 className="text-xl font-semibold mb-2">No Work Orders to Display</h3>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Import Excel/CSV data or load sample work orders to view the timeline
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Button onClick={() => setImportOpen(true)}>
-                    <UploadSimple size={18} />
+                  <Button className="gap-2" onClick={() => setImportOpen(true)}>
+                    <UploadSimple size={16} />
                     Import Excel/CSV
                   </Button>
                   <Button variant="outline" onClick={handleLoadSampleData}>
@@ -732,15 +736,17 @@ function App() {
             </div>
 
             {safeWorkOrders.length === 0 ? (
-              <div className="bg-card border rounded-lg p-12 text-center">
-                <Users size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                  <Users size={32} className="text-primary" weight="duotone" />
+                </div>
                 <h3 className="text-xl font-semibold mb-2">No Work Orders to Display</h3>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Import Excel/CSV data or load sample work orders to view resource allocation
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Button onClick={() => setImportOpen(true)}>
-                    <UploadSimple size={18} />
+                  <Button className="gap-2" onClick={() => setImportOpen(true)}>
+                    <UploadSimple size={16} />
                     Import Excel/CSV
                   </Button>
                   <Button variant="outline" onClick={handleLoadSampleData}>
@@ -763,15 +769,17 @@ function App() {
 
           <TabsContent value="calendar" className="space-y-6 animate-fade-in">
             {safeWorkOrders.length === 0 ? (
-              <div className="bg-card border rounded-lg p-12 text-center">
-                <CalendarBlank size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                  <CalendarBlank size={32} className="text-primary" weight="duotone" />
+                </div>
                 <h3 className="text-xl font-semibold mb-2">No Work Orders to Schedule</h3>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Import Excel/CSV data or load sample work orders to view the calendar
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Button onClick={() => setImportOpen(true)}>
-                    <UploadSimple size={18} />
+                  <Button className="gap-2" onClick={() => setImportOpen(true)}>
+                    <UploadSimple size={16} />
                     Import Excel/CSV
                   </Button>
                   <Button variant="outline" onClick={handleLoadSampleData}>
@@ -799,15 +807,17 @@ function App() {
             </div>
 
             {safeSOPs.length === 0 ? (
-              <div className="bg-card border rounded-lg p-12 text-center">
-                <ClipboardText size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                  <ClipboardText size={32} className="text-primary" weight="duotone" />
+                </div>
                 <h3 className="text-xl font-semibold mb-2">No SOPs Available</h3>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Import your SOP library via Excel/CSV to enable automated PM scheduling
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Button onClick={() => setImportOpen(true)}>
-                    <UploadSimple size={18} />
+                  <Button className="gap-2" onClick={() => setImportOpen(true)}>
+                    <UploadSimple size={16} />
                     Import Excel/CSV
                   </Button>
                   <Button variant="outline" onClick={handleLoadSampleData}>
@@ -825,10 +835,12 @@ function App() {
 
           <TabsContent value="employees" className="space-y-6 animate-fade-in">
             {safeEmployees.length === 0 ? (
-              <div className="bg-card border rounded-lg p-12 text-center">
-                <UserGear size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                  <UserGear size={32} className="text-primary" weight="duotone" />
+                </div>
                 <h3 className="text-xl font-semibold mb-2">No Employees in System</h3>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Load sample employee data to get started with team management
                 </p>
                 <Button onClick={handleLoadSampleData}>
@@ -927,10 +939,12 @@ function App() {
 
           <TabsContent value="certifications" className="space-y-6 animate-fade-in">
             {safeEmployees.length === 0 ? (
-              <div className="bg-card border rounded-lg p-12 text-center">
-                <Certificate size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                  <Certificate size={32} className="text-primary" weight="duotone" />
+                </div>
                 <h3 className="text-xl font-semibold mb-2">No Certification Data</h3>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Load sample employee data to get started with certification tracking
                 </p>
                 <Button onClick={handleLoadSampleData}>
@@ -957,15 +971,17 @@ function App() {
             </div>
 
             {safeWorkOrders.length === 0 ? (
-              <div className="bg-card border rounded-lg p-12 text-center">
-                <ChartBar size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                  <ChartBar size={32} className="text-primary" weight="duotone" />
+                </div>
                 <h3 className="text-xl font-semibold mb-2">No Data to Analyze</h3>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Import work orders via Excel/CSV or create sample data to view analytics
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Button onClick={() => setImportOpen(true)}>
-                    <UploadSimple size={18} />
+                  <Button className="gap-2" onClick={() => setImportOpen(true)}>
+                    <UploadSimple size={16} />
                     Import Excel/CSV
                   </Button>
                   <Button variant="outline" onClick={handleLoadSampleData}>
