@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react'
-import { useKV } from '@github/spark'
+import { useKV } from '@github/spark/hooks'
 import { Plus, Copy, Trash2, Edit, CheckSquare } from 'lucide-react'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'

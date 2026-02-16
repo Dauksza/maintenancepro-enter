@@ -48,6 +48,8 @@ import { UserProfileMenu } from '@/components/UserProfileMenu'
 import { DatabaseManagement } from '@/components/DatabaseManagement'
 import { PredictiveMaintenanceDashboard } from '@/components/PredictiveMaintenanceDashboard'
 import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog'
+import { PMScheduleManagement } from '@/components/PMScheduleManagement'
+import { WorkOrderTemplates } from '@/components/WorkOrderTemplates'
 import { 
   Wrench, 
   ClipboardText, 
@@ -68,7 +70,9 @@ import {
   MagnifyingGlass,
   House,
   Database,
-  Brain
+  Brain,
+  Clock,
+  FileText
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -694,6 +698,18 @@ function App() {
                 Database
               </TabsTrigger>
             )}
+            {canViewTab(currentUserRole, 'pm-schedules') && (
+              <TabsTrigger value="pm-schedules" className="flex items-center gap-1.5 text-sm rounded-md">
+                <Clock size={16} />
+                PM Schedules
+              </TabsTrigger>
+            )}
+            {canViewTab(currentUserRole, 'templates') && (
+              <TabsTrigger value="templates" className="flex items-center gap-1.5 text-sm rounded-md">
+                <FileText size={16} />
+                Templates
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6 animate-fade-in">
@@ -1110,6 +1126,14 @@ function App() {
 
           <TabsContent value="database" className="space-y-6 animate-fade-in">
             <DatabaseManagement />
+          </TabsContent>
+
+          <TabsContent value="pm-schedules" className="space-y-6 animate-fade-in">
+            <PMScheduleManagement />
+          </TabsContent>
+
+          <TabsContent value="templates" className="space-y-6 animate-fade-in">
+            <WorkOrderTemplates />
           </TabsContent>
         </Tabs>
       </main>
