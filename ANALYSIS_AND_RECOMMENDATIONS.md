@@ -52,6 +52,40 @@ This update supersedes older items below that have already been implemented.
 10. **Add in-app discoverability for shortcuts and advanced options**  
    - Surface existing options (search shortcut, scheduler toggles, permission-driven tabs) with contextual help
 
+### Requested Backlog Intake (from issue statement)
+
+The following requested recommendations are captured and normalized below. Items already implemented in the current codebase are marked accordingly.
+
+#### 🔴 CRITICAL - Broken/Missing Core Features
+1. Remove Console Logging for Production — **Open**
+2. Add Unit & E2E Testing Framework — **Open**
+3. Implement List Virtualization for Large Datasets — **Open**
+
+#### 🟠 HIGH - Data & Architecture Issues
+4. Add Data Validation Schema Layer — **Open**
+5. Implement Batch Operations for Large Excel Imports — **Open**
+6. Add Comprehensive Activity Audit Log — **Partially Implemented** (`src/lib/activity-log.ts`, `src/components/ActivityLog.tsx`)
+
+#### 🟡 MEDIUM - User Experience & Completeness
+7. Fix UserProfileMenu Non-Functional Items — **Implemented** (`src/components/UserProfileMenu.tsx`, `src/components/ViewProfileDialog.tsx`, `src/components/SettingsDialog.tsx`)
+8. Add Mobile-Responsive Views — **Open**
+9. Implement Data Backup/Restore — **Implemented** (`src/lib/database-manager.ts`, `src/components/DatabaseManagement.tsx`)
+10. Add Inline Help & Tooltips — **Open**
+
+#### 🟢 OPTIMIZATION - Performance & Code Quality
+11. Optimize Auto-Scheduler Preview Calculations — **Open**
+12. Add Error Boundaries per Module — **Open**
+13. Implement Search Result Caching — **Open**
+14. Add Keyboard Shortcuts Documentation — **Open**
+15. Migrate from KV Store Beyond 10k Records — **Planning Required**
+
+### CI / Build Failure Note (Investigated)
+
+- GitHub Actions failed run reviewed: `22020764447` (job `63629437224`)
+- Failure reason: Dependabot `devcontainers` update job expected a devcontainer manifest but none exists:
+  - `Neither .devcontainer.json nor .devcontainer/devcontainer.json nor .devcontainer/<anything>/devcontainer.json found in /`
+- This is a workflow/dependency-automation configuration issue, not an application runtime/build failure.
+
 ---
 
 ## Issues Identified
