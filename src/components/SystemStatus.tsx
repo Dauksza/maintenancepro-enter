@@ -31,7 +31,7 @@ export function SystemStatus({ className = '' }: SystemStatusProps) {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
-    // Simulate periodic sync checks
+    // Simulate periodic sync checks (every 3 minutes)
     const syncInterval = setInterval(() => {
       if (isOnline) {
         setSyncStatus('syncing')
@@ -40,7 +40,7 @@ export function SystemStatus({ className = '' }: SystemStatusProps) {
           setLastSync(new Date())
         }, 500)
       }
-    }, 30000) // Check every 30 seconds
+    }, 180000) // Check every 3 minutes
 
     return () => {
       window.removeEventListener('online', handleOnline)

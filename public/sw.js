@@ -4,13 +4,10 @@
 const CACHE_VERSION = 'v1';
 const CACHE_NAME = `maintenancepro-${CACHE_VERSION}`;
 
-// Assets to cache immediately
+// Core assets to cache immediately (will be populated during install)
 const STATIC_ASSETS = [
   '/',
-  '/index.html',
-  '/src/main.tsx',
-  '/src/main.css',
-  '/src/index.css'
+  '/index.html'
 ];
 
 // Install event - cache static assets

@@ -16,10 +16,10 @@ export function registerServiceWorker() {
         .then((registration) => {
           console.log('[PWA] Service Worker registered:', registration.scope);
 
-          // Check for updates periodically
+          // Check for updates periodically (every 30 minutes)
           setInterval(() => {
             registration.update();
-          }, 60000); // Check every minute
+          }, 1800000); // 30 minutes
 
           // Handle updates
           registration.addEventListener('updatefound', () => {

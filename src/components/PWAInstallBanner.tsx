@@ -49,12 +49,12 @@ export function PWAInstallBanner() {
   const handleDismiss = () => {
     setShowBanner(false)
     // Store dismissal in localStorage to not show again for 7 days
-    localStorage.setItem('pwa-install-dismissed', Date.now().toString())
+    localStorage.setItem('maintenancepro-install-dismissed', Date.now().toString())
   }
 
   // Don't show if dismissed recently
   useEffect(() => {
-    const dismissed = localStorage.getItem('pwa-install-dismissed')
+    const dismissed = localStorage.getItem('maintenancepro-install-dismissed')
     if (dismissed) {
       const dismissedTime = parseInt(dismissed, 10)
       const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24)
