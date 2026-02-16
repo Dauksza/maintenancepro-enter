@@ -407,8 +407,11 @@ function App() {
   return (
     <div className="min-h-screen bg-background grid-pattern">
       <Toaster position="top-right" />
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-primary focus:text-primary-foreground">
+        Skip to main content
+      </a>
       
-      <header className="bg-card/95 backdrop-blur-md border-b sticky top-0 z-10 shadow-sm">
+      <header className="bg-card/95 backdrop-blur-md border-b sticky top-0 z-10 shadow-sm" role="banner">
         <div className="max-w-[1600px] mx-auto px-6">
           <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-3">
@@ -441,6 +444,7 @@ function App() {
                 onClick={() => setImportOpen(true)}
                 className="h-9 w-9"
                 title="Import data"
+                aria-label="Import data"
               >
                 <UploadSimple size={18} />
               </Button>
@@ -450,6 +454,7 @@ function App() {
                 onClick={handleExportData}
                 className="h-9 w-9"
                 title="Export data"
+                aria-label="Export data"
               >
                 <DownloadSimple size={18} />
               </Button>
@@ -526,9 +531,9 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto px-6 py-6">
+      <main id="main-content" className="max-w-[1600px] mx-auto px-6 py-6">
         <Tabs value={safeActiveTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="inline-flex w-full max-w-full overflow-x-auto gap-0.5 p-1 bg-muted/60 backdrop-blur-sm rounded-lg border border-border/50">
+          <TabsList className="inline-flex w-full max-w-full overflow-x-auto gap-0.5 p-1 bg-muted/60 backdrop-blur-sm rounded-lg border border-border/50" aria-label="Main navigation">
             <TabsTrigger value="dashboard" className="flex items-center gap-1.5 text-sm rounded-md">
               <House size={16} />
               Dashboard
@@ -627,6 +632,9 @@ function App() {
               certifications={reminders || []}
               onSelectWorkOrder={handleSelectWorkOrder}
               userEmployeeId={userProfile?.employee_id || undefined}
+              onLoadSampleData={handleLoadSampleData}
+              onOpenImport={() => setImportOpen(true)}
+              onCreateWorkOrder={() => setNewWorkOrderOpen(true)}
             />
           </TabsContent>
 
