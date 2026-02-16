@@ -136,8 +136,8 @@ export function ViewProfileDialog({ open, onClose }: ViewProfileDialogProps) {
                   <h3 className="text-2xl font-semibold">{userProfile.display_name}</h3>
                   <p className="text-sm text-muted-foreground">@{userProfile.username}</p>
                 </div>
-                <Badge className={getRoleColor(userProfile.role)}>
-                  {userProfile.role}
+                <Badge className="bg-green-600">
+                  Full Access
                 </Badge>
                 {userProfile.is_owner && (
                   <Badge variant="outline" className="ml-2">
@@ -183,9 +183,9 @@ export function ViewProfileDialog({ open, onClose }: ViewProfileDialogProps) {
                 <div className="grid gap-2">
                   <Label htmlFor="role" className="flex items-center gap-2">
                     <ShieldCheck size={16} />
-                    Role
+                    Access Level
                   </Label>
-                  <div className="text-sm px-3 py-2 bg-muted rounded-md">{userProfile.role}</div>
+                  <div className="text-sm px-3 py-2 bg-muted rounded-md">Full Access (All Features)</div>
                 </div>
               </div>
             </div>
