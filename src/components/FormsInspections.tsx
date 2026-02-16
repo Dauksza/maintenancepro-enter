@@ -54,6 +54,7 @@ export function FormsInspections({
   const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null)
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null)
+  const [editingTemplate, setEditingTemplate] = useState<FormTemplate | null>(null)
   const [activeTab, setActiveTab] = useState('templates')
 
   const categories = useMemo(() => {
@@ -97,6 +98,11 @@ export function FormsInspections({
   const handleStartForm = (template: FormTemplate) => {
     setSelectedTemplate(template)
     setSubmissionDialogOpen(true)
+  }
+
+  const handleEditTemplate = (template: FormTemplate) => {
+    setEditingTemplate(template)
+    setWizardOpen(true)
   }
 
   const handleViewSubmission = (submission: FormSubmission) => {
@@ -251,7 +257,7 @@ export function FormsInspections({
                     key={template.template_id}
                     template={template}
                     onStart={handleStartForm}
-                    onEdit={() => {}}
+                    onEdit={handleEditTemplate}
                     onDelete={() => {}}
                   />
                 ))}
@@ -273,7 +279,7 @@ export function FormsInspections({
                     key={template.template_id}
                     template={template}
                     onStart={handleStartForm}
-                    onEdit={(t) => {}}
+                    onEdit={handleEditTemplate}
                     onDelete={onDeleteTemplate}
                   />
                 ))}
@@ -321,8 +327,13 @@ export function FormsInspections({
 
       <FormWizardDialog
         open={wizardOpen}
-        onClose={() => setWizardOpen(false)}
+        onClose={() => {
+          setWizardOpen(false)
+          setEditingTemplate(null)
+        }}
         onCreateTemplate={onCreateTemplate}
+        onUpdateTemplate={onUpdateTemplate}
+        editingTemplate={editingTemplate}
       />
 
       {selectedTemplate && (

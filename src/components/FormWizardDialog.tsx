@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,12 +16,16 @@ interface FormWizardDialogProps {
   open: boolean
   onClose: () => void
   onCreateTemplate: (template: FormTemplate) => void
+  onUpdateTemplate?: (templateId: string, updates: Partial<FormTemplate>) => void
+  editingTemplate?: FormTemplate | null
 }
 
 export function FormWizardDialog({
   open,
   onClose,
   onCreateTemplate,
+  onUpdateTemplate,
+  editingTemplate,
 }: FormWizardDialogProps) {
   const [step, setStep] = useState(1)
   const [templateName, setTemplateName] = useState('')
@@ -32,6 +36,19 @@ export function FormWizardDialog({
   const [sections, setSections] = useState<FormSection[]>([])
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
+
+  // Pre-populate when editing
+  useEffect(() => {
+    if (editingTemplate && open) {
+      setTemplateName(editingTemplate.template_name)
+      setTemplateType(editingTemplate.template_type as typeof templateType)
+      setDescription(editingTemplate.description)
+      setCategory(editingTemplate.category)
+      setRequiresApproval(editingTemplate.requires_approval)
+      setSections(editingTemplate.sections)
+      setTags(editingTemplate.tags)
+    }
+  }, [editingTemplate, open])
 
   const fieldTypes: FormFieldType[] = [
     'text', 'textarea', 'number', 'date', 'time', 'datetime',
@@ -158,29 +175,44 @@ export function FormWizardDialog({
       return
     }
 
-    const template: FormTemplate = {
-      template_id: `custom-${Date.now()}`,
-      template_name: templateName,
-      template_type: templateType,
-      description,
-      category,
-      is_premade: false,
-      sections,
-      version: 1,
-      status: 'Active',
-      requires_approval: requiresApproval,
-      approval_workflow: requiresApproval ? ['supervisor'] : undefined,
-      linked_sop_ids: [],
-      linked_asset_ids: [],
-      linked_work_order_types: [],
-      created_by: 'current-user',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      tags,
-    }
+    if (editingTemplate && onUpdateTemplate) {
+      onUpdateTemplate(editingTemplate.template_id, {
+        template_name: templateName,
+        template_type: templateType,
+        description,
+        category,
+        sections,
+        requires_approval: requiresApproval,
+        approval_workflow: requiresApproval ? ['supervisor'] : undefined,
+        tags,
+        updated_at: new Date().toISOString(),
+      })
+      toast.success('Form template updated successfully')
+    } else {
+      const template: FormTemplate = {
+        template_id: `custom-${Date.now()}`,
+        template_name: templateName,
+        template_type: templateType,
+        description,
+        category,
+        is_premade: false,
+        sections,
+        version: 1,
+        status: 'Active',
+        requires_approval: requiresApproval,
+        approval_workflow: requiresApproval ? ['supervisor'] : undefined,
+        linked_sop_ids: [],
+        linked_asset_ids: [],
+        linked_work_order_types: [],
+        created_by: 'current-user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        tags,
+      }
 
-    onCreateTemplate(template)
-    toast.success('Custom form created successfully')
+      onCreateTemplate(template)
+      toast.success('Custom form created successfully')
+    }
     handleReset()
     onClose()
   }
@@ -201,9 +233,9 @@ export function FormWizardDialog({
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Custom Form</DialogTitle>
+          <DialogTitle>{editingTemplate ? 'Edit Form Template' : 'Create Custom Form'}</DialogTitle>
           <DialogDescription>
-            Build a custom form template for your specific needs
+            {editingTemplate ? 'Modify the form template settings, sections, and fields' : 'Build a custom form template for your specific needs'}
           </DialogDescription>
         </DialogHeader>
 
@@ -470,7 +502,7 @@ export function FormWizardDialog({
                     Cancel
                   </Button>
                   <Button onClick={handleCreate}>
-                    Create Form Template
+                    {editingTemplate ? 'Save Changes' : 'Create Form Template'}
                   </Button>
                 </div>
               </div>
