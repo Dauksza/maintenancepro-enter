@@ -221,12 +221,29 @@ export class AuditLogger {
     const allKeys = new Set([...Object.keys(oldEntity), ...Object.keys(newEntity)])
     
     for (const key of allKeys) {
-      if (JSON.stringify(oldEntity[key]) !== JSON.stringify(newEntity[key])) {
+      const oldValue = oldEntity[key]
+      const newValue = newEntity[key]
+      
+      // Use simple comparison for primitives
+      if (oldValue !== newValue) {
+        // For objects, do deeper comparison
+        if (
+          (typeof oldValue === 'object' || typeof newValue === 'object') &&
+          oldValue !== null &&
+          newValue !== null
+        ) {
+          const oldJson = JSON.stringify(this.sortObject(oldValue))
+          const newJson = JSON.stringify(this.sortObject(newValue))
+          if (oldJson === newJson) continue
+        } else if (oldValue === newValue) {
+          continue
+        }
+
         changes.push({
           field_name: key,
-          old_value: oldEntity[key],
-          new_value: newEntity[key],
-          data_type: typeof newEntity[key],
+          old_value: oldValue,
+          new_value: newValue,
+          data_type: typeof newValue,
         })
       }
     }
@@ -245,6 +262,17 @@ export class AuditLogger {
         severity: 'info',
       }
     )
+  }
+
+  private sortObject(obj: any): any {
+    if (obj === null || typeof obj !== 'object') return obj
+    if (Array.isArray(obj)) return obj.map(item => this.sortObject(item))
+    
+    const sorted: any = {}
+    Object.keys(obj).sort().forEach(key => {
+      sorted[key] = this.sortObject(obj[key])
+    })
+    return sorted
   }
 
   /**

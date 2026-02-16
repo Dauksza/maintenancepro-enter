@@ -388,7 +388,22 @@ export class VersionHistoryManager {
       const oldValue = oldObj[key]
       const newValue = newObj[key]
 
-      if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+      // Use simple comparison for primitives and null/undefined
+      if (oldValue !== newValue) {
+        // For objects and arrays, do a JSON comparison as a fallback
+        if (
+          (typeof oldValue === 'object' || typeof newValue === 'object') &&
+          oldValue !== null &&
+          newValue !== null
+        ) {
+          // Normalize JSON strings by sorting keys for consistent comparison
+          const oldJson = JSON.stringify(this.sortObject(oldValue))
+          const newJson = JSON.stringify(this.sortObject(newValue))
+          if (oldJson === newJson) continue
+        } else if (oldValue === newValue) {
+          continue
+        }
+
         changes.push({
           field: key,
           old_value: oldValue,
@@ -399,6 +414,17 @@ export class VersionHistoryManager {
     }
 
     return changes
+  }
+
+  private sortObject(obj: any): any {
+    if (obj === null || typeof obj !== 'object') return obj
+    if (Array.isArray(obj)) return obj.map(item => this.sortObject(item))
+    
+    const sorted: any = {}
+    Object.keys(obj).sort().forEach(key => {
+      sorted[key] = this.sortObject(obj[key])
+    })
+    return sorted
   }
 
   private createInitialChanges(obj: any): FieldChange[] {

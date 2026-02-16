@@ -4,6 +4,8 @@
  * Provides comprehensive undo/redo functionality for all CMMS operations
  */
 
+import { v4 as uuidv4 } from 'uuid'
+
 export interface UndoableAction {
   action_id: string
   action_type: string
@@ -54,7 +56,7 @@ export class UndoRedoManager {
     performedBy: string | null = null
   ): void {
     const action: UndoableAction = {
-      action_id: crypto.randomUUID(),
+      action_id: uuidv4(),
       action_type: actionType,
       entity_type: entityType,
       entity_id: entityId,
