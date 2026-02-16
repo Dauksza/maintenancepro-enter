@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { Skill } from '@/lib/types'
+import { useKV } from '@github/spark/hooks'
+import type { Skill, SOP, Asset } from '@/lib/types'
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,8 @@ import {
 } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
-import { ArrowRight, ArrowLeft, CheckCircle, Certificate } from '@phosphor-icons/react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { ArrowRight, ArrowLeft, CheckCircle, Certificate, ClipboardText, Package } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
 interface AddSkillWizardProps {
@@ -40,6 +42,9 @@ export function AddSkillWizard({
   onComplete,
   existingCategories
 }: AddSkillWizardProps) {
+  const [sops] = useKV<SOP[]>('sop-library', [])
+  const [assets] = useKV<Asset[]>('assets', [])
+
   const [currentStep, setCurrentStep] = useState<WizardStep>('basic')
   const [skillName, setSkillName] = useState('')
   const [skillCategory, setSkillCategory] = useState('')
@@ -47,6 +52,8 @@ export function AddSkillWizard({
   const [description, setDescription] = useState('')
   const [requiresCertification, setRequiresCertification] = useState(false)
   const [certificationDuration, setCertificationDuration] = useState('')
+  const [linkedSopIds, setLinkedSopIds] = useState<string[]>([])
+  const [linkedAssetIds, setLinkedAssetIds] = useState<string[]>([])
 
   const steps: WizardStep[] = ['basic', 'certification', 'links', 'review']
   const stepIndex = steps.indexOf(currentStep)
@@ -108,8 +115,8 @@ export function AddSkillWizard({
       description,
       requires_certification: requiresCertification,
       certification_duration_days: requiresCertification ? parseInt(certificationDuration) || null : null,
-      linked_sop_ids: [],
-      required_for_asset_ids: [],
+      linked_sop_ids: linkedSopIds,
+      required_for_asset_ids: linkedAssetIds,
       required_for_task_ids: [],
       created_at: now,
       updated_at: now
@@ -129,6 +136,8 @@ export function AddSkillWizard({
     setDescription('')
     setRequiresCertification(false)
     setCertificationDuration('')
+    setLinkedSopIds([])
+    setLinkedAssetIds([])
   }
 
   const renderStepContent = () => {
@@ -242,11 +251,87 @@ export function AddSkillWizard({
 
       case 'links':
         return (
-          <div className="space-y-4">
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                <strong>Coming Soon:</strong> Link this skill to SOPs and Assets after creation from the Assets & Skills management screens.
-              </p>
+          <div className="space-y-6">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <ClipboardText size={20} className="text-primary" />
+                <Label className="text-base font-medium">Linked SOPs</Label>
+              </div>
+              {(sops || []).length === 0 ? (
+                <div className="p-4 bg-muted rounded-lg text-center text-muted-foreground text-sm">
+                  No SOPs available. Import SOPs from the SOP Library to link them here.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[180px] overflow-y-auto rounded-lg border p-2">
+                  {(sops || []).map(sop => (
+                    <label
+                      key={sop.sop_id}
+                      className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer transition-colors"
+                    >
+                      <Checkbox
+                        checked={linkedSopIds.includes(sop.sop_id)}
+                        onCheckedChange={(checked) => {
+                          setLinkedSopIds(prev =>
+                            checked
+                              ? [...prev, sop.sop_id]
+                              : prev.filter(id => id !== sop.sop_id)
+                          )
+                        }}
+                        aria-label={`Link SOP ${sop.title}`}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium leading-tight">{sop.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{sop.sop_id} · Rev {sop.revision}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+              {linkedSopIds.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">{linkedSopIds.length} SOP{linkedSopIds.length !== 1 ? 's' : ''} selected</p>
+              )}
+            </div>
+
+            <Separator />
+
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Package size={20} className="text-primary" />
+                <Label className="text-base font-medium">Required for Assets</Label>
+              </div>
+              {(assets || []).length === 0 ? (
+                <div className="p-4 bg-muted rounded-lg text-center text-muted-foreground text-sm">
+                  No assets available. Add assets from the Assets tab to link them here.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[180px] overflow-y-auto rounded-lg border p-2">
+                  {(assets || []).map(asset => (
+                    <label
+                      key={asset.asset_id}
+                      className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer transition-colors"
+                    >
+                      <Checkbox
+                        checked={linkedAssetIds.includes(asset.asset_id)}
+                        onCheckedChange={(checked) => {
+                          setLinkedAssetIds(prev =>
+                            checked
+                              ? [...prev, asset.asset_id]
+                              : prev.filter(id => id !== asset.asset_id)
+                          )
+                        }}
+                        aria-label={`Link asset ${asset.asset_name}`}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium leading-tight">{asset.asset_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{asset.asset_id} · {asset.asset_type}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+              {linkedAssetIds.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">{linkedAssetIds.length} asset{linkedAssetIds.length !== 1 ? 's' : ''} selected</p>
+              )}
             </div>
           </div>
         )
@@ -282,6 +367,15 @@ export function AddSkillWizard({
                     <span className="font-medium">{certificationDuration} days</span>
                   </div>
                 )}
+                <Separator className="my-2" />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Linked SOPs:</span>
+                  <span className="font-medium">{linkedSopIds.length > 0 ? `${linkedSopIds.length} linked` : 'None'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Required for Assets:</span>
+                  <span className="font-medium">{linkedAssetIds.length > 0 ? `${linkedAssetIds.length} linked` : 'None'}</span>
+                </div>
               </div>
             </div>
           </div>

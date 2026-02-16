@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useKV } from '@github/spark/hooks'
-import type { DashboardWidget, WorkOrder, Employee, PartInventoryItem, CertificationReminder } from '@/lib/types'
+import type { DashboardWidget, WorkOrder, Employee, PartInventoryItem, CertificationReminder, AuditLogEntry } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -15,9 +15,14 @@ import {
   ChartBar,
   GearSix,
   Eye,
-  EyeSlash
+  EyeSlash,
+  ClockCounterClockwise,
+  Sparkle,
+  UploadSimple,
+  Plus
 } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
+import { getActionIcon, getResourceTypeLabel } from '@/lib/activity-log'
 
 interface CustomizableDashboardProps {
   workOrders: WorkOrder[]
@@ -26,6 +31,9 @@ interface CustomizableDashboardProps {
   certifications: CertificationReminder[]
   onSelectWorkOrder?: (wo: WorkOrder) => void
   userEmployeeId?: string
+  onLoadSampleData?: () => void
+  onOpenImport?: () => void
+  onCreateWorkOrder?: () => void
 }
 
 export function CustomizableDashboard({
@@ -34,7 +42,10 @@ export function CustomizableDashboard({
   parts,
   certifications,
   onSelectWorkOrder,
-  userEmployeeId
+  userEmployeeId,
+  onLoadSampleData,
+  onOpenImport,
+  onCreateWorkOrder
 }: CustomizableDashboardProps) {
   const [widgets, setWidgets] = useKV<DashboardWidget[]>('dashboard-widgets', [
     {
@@ -76,10 +87,19 @@ export function CustomizableDashboard({
       position: { x: 6, y: 6 },
       size: { width: 6, height: 3 },
       visible: true
+    },
+    {
+      widget_id: 'recent-activity',
+      type: 'recent-activity',
+      title: 'Recent Activity',
+      position: { x: 0, y: 9 },
+      size: { width: 12, height: 3 },
+      visible: true
     }
   ])
 
   const [editMode, setEditMode] = useState(false)
+  const [activityLog] = useKV<AuditLogEntry[]>('activity-log', [])
 
   const toggleWidgetVisibility = (widgetId: string) => {
     setWidgets((current) =>
@@ -142,6 +162,42 @@ export function CustomizableDashboard({
                   {widget.title}
                 </Button>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {stats.total === 0 && employees.length === 0 && (
+        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 animate-fade-in">
+          <CardContent className="pt-8 pb-8">
+            <div className="text-center max-w-lg mx-auto">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
+                <Sparkle size={32} className="text-primary" weight="duotone" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Welcome to MaintenancePro</h3>
+              <p className="text-muted-foreground mb-6">
+                Get started by loading sample data to explore the full CMMS experience, or create your first work order.
+              </p>
+              <div className="flex gap-3 justify-center flex-wrap">
+                {onLoadSampleData && (
+                  <Button onClick={onLoadSampleData} className="gap-2">
+                    <Sparkle size={16} weight="fill" />
+                    Load Sample Data
+                  </Button>
+                )}
+                {onCreateWorkOrder && (
+                  <Button variant="outline" onClick={onCreateWorkOrder} className="gap-2">
+                    <Plus size={16} weight="bold" />
+                    Create Work Order
+                  </Button>
+                )}
+                {onOpenImport && (
+                  <Button variant="outline" onClick={onOpenImport} className="gap-2">
+                    <UploadSimple size={16} />
+                    Import Excel/CSV
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -361,6 +417,53 @@ export function CustomizableDashboard({
                 </CardContent>
               </Card>
             )}
+
+            {widget.type === 'recent-activity' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClockCounterClockwise size={20} />
+                    {widget.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(activityLog || []).length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <ClockCounterClockwise size={48} className="mx-auto mb-2 opacity-50" />
+                      <p>No recent activity</p>
+                      <p className="text-xs mt-1">Actions you take will appear here</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      {(activityLog || [])
+                        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                        .slice(0, 10)
+                        .map(entry => (
+                        <div
+                          key={entry.log_id}
+                          className="flex items-start gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors"
+                        >
+                          <span className="text-lg mt-0.5" role="img" aria-label={entry.action}>
+                            {getActionIcon(entry.action)}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium leading-tight">
+                              {entry.action}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {getResourceTypeLabel(entry.resource_type)} · {entry.resource_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {formatRelativeTime(entry.timestamp)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         ))}
       </div>
@@ -390,4 +493,19 @@ function StatCard({
       </CardContent>
     </Card>
   )
+}
+
+function formatRelativeTime(timestamp: string): string {
+  const now = new Date()
+  const date = new Date(timestamp)
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString()
 }
