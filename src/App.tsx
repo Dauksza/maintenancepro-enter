@@ -149,7 +149,25 @@ function App() {
   const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Technician')
 
-  const validTabs = ['dashboard', 'tracking', 'timeline', 'resources', 'capacity', 'calendar', 'employees', 'assets', 'parts', 'forms', 'certifications', 'sops', 'analytics', 'predictive', 'database', 'pm-schedules', 'templates']
+  const validTabs = [
+    'dashboard',
+    'tracking',
+    'timeline',
+    'resources',
+    'capacity',
+    'calendar',
+    'employees',
+    'assets',
+    'parts',
+    'forms',
+    'certifications',
+    'sops',
+    'analytics',
+    'predictive',
+    'database',
+    'pm-schedules',
+    'templates'
+  ]
   const safeActiveTab = activeTab && validTabs.includes(activeTab) ? activeTab : 'dashboard'
 
   useEffect(() => {
