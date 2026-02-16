@@ -47,6 +47,7 @@ import { CustomizableDashboard } from '@/components/CustomizableDashboard'
 import { UserProfileMenu } from '@/components/UserProfileMenu'
 import { DatabaseManagement } from '@/components/DatabaseManagement'
 import { PredictiveMaintenanceDashboard } from '@/components/PredictiveMaintenanceDashboard'
+import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog'
 import { 
   Wrench, 
   ClipboardText, 
@@ -459,6 +460,11 @@ function App() {
     'ctrl+i': () => setImportOpen(true),
     'cmd+e': handleExportData,
     'ctrl+e': handleExportData,
+    '?': () => {
+      // Trigger keyboard shortcuts dialog
+      const keyboardBtn = document.querySelector('[aria-label="Keyboard shortcuts"]') as HTMLButtonElement
+      keyboardBtn?.click()
+    }
   })
 
   return (
@@ -522,6 +528,12 @@ function App() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Export to Excel</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <KeyboardShortcutsDialog />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Keyboard shortcuts</TooltipContent>
               </Tooltip>
               <div className="w-px h-6 bg-border mx-1" />
               <NotificationPreferencesDialog
