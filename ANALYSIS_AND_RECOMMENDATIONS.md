@@ -1,5 +1,93 @@
 # System Analysis & 20 Recommendations
 
+## Repository-Wide Audit Update (2026-02-16)
+
+This update supersedes older items below that have already been implemented.
+
+### Scope Reviewed
+- Full repository inventory at root level and `src/` (129 source files: 104 `.tsx`, 22 `.ts`, 3 other typed files)
+- Primary feature routing/tabs in `/src/App.tsx` (15 main modules)
+- Core data contracts in `/src/lib/types.ts`
+- Persistence and database tooling in `/src/lib/database-manager.ts` and `/src/components/DatabaseManagement.tsx`
+- Supporting docs for feature behavior, data model, and workflows
+
+### Current Feature / Options / Data Coverage Snapshot
+- **Feature modules**: Dashboard, Tracking, Timeline, Resources, Capacity, Calendar, Employees, Assets, Parts, Forms, Certifications, SOPs, Analytics, Predictive ML, Database
+- **Major configurable options**:
+  - Role-based access and role switching (`UserProfileMenu`, `permissions.ts`)
+  - Notification preferences and thresholds
+  - Auto-scheduler settings (priority mode, skill/area/asset constraints, weekend allowance, partial matching, min skill level)
+  - Data management actions (backup, restore, integrity validate, repair, clear)
+- **Persisted data domains**: work orders, SOPs, spares/labor, employees, skills, schedules, messages, reminders, notifications, parts, transactions, forms, user profile, assets/areas, dashboard widgets, preferences
+
+### Updated Prioritized List
+
+#### Fixes (stability / correctness)
+1. **Restore lint operability**  
+   - `npm run lint` currently fails due to missing ESLint v9 flat config (`eslint.config.js`)  
+   - Recommendation: add/align ESLint config so lint gate can run in CI
+2. **Address build CSS parser warnings**  
+   - `npm run build` reports invalid container-query-like CSS tokens  
+   - Recommendation: correct invalid responsive expressions to prevent fragile styling behavior
+3. **Replace weak ID generation in repair flow**  
+   - `repairDataIntegrity()` uses `Date.now() + Math.random()` for IDs  
+   - Recommendation: use `crypto.randomUUID()` (or equivalent deterministic utility) for safer unique ID generation
+
+#### Upgrades (platform / quality)
+4. **Introduce automated tests (currently none discovered)**  
+   - Add baseline unit tests for scheduler, parsing, and data-integrity utilities first
+5. **Reduce oversized production bundles**  
+   - Build currently emits very large JS/CSS bundles with chunk warnings  
+   - Recommendation: apply route/module splitting and manual chunk strategy for heavy dashboards
+6. **Tighten TypeScript strictness incrementally**  
+   - Replace broad `any` usage in high-impact state/components first (e.g., database stats/validation state)
+
+#### Enhancements (performance / UX)
+7. **Virtualize high-volume lists and grids**  
+   - Employee, work-order, reminders, and parts views can become expensive at large record counts
+8. **Add import duplicate-detection and merge strategy options**  
+   - Current import appends data; add optional dedupe/replace/merge controls for safer bulk operations
+9. **Add feature-level error boundaries for critical modules**  
+   - Improve fault isolation beyond top-level fallback
+10. **Add in-app discoverability for shortcuts and advanced options**  
+   - Surface existing options (search shortcut, scheduler toggles, permission-driven tabs) with contextual help
+
+### Requested Backlog Intake (from issue statement)
+
+The following requested recommendations are captured and normalized below. Items already implemented in the current codebase are marked accordingly.
+
+#### 🔴 CRITICAL - Broken/Missing Core Features
+1. Remove Console Logging for Production — **Open**
+2. Add Unit & E2E Testing Framework — **Open**
+3. Implement List Virtualization for Large Datasets — **Open**
+
+#### 🟠 HIGH - Data & Architecture Issues
+4. Add Data Validation Schema Layer — **Open**
+5. Implement Batch Operations for Large Excel Imports — **Open**
+6. Add Comprehensive Activity Audit Log — **Partially Implemented** (`src/lib/activity-log.ts`, `src/components/ActivityLog.tsx`)
+
+#### 🟡 MEDIUM - User Experience & Completeness
+7. Fix UserProfileMenu Non-Functional Items — **Implemented** (`src/components/UserProfileMenu.tsx`, `src/components/ViewProfileDialog.tsx`, `src/components/SettingsDialog.tsx`)
+8. Add Mobile-Responsive Views — **Open**
+9. Implement Data Backup/Restore — **Implemented** (`src/lib/database-manager.ts`, `src/components/DatabaseManagement.tsx`)
+10. Add Inline Help & Tooltips — **Open**
+
+#### 🟢 OPTIMIZATION - Performance & Code Quality
+11. Optimize Auto-Scheduler Preview Calculations — **Open**
+12. Add Error Boundaries per Module — **Open**
+13. Implement Search Result Caching — **Open**
+14. Add Keyboard Shortcuts Documentation — **Open**
+15. Migrate from KV Store Beyond 10k Records — **Planning Required**
+
+### CI / Build Failure Note (Investigated)
+
+- GitHub Actions failed run reviewed: `22020764447` (job `63629437224`)
+- Failure reason: Dependabot `devcontainers` update job expected a devcontainer manifest but none exists:
+  - `Neither .devcontainer.json nor .devcontainer/devcontainer.json nor .devcontainer/<anything>/devcontainer.json found in /`
+- This is a workflow/dependency-automation configuration issue, not an application runtime/build failure.
+
+---
+
 ## Issues Identified
 
 ### 1. **Import Feature Location** ✅ FOUND
