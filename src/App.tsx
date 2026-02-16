@@ -21,6 +21,7 @@ import type {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { WorkOrderGrid } from '@/components/WorkOrderGrid'
 import { WorkOrderDetail } from '@/components/WorkOrderDetail'
 import { SOPLibrary } from '@/components/SOPLibrary'
@@ -46,6 +47,7 @@ import { CustomizableDashboard } from '@/components/CustomizableDashboard'
 import { UserProfileMenu } from '@/components/UserProfileMenu'
 import { DatabaseManagement } from '@/components/DatabaseManagement'
 import { PredictiveMaintenanceDashboard } from '@/components/PredictiveMaintenanceDashboard'
+import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog'
 import { 
   Wrench, 
   ClipboardText, 
@@ -94,6 +96,7 @@ import {
 } from '@/lib/notification-utils'
 import { canViewTab, hasPermission } from '@/lib/permissions'
 import { toast } from 'sonner'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardNavigation'
 
 function App() {
   const [workOrders, setWorkOrders] = useKV<WorkOrder[]>('maintenance-work-orders', [])
@@ -136,6 +139,7 @@ function App() {
   const [cloneWorkOrder, setCloneWorkOrder] = useState<WorkOrder | null>(null)
   const [activeTab, setActiveTab] = useKV<string>('active-tab', 'dashboard')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Technician')
 
   const validTabs = ['dashboard', 'tracking', 'timeline', 'resources', 'capacity', 'calendar', 'employees', 'assets', 'parts', 'forms', 'certifications', 'sops', 'analytics', 'predictive', 'database']
@@ -447,6 +451,19 @@ function App() {
     return getReminderCounts(currentReminders)
   }, [safeSkillMatrix, safeEmployees, reminders])
 
+  // Add global keyboard shortcuts
+  useKeyboardShortcuts({
+    'cmd+k': () => setSearchOpen(true),
+    'ctrl+k': () => setSearchOpen(true),
+    'cmd+n': () => hasPermission(currentUserRole, 'work-orders', 'create') && setNewWorkOrderOpen(true),
+    'ctrl+n': () => hasPermission(currentUserRole, 'work-orders', 'create') && setNewWorkOrderOpen(true),
+    'cmd+i': () => setImportOpen(true),
+    'ctrl+i': () => setImportOpen(true),
+    'cmd+e': handleExportData,
+    'ctrl+e': handleExportData,
+    '?': () => setKeyboardShortcutsOpen(true)
+  })
+
   return (
     <div className="min-h-screen bg-background grid-pattern">
       <Toaster position="top-right" />
@@ -481,26 +498,38 @@ function App() {
                 <kbd className="ml-auto px-1.5 py-0.5 text-[10px] bg-muted rounded font-mono">⌘K</kbd>
               </Button>
               <div className="w-px h-6 bg-border mx-1" />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setImportOpen(true)}
-                className="h-9 w-9"
-                title="Import data"
-                aria-label="Import data"
-              >
-                <UploadSimple size={18} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleExportData}
-                className="h-9 w-9"
-                title="Export data"
-                aria-label="Export data"
-              >
-                <DownloadSimple size={18} />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setImportOpen(true)}
+                    className="h-9 w-9"
+                    aria-label="Import data"
+                  >
+                    <UploadSimple size={18} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Import Excel data</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleExportData}
+                    className="h-9 w-9"
+                    aria-label="Export data"
+                  >
+                    <DownloadSimple size={18} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Export to Excel</TooltipContent>
+              </Tooltip>
+              <KeyboardShortcutsDialog 
+                open={keyboardShortcutsOpen}
+                onOpenChange={setKeyboardShortcutsOpen}
+              />
               <div className="w-px h-6 bg-border mx-1" />
               <NotificationPreferencesDialog
                 preferences={notificationPreferences || {

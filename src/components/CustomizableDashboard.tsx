@@ -24,6 +24,9 @@ import {
 import { cn } from '@/lib/utils'
 import { getActionIcon, getResourceTypeLabel } from '@/lib/activity-log'
 
+// Animation constants
+const STAGGER_DELAY_MS = 50
+
 interface CustomizableDashboardProps {
   workOrders: WorkOrder[]
   employees: Employee[]
@@ -250,7 +253,7 @@ export function CustomizableDashboard({
             )}
 
             {widget.type === 'my-assignments' && (
-              <Card>
+              <Card className="hover-lift transition-all duration-200">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Wrench size={20} />
@@ -259,7 +262,7 @@ export function CustomizableDashboard({
                 </CardHeader>
                 <CardContent>
                   {myAssignments.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground animate-fade-in">
                       <CheckCircle size={48} className="mx-auto mb-2 opacity-50" />
                       <p>No active assignments</p>
                     </div>
@@ -269,7 +272,7 @@ export function CustomizableDashboard({
                         <button
                           key={wo.work_order_id}
                           onClick={() => onSelectWorkOrder?.(wo)}
-                          className="w-full p-3 rounded-lg border hover:border-primary hover:bg-accent/50 text-left transition-all"
+                          className="w-full p-3 rounded-lg border hover:border-primary hover:bg-accent/50 text-left transition-all hover:shadow-md hover:-translate-y-0.5"
                         >
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <span className="font-semibold text-sm">{wo.work_order_id}</span>
@@ -297,7 +300,7 @@ export function CustomizableDashboard({
             )}
 
             {widget.type === 'overdue-tasks' && (
-              <Card className="border-destructive">
+              <Card className="border-destructive hover-lift transition-all duration-200 animate-pulse-subtle">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-destructive">
                     <WarningCircle size={20} weight="fill" />
@@ -306,7 +309,7 @@ export function CustomizableDashboard({
                 </CardHeader>
                 <CardContent>
                   {overdueTasks.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground animate-fade-in">
                       <CheckCircle size={48} className="mx-auto mb-2 opacity-50" />
                       <p>No overdue tasks</p>
                     </div>
@@ -316,7 +319,7 @@ export function CustomizableDashboard({
                         <button
                           key={wo.work_order_id}
                           onClick={() => onSelectWorkOrder?.(wo)}
-                          className="w-full p-3 rounded-lg border border-destructive/50 bg-destructive/5 hover:bg-destructive/10 text-left transition-all"
+                          className="w-full p-3 rounded-lg border border-destructive/50 bg-destructive/5 hover:bg-destructive/10 text-left transition-all hover:shadow-md hover:-translate-y-0.5"
                         >
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <span className="font-semibold text-sm">{wo.work_order_id}</span>
@@ -337,7 +340,10 @@ export function CustomizableDashboard({
             )}
 
             {widget.type === 'certifications' && (
-              <Card className={expiringCerts.length > 0 ? 'border-yellow-600' : undefined}>
+              <Card className={cn(
+                "hover-lift transition-all duration-200",
+                expiringCerts.length > 0 ? 'border-yellow-600' : undefined
+              )}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Certificate size={20} />
@@ -346,7 +352,7 @@ export function CustomizableDashboard({
                 </CardHeader>
                 <CardContent>
                   {expiringCerts.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground animate-fade-in">
                       <Certificate size={48} className="mx-auto mb-2 opacity-50" />
                       <p>All certifications current</p>
                     </div>
@@ -380,7 +386,10 @@ export function CustomizableDashboard({
             )}
 
             {widget.type === 'parts-inventory' && (
-              <Card className={lowStockParts.length > 0 ? 'border-orange-600' : undefined}>
+              <Card className={cn(
+                "hover-lift transition-all duration-200",
+                lowStockParts.length > 0 ? 'border-orange-600' : undefined
+              )}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Toolbox size={20} />
@@ -389,16 +398,17 @@ export function CustomizableDashboard({
                 </CardHeader>
                 <CardContent>
                   {lowStockParts.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground animate-fade-in">
                       <Toolbox size={48} className="mx-auto mb-2 opacity-50" />
                       <p>All parts in stock</p>
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                      {lowStockParts.slice(0, 8).map(part => (
+                      {lowStockParts.slice(0, 8).map((part, index) => (
                         <div
                           key={part.part_id}
-                          className="p-3 rounded-lg border bg-orange-50 dark:bg-orange-950/20"
+                          className="p-3 rounded-lg border bg-orange-50 dark:bg-orange-950/20 transition-all hover:shadow-md animate-slide-in-right"
+                          style={{ animationDelay: `${index * STAGGER_DELAY_MS}ms` }}
                         >
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <span className="font-semibold text-sm">{part.part_name}</span>
@@ -419,7 +429,7 @@ export function CustomizableDashboard({
             )}
 
             {widget.type === 'recent-activity' && (
-              <Card>
+              <Card className="hover-lift transition-all duration-200">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ClockCounterClockwise size={20} />
@@ -428,7 +438,7 @@ export function CustomizableDashboard({
                 </CardHeader>
                 <CardContent>
                   {(activityLog || []).length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground animate-fade-in">
                       <ClockCounterClockwise size={48} className="mx-auto mb-2 opacity-50" />
                       <p>No recent activity</p>
                       <p className="text-xs mt-1">Actions you take will appear here</p>
@@ -441,7 +451,7 @@ export function CustomizableDashboard({
                         .map(entry => (
                         <div
                           key={entry.log_id}
-                          className="flex items-start gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors"
+                          className="flex items-start gap-3 p-2 rounded-lg hover:bg-accent/50 transition-all hover:shadow-sm"
                         >
                           <span className="text-lg mt-0.5" role="img" aria-label={entry.action}>
                             {getActionIcon(entry.action)}
@@ -483,7 +493,7 @@ function StatCard({
   color: string
 }) {
   return (
-    <Card>
+    <Card className="hover-lift transition-all duration-200 cursor-default">
       <CardContent className="pt-6">
         <div className="flex items-center justify-between mb-2">
           <Icon size={24} className={color} weight="duotone" />
