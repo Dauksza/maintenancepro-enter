@@ -1,0 +1,50 @@
+{
+  "name": "MaintenancePro Enterprise CMMS",
+  "short_name": "MaintenancePro",
+  "description": "Transformative Computerized Maintenance Management System with AI-powered predictive maintenance and real-time analytics",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#1e3a8a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business", "utilities"],
+  "shortcuts": [
+    {
+      "name": "New Work Order",
+      "short_name": "New WO",
+      "description": "Create a new work order",
+      "url": "/?action=new-workorder",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View analytics dashboard",
+      "url": "/?view=dashboard",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

@@ -50,6 +50,9 @@ import { PredictiveMaintenanceDashboard } from '@/components/PredictiveMaintenan
 import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog'
 import { PMScheduleManagement } from '@/components/PMScheduleManagement'
 import { WorkOrderTemplates } from '@/components/WorkOrderTemplates'
+import { WelcomeDialog } from '@/components/WelcomeDialog'
+import { PWAInstallBanner } from '@/components/PWAInstallBanner'
+import { SystemStatus, LiveActivityIndicator } from '@/components/SystemStatus'
 import { 
   Wrench, 
   ClipboardText, 
@@ -492,6 +495,8 @@ function App() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <SystemStatus className="mr-2" />
+              <LiveActivityIndicator className="mr-2" />
               <Button
                 variant="outline"
                 onClick={() => setSearchOpen(true)}
@@ -1205,6 +1210,14 @@ function App() {
         formSubmissions={formSubmissions || []}
         onSelectWorkOrder={handleSelectWorkOrder}
       />
+
+      <WelcomeDialog onComplete={() => {
+        toast.success('Welcome to MaintenancePro!', {
+          description: 'Click "Load Sample Data" to get started with example data.'
+        })
+      }} />
+
+      <PWAInstallBanner />
     </div>
   )
 }
