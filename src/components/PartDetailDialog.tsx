@@ -383,7 +383,7 @@ export function PartDetailDialog({
               const avgMonthlyUse = monthlyData.length > 0
                 ? Math.round(monthlyData.reduce((s, m) => s + m.used, 0) / monthlyData.length)
                 : 0
-              const monthsUntilEmpty = avgMonthlyUse > 0
+              const monthsUntilEmpty = avgMonthlyUse > 0 && part.quantity_on_hand > 0
                 ? Math.round(part.quantity_on_hand / avgMonthlyUse * 10) / 10
                 : null
 
@@ -454,22 +454,24 @@ export function PartDetailDialog({
                             const sorted = [...transactions].sort(
                               (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
                             )
-                            let running = part.quantity_on_hand
-                            // Walk backwards to reconstruct past levels
-                            const points = sorted.map(t => {
-                              const delta = t.transaction_type === 'Use' || t.transaction_type === 'Transfer'
-                                ? t.quantity
-                                : t.transaction_type === 'Purchase' || t.transaction_type === 'Return'
-                                  ? -t.quantity
-                                  : 0
-                              return { date: format(new Date(t.created_at), 'MMM d'), delta, qty: 0 }
+                            // Each transaction's net effect on stock level
+                            const effects = sorted.map(t => {
+                              let effect = 0
+                              if (t.transaction_type === 'Purchase' || t.transaction_type === 'Return') {
+                                effect = t.quantity // increased stock
+                              } else if (t.transaction_type === 'Use' || t.transaction_type === 'Transfer') {
+                                effect = -t.quantity // decreased stock
+                              }
+                              return { date: format(new Date(t.created_at), 'MMM d'), effect }
                             })
-                            // Reconstruct forward from current stock minus net changes
-                            const totalDelta = points.reduce((s, p) => s + p.delta, 0)
-                            let level = part.quantity_on_hand + totalDelta
-                            return points.map(p => {
-                              level -= p.delta
-                              return { date: p.date, stock: Math.max(0, level) }
+                            // Walk backwards from current stock to find starting level
+                            const totalEffect = effects.reduce((s, e) => s + e.effect, 0)
+                            const startingLevel = part.quantity_on_hand - totalEffect
+                            // Walk forward to reconstruct each point
+                            let level = startingLevel
+                            return effects.map(e => {
+                              level += e.effect
+                              return { date: e.date, stock: Math.max(0, level) }
                             })
                           })()}>
                             <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0.01 255)" />

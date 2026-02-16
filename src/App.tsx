@@ -137,6 +137,9 @@ function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Technician')
 
+  const validTabs = ['dashboard', 'tracking', 'timeline', 'resources', 'capacity', 'calendar', 'employees', 'assets', 'parts', 'forms', 'certifications', 'sops', 'analytics', 'predictive', 'database']
+  const safeActiveTab = activeTab && validTabs.includes(activeTab) ? activeTab : 'dashboard'
+
   useEffect(() => {
     if (userProfile?.role) {
       setCurrentUserRole(userProfile.role)
@@ -524,7 +527,7 @@ function App() {
       </header>
 
       <main className="max-w-[1600px] mx-auto px-6 py-6">
-        <Tabs value={activeTab || 'dashboard'} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={safeActiveTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="inline-flex w-full max-w-full overflow-x-auto gap-0.5 p-1 bg-muted/60 backdrop-blur-sm rounded-lg border border-border/50">
             <TabsTrigger value="dashboard" className="flex items-center gap-1.5 text-sm rounded-md">
               <House size={16} />
