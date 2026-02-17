@@ -73,6 +73,10 @@ const SKILL_LEVEL_WEIGHTS = {
   'Beginner': 1
 }
 
+// Workload balance threshold in hours - if workers' loads differ by more than this,
+// prefer the less-loaded worker to ensure even distribution
+const WORKLOAD_BALANCE_THRESHOLD_HOURS = 0.5
+
 export function enhancedAutoSchedule(
   workOrders: WorkOrder[],
   employees: Employee[],
@@ -127,6 +131,7 @@ export function enhancedAutoSchedule(
     const existingWork = workOrders.filter(wo => 
       wo.assigned_technician === empName && 
       wo.scheduled_date &&
+      wo.scheduled_date !== '' &&
       wo.status !== 'Completed' &&
       wo.status !== 'Cancelled'
     )
@@ -347,7 +352,7 @@ function scheduleWorkOrder(
   candidates.sort((a, b) => {
     // First priority: Balance workload - prefer less loaded workers
     const loadDiff = a.currentLoad - b.currentLoad
-    if (Math.abs(loadDiff) > 0.5) {
+    if (Math.abs(loadDiff) > WORKLOAD_BALANCE_THRESHOLD_HOURS) {
       return loadDiff // Lower load first
     }
     
