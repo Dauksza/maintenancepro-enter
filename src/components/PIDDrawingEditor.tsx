@@ -35,9 +35,14 @@ import {
   Path,
   TextT,
   MagnifyingGlassPlus,
-  MagnifyingGlassMinus
+  MagnifyingGlassMinus,
+  ArrowsOut,
+  ArrowsIn,
+  ArrowClockwise,
+  ArrowCounterClockwise,
+  Trash
 } from '@phosphor-icons/react'
-import type { PIDDrawing, SymbolLibraryItem } from '@/lib/types'
+import type { PIDDrawing, SymbolLibraryItem, PIDSymbol } from '@/lib/types'
 import {
   createBlankPIDDrawing,
   addSymbolToDrawing,
@@ -48,7 +53,8 @@ import {
   moveSymbol,
   getSymbolAtPosition,
   deleteSymbol,
-  rotateSymbol
+  rotateSymbol,
+  scaleSymbol
 } from '@/lib/pid-utils'
 
 interface PIDDrawingEditorProps {
@@ -60,6 +66,8 @@ interface PIDDrawingEditorProps {
 }
 
 type Tool = 'select' | 'pan' | 'symbol' | 'line' | 'text'
+
+type LineType = 'Process' | 'Utility' | 'Signal' | 'Electrical'
 
 export function PIDDrawingEditor({
   open,
@@ -73,10 +81,22 @@ export function PIDDrawingEditor({
   )
   const [activeTool, setActiveTool] = useState<Tool>('select')
   const [selectedSymbol, setSelectedSymbol] = useState<SymbolLibraryItem | null>(null)
+  const [selectedDrawingSymbol, setSelectedDrawingSymbol] = useState<PIDSymbol | null>(null)
   const [zoomLevel, setZoomLevel] = useState(1.0)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
   const [isPanning, setIsPanning] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 })
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [undoStack, setUndoStack] = useState<PIDDrawing[]>([])
+  const [redoStack, setRedoStack] = useState<PIDDrawing[]>([])
+  const [lineDrawingState, setLineDrawingState] = useState<{
+    fromSymbol: PIDSymbol | null
+    fromPointId: string | null
+  }>({ fromSymbol: null, fromPointId: null })
+  const [selectedLineType, setSelectedLineType] = useState<LineType>('Process')
+  const [hoveredSymbol, setHoveredSymbol] = useState<PIDSymbol | null>(null)
   
   useEffect(() => {
     if (initialDrawing) {
@@ -87,159 +107,249 @@ export function PIDDrawingEditor({
     }
   }, [open, initialDrawing])
   
+  // Handle keyboard shortcuts
   useEffect(() => {
-    renderDrawing()
-  }, [currentDrawing, zoomLevel])
-  
-  const renderDrawing = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    
-    // Apply zoom and pan
-    ctx.save()
-    ctx.scale(zoomLevel, zoomLevel)
-    ctx.translate(currentDrawing.pan_x, currentDrawing.pan_y)
-    
-    // Draw grid
-    if (currentDrawing.show_grid) {
-      ctx.strokeStyle = '#e0e0e0'
-      ctx.lineWidth = 0.5
-      const gridSize = currentDrawing.grid_size
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!open) return
       
-      for (let x = 0; x < currentDrawing.canvas_width; x += gridSize) {
-        ctx.beginPath()
-        ctx.moveTo(x, 0)
-        ctx.lineTo(x, currentDrawing.canvas_height)
-        ctx.stroke()
-      }
-      
-      for (let y = 0; y < currentDrawing.canvas_height; y += gridSize) {
-        ctx.beginPath()
-        ctx.moveTo(0, y)
-        ctx.lineTo(currentDrawing.canvas_width, y)
-        ctx.stroke()
+      if (e.key === 'Escape') {
+        setActiveTool('select')
+        setSelectedDrawingSymbol(null)
+      } else if (e.key === 'Delete' && selectedDrawingSymbol) {
+        handleDeleteSymbol()
+      } else if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault()
+          handleUndo()
+        } else if (e.key === 'z' && e.shiftKey || e.key === 'y') {
+          e.preventDefault()
+          handleRedo()
+        }
       }
     }
     
-    // Draw connections
-    currentDrawing.connections.forEach(conn => {
-      ctx.strokeStyle = conn.style.stroke_color
-      ctx.lineWidth = conn.style.stroke_width
-      ctx.globalAlpha = conn.style.opacity
-      
-      if (conn.style.dash_array) {
-        ctx.setLineDash(conn.style.dash_array)
-      } else {
-        ctx.setLineDash([])
-      }
-      
-      ctx.beginPath()
-      if (conn.path_points.length > 0) {
-        ctx.moveTo(conn.path_points[0].x, conn.path_points[0].y)
-        for (let i = 1; i < conn.path_points.length; i++) {
-          ctx.lineTo(conn.path_points[i].x, conn.path_points[i].y)
-        }
-      }
-      ctx.stroke()
-      
-      // Draw arrow at end if needed
-      if (conn.style.arrow_end && conn.path_points.length >= 2) {
-        const last = conn.path_points[conn.path_points.length - 1]
-        const prev = conn.path_points[conn.path_points.length - 2]
-        const angle = Math.atan2(last.y - prev.y, last.x - prev.x)
-        
-        ctx.save()
-        ctx.translate(last.x, last.y)
-        ctx.rotate(angle)
-        ctx.fillStyle = conn.style.stroke_color
-        ctx.beginPath()
-        ctx.moveTo(0, 0)
-        ctx.lineTo(-10, -5)
-        ctx.lineTo(-10, 5)
-        ctx.closePath()
-        ctx.fill()
-        ctx.restore()
-      }
-    })
-    
-    // Draw symbols
-    currentDrawing.symbols.forEach(symbol => {
-      ctx.save()
-      ctx.translate(symbol.x + symbol.width / 2, symbol.y + symbol.height / 2)
-      ctx.rotate((symbol.rotation * Math.PI) / 180)
-      ctx.scale(symbol.scale, symbol.scale)
-      ctx.translate(-symbol.width / 2, -symbol.height / 2)
-      
-      // Draw symbol rectangle (placeholder for actual symbol)
-      ctx.fillStyle = symbol.style.fill_color
-      ctx.strokeStyle = symbol.style.stroke_color
-      ctx.lineWidth = symbol.style.stroke_width
-      ctx.globalAlpha = symbol.style.opacity
-      
-      ctx.fillRect(0, 0, symbol.width, symbol.height)
-      ctx.strokeRect(0, 0, symbol.width, symbol.height)
-      
-      // Draw label
-      ctx.fillStyle = '#000000'
-      ctx.font = '12px Arial'
-      ctx.textAlign = 'center'
-      ctx.fillText(symbol.label, symbol.width / 2, -5)
-      
-      // Draw tag number
-      ctx.font = 'bold 10px Arial'
-      ctx.fillText(symbol.tag_number, symbol.width / 2, symbol.height + 15)
-      
-      ctx.restore()
-    })
-    
-    // Draw annotations
-    currentDrawing.annotations.forEach(ann => {
-      ctx.fillStyle = ann.color
-      ctx.font = `${ann.font_size}px ${ann.font_family}`
-      ctx.fillText(ann.text, ann.x, ann.y)
-      
-      if (ann.border && ann.background_color) {
-        const metrics = ctx.measureText(ann.text)
-        ctx.fillStyle = ann.background_color
-        ctx.fillRect(ann.x - 5, ann.y - ann.font_size - 2, metrics.width + 10, ann.font_size + 8)
-      }
-    })
-    
-    ctx.restore()
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, selectedDrawingSymbol, undoStack, redoStack])
+  
+  const pushToUndoStack = () => {
+    setUndoStack(prev => [...prev, JSON.parse(JSON.stringify(currentDrawing))])
+    setRedoStack([]) // Clear redo stack on new action
   }
   
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+  const handleUndo = () => {
+    if (undoStack.length === 0) return
+    const previousState = undoStack[undoStack.length - 1]
+    setRedoStack(prev => [...prev, JSON.parse(JSON.stringify(currentDrawing))])
+    setCurrentDrawing(previousState)
+    setUndoStack(prev => prev.slice(0, -1))
+  }
+  
+  const handleRedo = () => {
+    if (redoStack.length === 0) return
+    const nextState = redoStack[redoStack.length - 1]
+    setUndoStack(prev => [...prev, JSON.parse(JSON.stringify(currentDrawing))])
+    setCurrentDrawing(nextState)
+    setRedoStack(prev => prev.slice(0, -1))
+  }
+  
+  const handleSVGClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return
     
-    const rect = canvas.getBoundingClientRect()
-    const x = (e.clientX - rect.left) / zoomLevel - currentDrawing.pan_x
-    const y = (e.clientY - rect.top) / zoomLevel - currentDrawing.pan_y
+    const svg = svgRef.current
+    const pt = svg.createSVGPoint()
+    pt.x = e.clientX
+    pt.y = e.clientY
+    
+    const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse())
+    const x = (svgP.x - currentDrawing.pan_x) / zoomLevel
+    const y = (svgP.y - currentDrawing.pan_y) / zoomLevel
     
     if (activeTool === 'symbol' && selectedSymbol) {
+      pushToUndoStack()
       const updated = { ...currentDrawing }
       addSymbolToDrawing(updated, selectedSymbol, { x, y })
       setCurrentDrawing(updated)
     } else if (activeTool === 'text') {
       const text = prompt('Enter text:')
       if (text) {
+        pushToUndoStack()
         const updated = { ...currentDrawing }
         addAnnotation(updated, { x, y }, text)
         setCurrentDrawing(updated)
       }
     } else if (activeTool === 'select') {
       const symbol = getSymbolAtPosition(currentDrawing, x, y)
-      if (symbol) {
-        // Symbol selected - could show properties panel
-        console.log('Selected symbol:', symbol)
+      setSelectedDrawingSymbol(symbol)
+    } else if (activeTool === 'line') {
+      // Line drawing mode - connect two symbols
+      const symbol = getSymbolAtPosition(currentDrawing, x, y)
+      
+      if (symbol && symbol.connection_points.length > 0) {
+        // Find the closest connection point
+        const closestPoint = findClosestConnectionPoint(symbol, x, y)
+        
+        if (!lineDrawingState.fromSymbol) {
+          // First click - select start point
+          setLineDrawingState({
+            fromSymbol: symbol,
+            fromPointId: closestPoint.point_id
+          })
+        } else if (lineDrawingState.fromSymbol.symbol_id !== symbol.symbol_id) {
+          // Second click - connect to end point
+          pushToUndoStack()
+          const updated = { ...currentDrawing }
+          connectSymbols(
+            updated,
+            lineDrawingState.fromSymbol.symbol_id,
+            lineDrawingState.fromPointId!,
+            symbol.symbol_id,
+            closestPoint.point_id,
+            selectedLineType
+          )
+          setCurrentDrawing(updated)
+          setLineDrawingState({ fromSymbol: null, fromPointId: null })
+        } else {
+          // Clicked same symbol - reset
+          setLineDrawingState({ fromSymbol: null, fromPointId: null })
+        }
       }
     }
+  }
+  
+  // Find the closest connection point on a symbol
+  const findClosestConnectionPoint = (symbol: PIDSymbol, clickX: number, clickY: number) => {
+    let closest = symbol.connection_points[0]
+    let minDist = Infinity
+    
+    for (const point of symbol.connection_points) {
+      const pointX = symbol.x + point.x_offset
+      const pointY = symbol.y + point.y_offset
+      const dist = Math.sqrt(Math.pow(clickX - pointX, 2) + Math.pow(clickY - pointY, 2))
+      
+      if (dist < minDist) {
+        minDist = dist
+        closest = point
+      }
+    }
+    
+    return closest
+  }
+  
+  const handleSVGMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (activeTool === 'pan') {
+      setIsPanning(true)
+      setLastPanPoint({ x: e.clientX, y: e.clientY })
+    } else if (activeTool === 'select' && selectedDrawingSymbol) {
+      setIsDragging(true)
+      setLastPanPoint({ x: e.clientX, y: e.clientY })
+    }
+  }
+  
+  const handleSVGMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (isPanning) {
+      const dx = e.clientX - lastPanPoint.x
+      const dy = e.clientY - lastPanPoint.y
+      
+      setCurrentDrawing(prev => ({
+        ...prev,
+        pan_x: prev.pan_x + dx / zoomLevel,
+        pan_y: prev.pan_y + dy / zoomLevel
+      }))
+      
+      setLastPanPoint({ x: e.clientX, y: e.clientY })
+    } else if (isDragging && selectedDrawingSymbol && svgRef.current) {
+      const svg = svgRef.current
+      const pt = svg.createSVGPoint()
+      pt.x = e.clientX
+      pt.y = e.clientY
+      
+      const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse())
+      const x = (svgP.x - currentDrawing.pan_x) / zoomLevel
+      const y = (svgP.y - currentDrawing.pan_y) / zoomLevel
+      
+      const updated = { ...currentDrawing }
+      moveSymbol(updated, selectedDrawingSymbol.symbol_id, x - selectedDrawingSymbol.width / 2, y - selectedDrawingSymbol.height / 2, currentDrawing.snap_to_grid)
+      setCurrentDrawing(updated)
+      
+      // Update selected symbol reference
+      const updatedSymbol = updated.symbols.find(s => s.symbol_id === selectedDrawingSymbol.symbol_id)
+      if (updatedSymbol) {
+        setSelectedDrawingSymbol(updatedSymbol)
+      }
+    } else if (activeTool === 'line' && svgRef.current) {
+      // Update hovered symbol for connection point highlighting
+      const svg = svgRef.current
+      const pt = svg.createSVGPoint()
+      pt.x = e.clientX
+      pt.y = e.clientY
+      
+      const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse())
+      const x = (svgP.x - currentDrawing.pan_x) / zoomLevel
+      const y = (svgP.y - currentDrawing.pan_y) / zoomLevel
+      
+      const symbol = getSymbolAtPosition(currentDrawing, x, y)
+      setHoveredSymbol(symbol)
+    }
+  }
+  
+  const handleSVGMouseUp = () => {
+    if (isPanning || isDragging) {
+      pushToUndoStack()
+    }
+    setIsPanning(false)
+    setIsDragging(false)
+  }
+  
+  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? -0.1 : 0.1
+    setZoomLevel(prev => Math.max(0.3, Math.min(3.0, prev + delta)))
+  }
+  
+  const handleDeleteSymbol = () => {
+    if (!selectedDrawingSymbol) return
+    pushToUndoStack()
+    const updated = { ...currentDrawing }
+    deleteSymbol(updated, selectedDrawingSymbol.symbol_id)
+    setCurrentDrawing(updated)
+    setSelectedDrawingSymbol(null)
+  }
+  
+  const handleRotateSymbol = () => {
+    if (!selectedDrawingSymbol) return
+    pushToUndoStack()
+    const updated = { ...currentDrawing }
+    rotateSymbol(updated, selectedDrawingSymbol.symbol_id, 90)
+    setCurrentDrawing(updated)
+    const updatedSymbol = updated.symbols.find(s => s.symbol_id === selectedDrawingSymbol.symbol_id)
+    if (updatedSymbol) {
+      setSelectedDrawingSymbol(updatedSymbol)
+    }
+  }
+  
+  const handleScaleSymbol = (factor: number) => {
+    if (!selectedDrawingSymbol) return
+    pushToUndoStack()
+    const updated = { ...currentDrawing }
+    scaleSymbol(updated, selectedDrawingSymbol.symbol_id, factor)
+    setCurrentDrawing(updated)
+    const updatedSymbol = updated.symbols.find(s => s.symbol_id === selectedDrawingSymbol.symbol_id)
+    if (updatedSymbol) {
+      setSelectedDrawingSymbol(updatedSymbol)
+    }
+  }
+  
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen)
+  }
+  
+  // Get SVG path for a symbol from the library
+  const getSymbolSVGPath = (symbol: PIDSymbol): string => {
+    const libraryItem = standardSymbolLibrary.find(
+      item => item.symbol_name === symbol.label || item.symbol_type === symbol.symbol_type
+    )
+    return libraryItem?.svg_path || ''
   }
   
   const handleSave = () => {
@@ -268,9 +378,14 @@ export function PIDDrawingEditor({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] flex flex-col">
+      <DialogContent className={`flex flex-col ${isFullscreen ? 'max-w-full max-h-full w-screen h-screen' : 'max-w-[95vw] max-h-[95vh]'}`}>
         <DialogHeader>
-          <DialogTitle>P&ID Drawing Editor</DialogTitle>
+          <DialogTitle className="flex items-center justify-between">
+            <span>P&ID Drawing Editor</span>
+            <Button onClick={toggleFullscreen} size="sm" variant="ghost">
+              {isFullscreen ? <ArrowsIn className="h-4 w-4" /> : <ArrowsOut className="h-4 w-4" />}
+            </Button>
+          </DialogTitle>
           <DialogDescription>
             {currentDrawing.drawing_title} - {currentDrawing.drawing_number} Rev {currentDrawing.revision}
           </DialogDescription>
@@ -287,6 +402,7 @@ export function PIDDrawingEditor({
                   variant={activeTool === 'select' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setActiveTool('select')}
+                  title="Select and move symbols (Esc)"
                 >
                   <Cursor className="h-4 w-4 mr-1" />
                   Select
@@ -295,6 +411,7 @@ export function PIDDrawingEditor({
                   variant={activeTool === 'pan' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setActiveTool('pan')}
+                  title="Pan the canvas"
                 >
                   <Hand className="h-4 w-4 mr-1" />
                   Pan
@@ -303,6 +420,7 @@ export function PIDDrawingEditor({
                   variant={activeTool === 'symbol' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setActiveTool('symbol')}
+                  title="Add symbols to the drawing"
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   Symbol
@@ -311,6 +429,7 @@ export function PIDDrawingEditor({
                   variant={activeTool === 'line' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setActiveTool('line')}
+                  title="Connect symbols"
                 >
                   <Path className="h-4 w-4 mr-1" />
                   Line
@@ -320,6 +439,7 @@ export function PIDDrawingEditor({
                   size="sm"
                   onClick={() => setActiveTool('text')}
                   className="col-span-2"
+                  title="Add text annotations"
                 >
                   <TextT className="h-4 w-4 mr-1" />
                   Text
@@ -328,6 +448,103 @@ export function PIDDrawingEditor({
             </div>
             
             <Separator />
+            
+            {/* Line drawing options when line tool is active */}
+            {activeTool === 'line' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Line Type</Label>
+                  <select
+                    value={selectedLineType}
+                    onChange={(e) => setSelectedLineType(e.target.value as LineType)}
+                    className="w-full border rounded-md p-2 text-sm"
+                  >
+                    <option value="Process">Process (Black)</option>
+                    <option value="Utility">Utility (Blue)</option>
+                    <option value="Signal">Signal (Red Dashed)</option>
+                    <option value="Electrical">Electrical (Blue)</option>
+                  </select>
+                  
+                  {lineDrawingState.fromSymbol && (
+                    <div className="p-2 bg-green-50 border border-green-200 rounded-md text-sm">
+                      <p className="font-medium text-green-800">Step 2:</p>
+                      <p className="text-green-700 text-xs mt-1">
+                        Click on another symbol to connect
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full mt-2"
+                        onClick={() => setLineDrawingState({ fromSymbol: null, fromPointId: null })}
+                      >
+                        Cancel Connection
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {!lineDrawingState.fromSymbol && (
+                    <div className="p-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
+                      <p className="font-medium text-blue-800">Step 1:</p>
+                      <p className="text-blue-700 text-xs mt-1">
+                        Click on a symbol to start connecting
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <Separator />
+              </>
+            )}
+            
+            {/* Symbol operations when a symbol is selected */}
+            {selectedDrawingSymbol && (
+              <>
+                <div className="space-y-2">
+                  <Label>Selected: {selectedDrawingSymbol.label}</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleRotateSymbol}
+                      title="Rotate 90° clockwise"
+                    >
+                      <ArrowClockwise className="h-4 w-4 mr-1" />
+                      Rotate
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleDeleteSymbol}
+                      title="Delete symbol (Delete key)"
+                    >
+                      <Trash className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleScaleSymbol(1.2)}
+                      title="Scale up 20%"
+                    >
+                      Scale +
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleScaleSymbol(0.8)}
+                      title="Scale down 20%"
+                    >
+                      Scale -
+                    </Button>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div>Tag: {selectedDrawingSymbol.tag_number}</div>
+                    <div>Rotation: {selectedDrawingSymbol.rotation}°</div>
+                    <div>Scale: {(selectedDrawingSymbol.scale * 100).toFixed(0)}%</div>
+                  </div>
+                </div>
+                <Separator />
+              </>
+            )}
             
             {/* Symbol Library */}
             <div className="flex-1 flex flex-col">
@@ -356,15 +573,38 @@ export function PIDDrawingEditor({
           {/* Canvas Area */}
           <div className="flex-1 flex flex-col gap-2">
             {/* Toolbar */}
-            <div className="flex items-center gap-2">
-              <Button onClick={zoomOut} size="sm" variant="outline">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button onClick={zoomOut} size="sm" variant="outline" title="Zoom out">
                 <MagnifyingGlassMinus className="h-4 w-4" />
               </Button>
               <span className="text-sm font-medium w-16 text-center">
                 {(zoomLevel * 100).toFixed(0)}%
               </span>
-              <Button onClick={zoomIn} size="sm" variant="outline">
+              <Button onClick={zoomIn} size="sm" variant="outline" title="Zoom in (or use mouse wheel)">
                 <MagnifyingGlassPlus className="h-4 w-4" />
+              </Button>
+              
+              <Separator orientation="vertical" className="h-6 mx-2" />
+              
+              <Button 
+                onClick={handleUndo} 
+                size="sm" 
+                variant="outline"
+                disabled={undoStack.length === 0}
+                title="Undo (Ctrl+Z)"
+              >
+                <ArrowCounterClockwise className="h-4 w-4 mr-1" />
+                Undo
+              </Button>
+              <Button 
+                onClick={handleRedo} 
+                size="sm" 
+                variant="outline"
+                disabled={redoStack.length === 0}
+                title="Redo (Ctrl+Y)"
+              >
+                <ArrowClockwise className="h-4 w-4 mr-1" />
+                Redo
               </Button>
               
               <Separator orientation="vertical" className="h-6 mx-2" />
@@ -388,15 +628,212 @@ export function PIDDrawingEditor({
               </div>
             </div>
             
-            {/* Canvas */}
-            <div className="flex-1 border rounded-lg overflow-auto bg-white">
-              <canvas
-                ref={canvasRef}
-                width={currentDrawing.canvas_width}
-                height={currentDrawing.canvas_height}
-                onClick={handleCanvasClick}
+            {/* SVG Canvas */}
+            <div className="flex-1 border rounded-lg overflow-hidden bg-white">
+              <svg
+                ref={svgRef}
+                width="100%"
+                height="100%"
+                viewBox={`0 0 ${currentDrawing.canvas_width} ${currentDrawing.canvas_height}`}
+                onClick={handleSVGClick}
+                onMouseDown={handleSVGMouseDown}
+                onMouseMove={handleSVGMouseMove}
+                onMouseUp={handleSVGMouseUp}
+                onMouseLeave={handleSVGMouseUp}
+                onWheel={handleWheel}
                 className="cursor-crosshair"
-              />
+                style={{ cursor: activeTool === 'pan' ? 'grab' : activeTool === 'select' ? 'default' : 'crosshair' }}
+              >
+                <defs>
+                  {/* Define markers for arrows */}
+                  <marker
+                    id="arrowhead"
+                    markerWidth="10"
+                    markerHeight="10"
+                    refX="9"
+                    refY="3"
+                    orient="auto"
+                  >
+                    <polygon points="0 0, 10 3, 0 6" fill="black" />
+                  </marker>
+                </defs>
+                
+                <g transform={`translate(${currentDrawing.pan_x}, ${currentDrawing.pan_y}) scale(${zoomLevel})`}>
+                  {/* Grid */}
+                  {currentDrawing.show_grid && (
+                    <g className="grid">
+                      {Array.from({ length: Math.ceil(currentDrawing.canvas_width / currentDrawing.grid_size) }).map((_, i) => (
+                        <line
+                          key={`grid-v-${i}`}
+                          x1={i * currentDrawing.grid_size}
+                          y1={0}
+                          x2={i * currentDrawing.grid_size}
+                          y2={currentDrawing.canvas_height}
+                          stroke="#e0e0e0"
+                          strokeWidth={0.5 / zoomLevel}
+                        />
+                      ))}
+                      {Array.from({ length: Math.ceil(currentDrawing.canvas_height / currentDrawing.grid_size) }).map((_, i) => (
+                        <line
+                          key={`grid-h-${i}`}
+                          x1={0}
+                          y1={i * currentDrawing.grid_size}
+                          x2={currentDrawing.canvas_width}
+                          y2={i * currentDrawing.grid_size}
+                          stroke="#e0e0e0"
+                          strokeWidth={0.5 / zoomLevel}
+                        />
+                      ))}
+                    </g>
+                  )}
+                  
+                  {/* Connections */}
+                  {currentDrawing.connections.map(conn => (
+                    <g key={conn.connection_id}>
+                      <polyline
+                        points={conn.path_points.map(p => `${p.x},${p.y}`).join(' ')}
+                        stroke={conn.style.stroke_color}
+                        strokeWidth={conn.style.stroke_width}
+                        fill="none"
+                        strokeDasharray={conn.style.dash_array?.join(',') || 'none'}
+                        opacity={conn.style.opacity}
+                        markerEnd={conn.style.arrow_end ? 'url(#arrowhead)' : ''}
+                      />
+                    </g>
+                  ))}
+                  
+                  {/* Symbols */}
+                  {currentDrawing.symbols.map(symbol => {
+                    const svgPath = getSymbolSVGPath(symbol)
+                    const isSelected = selectedDrawingSymbol?.symbol_id === symbol.symbol_id
+                    const isHovered = hoveredSymbol?.symbol_id === symbol.symbol_id
+                    const isLineStart = lineDrawingState.fromSymbol?.symbol_id === symbol.symbol_id
+                    
+                    return (
+                      <g
+                        key={symbol.symbol_id}
+                        transform={`translate(${symbol.x}, ${symbol.y})`}
+                        className={isSelected ? 'selected-symbol' : ''}
+                      >
+                        {/* Selection highlight */}
+                        {isSelected && (
+                          <rect
+                            x={-5}
+                            y={-5}
+                            width={symbol.width + 10}
+                            height={symbol.height + 10}
+                            fill="none"
+                            stroke="#2563eb"
+                            strokeWidth={2 / zoomLevel}
+                            strokeDasharray="5,5"
+                          />
+                        )}
+                        
+                        {/* Line mode start symbol highlight */}
+                        {isLineStart && (
+                          <rect
+                            x={-3}
+                            y={-3}
+                            width={symbol.width + 6}
+                            height={symbol.height + 6}
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth={2 / zoomLevel}
+                            strokeDasharray="3,3"
+                          />
+                        )}
+                        
+                        {/* Symbol with rotation and scale */}
+                        <g transform={`translate(${symbol.width / 2}, ${symbol.height / 2}) rotate(${symbol.rotation}) scale(${symbol.scale}) translate(${-symbol.width / 2}, ${-symbol.height / 2})`}>
+                          {/* Authentic SVG symbol */}
+                          {svgPath ? (
+                            <path
+                              d={svgPath}
+                              fill={symbol.style.fill_color}
+                              stroke={symbol.style.stroke_color}
+                              strokeWidth={symbol.style.stroke_width}
+                              opacity={symbol.style.opacity}
+                            />
+                          ) : (
+                            // Fallback rectangle if no SVG path
+                            <rect
+                              width={symbol.width}
+                              height={symbol.height}
+                              fill={symbol.style.fill_color}
+                              stroke={symbol.style.stroke_color}
+                              strokeWidth={symbol.style.stroke_width}
+                              opacity={symbol.style.opacity}
+                            />
+                          )}
+                        </g>
+                        
+                        {/* Connection points - show in line mode or when hovered */}
+                        {(activeTool === 'line' || isHovered) && symbol.connection_points.map(point => (
+                          <circle
+                            key={point.point_id}
+                            cx={point.x_offset}
+                            cy={point.y_offset}
+                            r={4 / zoomLevel}
+                            fill={isLineStart ? '#10b981' : '#3b82f6'}
+                            stroke="#ffffff"
+                            strokeWidth={1 / zoomLevel}
+                            opacity={0.8}
+                          />
+                        ))}
+                        
+                        {/* Label */}
+                        <text
+                          x={symbol.width / 2}
+                          y={-5}
+                          textAnchor="middle"
+                          fontSize={12 / zoomLevel}
+                          fill="#000000"
+                        >
+                          {symbol.label}
+                        </text>
+                        
+                        {/* Tag number */}
+                        <text
+                          x={symbol.width / 2}
+                          y={symbol.height + 15}
+                          textAnchor="middle"
+                          fontSize={10 / zoomLevel}
+                          fontWeight="bold"
+                          fill="#000000"
+                        >
+                          {symbol.tag_number}
+                        </text>
+                      </g>
+                    )
+                  })}
+                  
+                  {/* Annotations */}
+                  {currentDrawing.annotations.map(ann => (
+                    <g key={ann.annotation_id}>
+                      {ann.border && ann.background_color && (
+                        <rect
+                          x={ann.x - 5}
+                          y={ann.y - ann.font_size - 2}
+                          width={100}
+                          height={ann.font_size + 8}
+                          fill={ann.background_color}
+                          stroke={ann.color}
+                          strokeWidth={1}
+                        />
+                      )}
+                      <text
+                        x={ann.x}
+                        y={ann.y}
+                        fontSize={ann.font_size}
+                        fontFamily={ann.font_family}
+                        fill={ann.color}
+                      >
+                        {ann.text}
+                      </text>
+                    </g>
+                  ))}
+                </g>
+              </svg>
             </div>
           </div>
           
@@ -479,6 +916,19 @@ export function PIDDrawingEditor({
                   <Label className="text-sm">Snap to Grid</Label>
                 </div>
               </div>
+            </div>
+            
+            <Separator />
+            
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div><strong>Tips:</strong></div>
+              <div>• Esc - Select tool</div>
+              <div>• Delete - Remove selected</div>
+              <div>• Ctrl+Z - Undo</div>
+              <div>• Ctrl+Y - Redo</div>
+              <div>• Mouse wheel - Zoom</div>
+              <div>• Drag in Pan mode - Move canvas</div>
+              <div>• Drag symbol in Select mode - Move it</div>
             </div>
           </div>
         </div>
