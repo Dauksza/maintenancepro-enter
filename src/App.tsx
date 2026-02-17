@@ -53,6 +53,7 @@ import { WorkOrderTemplates } from '@/components/WorkOrderTemplates'
 import { WelcomeDialog } from '@/components/WelcomeDialog'
 import { PWAInstallBanner } from '@/components/PWAInstallBanner'
 import { SystemStatus, LiveActivityIndicator } from '@/components/SystemStatus'
+import { InteractiveTour, type TourStep } from '@/components/InteractiveTour'
 import { 
   Wrench, 
   ClipboardText, 
@@ -148,6 +149,7 @@ function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Technician')
+  const [tourOpen, setTourOpen] = useState(false)
 
   const validTabs = ['dashboard', 'tracking', 'timeline', 'resources', 'capacity', 'calendar', 'employees', 'assets', 'parts', 'forms', 'certifications', 'sops', 'analytics', 'predictive', 'database']
   const safeActiveTab = activeTab && validTabs.includes(activeTab) ? activeTab : 'dashboard'
@@ -458,6 +460,53 @@ function App() {
     return getReminderCounts(currentReminders)
   }, [safeSkillMatrix, safeEmployees, reminders])
 
+  const tourSteps: TourStep[] = useMemo(() => ([
+    {
+      id: 'tracking-tab',
+      selector: '[data-tour="tracking-tab"]',
+      title: 'Track Work Orders',
+      description: 'Open Tracking to manage all maintenance requests, priorities, and status updates.'
+    },
+    {
+      id: 'assets-tab',
+      selector: '[data-tour="assets-tab"]',
+      title: 'Manage Assets',
+      description: 'Use Assets to organize equipment and areas so work orders map cleanly to locations.'
+    },
+    {
+      id: 'employees-tab',
+      selector: '[data-tour="employees-tab"]',
+      title: 'Review Technicians',
+      description: 'Employees lets you maintain skill matrix, schedules, and assignments for each technician.'
+    },
+    {
+      id: 'new-work-order',
+      selector: '[data-tour="new-work-order"]',
+      title: 'Create New Work Order',
+      description: 'Use this action to create a work order and assign the best technician for the job.'
+    },
+    {
+      id: 'user-menu',
+      selector: '[data-tour="user-menu"]',
+      title: 'User Menu & Restart Tour',
+      description: 'Open this menu any time to restart onboarding and adjust profile or role settings.'
+    }
+  ]), [])
+
+  const startTour = useCallback(() => {
+    setTourOpen(true)
+  }, [])
+
+  const completeTour = useCallback(() => {
+    localStorage.setItem('maintenancepro-tour-completed', 'true')
+    setTourOpen(false)
+    toast.success('Product tour completed')
+  }, [])
+
+  const closeTour = useCallback(() => {
+    setTourOpen(false)
+  }, [])
+
   // Add global keyboard shortcuts
   useKeyboardShortcuts({
     'cmd+k': () => setSearchOpen(true),
@@ -597,6 +646,7 @@ function App() {
                   onClick={() => setNewWorkOrderOpen(true)}
                   size="sm"
                   className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 h-9"
+                  data-tour="new-work-order"
                 >
                   <Plus size={16} weight="bold" />
                   New Work Order
@@ -606,6 +656,7 @@ function App() {
                 onRoleChange={setCurrentUserRole}
                 onOpenImport={() => setImportOpen(true)}
                 onExportData={handleExportData}
+                onRestartTour={startTour}
               />
             </div>
           </div>
@@ -620,7 +671,7 @@ function App() {
               Dashboard
             </TabsTrigger>
             {canViewTab(currentUserRole, 'tracking') && (
-              <TabsTrigger value="tracking" className="flex items-center gap-1.5 text-sm rounded-md">
+              <TabsTrigger value="tracking" className="flex items-center gap-1.5 text-sm rounded-md" data-tour="tracking-tab">
                 <Wrench size={16} />
                 Tracking
               </TabsTrigger>
@@ -650,13 +701,13 @@ function App() {
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'employees') && (
-              <TabsTrigger value="employees" className="flex items-center gap-1.5 text-sm rounded-md">
+              <TabsTrigger value="employees" className="flex items-center gap-1.5 text-sm rounded-md" data-tour="employees-tab">
                 <UserGear size={16} />
                 Employees
               </TabsTrigger>
             )}
             {canViewTab(currentUserRole, 'assets') && (
-              <TabsTrigger value="assets" className="flex items-center gap-1.5 text-sm rounded-md">
+              <TabsTrigger value="assets" className="flex items-center gap-1.5 text-sm rounded-md" data-tour="assets-tab">
                 <Package size={16} />
                 Assets
               </TabsTrigger>
@@ -896,6 +947,7 @@ function App() {
                 workOrders={safeWorkOrders}
                 onUpdateWorkOrder={handleUpdateWorkOrder}
                 onSelectWorkOrder={handleSelectWorkOrder}
+                onOptimizeSchedule={() => setAutoSchedulerOpen(true)}
               />
             )}
           </TabsContent>
@@ -968,7 +1020,7 @@ function App() {
           </TabsContent>
 
           <TabsContent value="assets" className="space-y-6 animate-fade-in">
-            <AssetsAreasManagement employees={safeEmployees} />
+            <AssetsAreasManagement employees={safeEmployees} workOrders={safeWorkOrders} />
           </TabsContent>
 
           <TabsContent value="parts" className="space-y-6 animate-fade-in">
@@ -1215,7 +1267,14 @@ function App() {
         toast.success('Welcome to MaintenancePro!', {
           description: 'Click "Load Sample Data" to get started with example data.'
         })
-      }} />
+      }} onNavigate={setActiveTab} onStartTour={startTour} />
+
+      <InteractiveTour
+        open={tourOpen}
+        steps={tourSteps}
+        onClose={closeTour}
+        onComplete={completeTour}
+      />
 
       <PWAInstallBanner />
     </div>

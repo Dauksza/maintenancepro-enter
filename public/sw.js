@@ -52,6 +52,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const url = new URL(event.request.url);
+  // Skip Spark internal endpoints and manifest to avoid auth/CORS issues
+  if (url.pathname.startsWith('/_spark') || url.pathname.includes('manifest.json')) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {

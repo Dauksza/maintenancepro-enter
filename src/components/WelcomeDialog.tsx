@@ -17,7 +17,37 @@ import {
 
 interface WelcomeDialogProps {
   onComplete: () => void
+  onNavigate?: (tab: string) => void
+  onStartTour?: () => void
 }
+
+type ChecklistItem = {
+  id: string
+  label: string
+  description: string
+  tab: string
+}
+
+const quickStartItems: ChecklistItem[] = [
+  {
+    id: 'assets',
+    label: 'Review Assets',
+    description: 'Open the Assets page and verify equipment records',
+    tab: 'assets',
+  },
+  {
+    id: 'tracking',
+    label: 'Create a Work Order',
+    description: 'Go to Tracking and create your first maintenance task',
+    tab: 'tracking',
+  },
+  {
+    id: 'employees',
+    label: 'Check Technicians',
+    description: 'Visit Employees to review technicians, skills, and schedules',
+    tab: 'employees',
+  },
+]
 
 const features = [
   {
@@ -58,22 +88,37 @@ const features = [
   }
 ]
 
-export function WelcomeDialog({ onComplete }: WelcomeDialogProps) {
+export function WelcomeDialog({ onComplete, onNavigate, onStartTour }: WelcomeDialogProps) {
   const [open, setOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
+  const [completedChecklist, setCompletedChecklist] = useState<string[]>([])
 
   useEffect(() => {
     // Check if user has seen welcome screen
     const hasSeenWelcome = localStorage.getItem('maintenancepro-welcome-seen')
+    const savedChecklist = localStorage.getItem('maintenancepro-quick-start-checklist')
+
+    if (savedChecklist) {
+      try {
+        setCompletedChecklist(JSON.parse(savedChecklist))
+      } catch {
+        setCompletedChecklist([])
+      }
+    }
+
     if (!hasSeenWelcome) {
       setOpen(true)
     }
   }, [])
 
   const handleComplete = () => {
+    const hasSeenWelcome = localStorage.getItem('maintenancepro-welcome-seen')
     localStorage.setItem('maintenancepro-welcome-seen', 'true')
     setOpen(false)
     onComplete()
+    if (!hasSeenWelcome) {
+      onStartTour?.()
+    }
   }
 
   const handleNext = () => {
@@ -86,6 +131,20 @@ export function WelcomeDialog({ onComplete }: WelcomeDialogProps) {
 
   const handleSkip = () => {
     handleComplete()
+  }
+
+  const handleChecklistAction = (item: ChecklistItem) => {
+    setCompletedChecklist((current) => {
+      if (current.includes(item.id)) {
+        onNavigate?.(item.tab)
+        return current
+      }
+
+      const updated = [...current, item.id]
+      localStorage.setItem('maintenancepro-quick-start-checklist', JSON.stringify(updated))
+      onNavigate?.(item.tab)
+      return updated
+    })
   }
 
   return (
@@ -152,71 +211,49 @@ export function WelcomeDialog({ onComplete }: WelcomeDialogProps) {
         {currentStep === 1 && (
           <div className="space-y-6">
             <DialogHeader>
-              <DialogTitle className="text-2xl">Quick Start Guide</DialogTitle>
+              <DialogTitle className="text-2xl">Quick Start Checklist</DialogTitle>
               <DialogDescription>
-                Get up and running in minutes with these simple steps
+                Complete these 3 onboarding steps to get your workspace ready
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
-              <Card className="p-4 border-l-4 border-l-primary">
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                    1
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-2">Load Sample Data</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Click "Load Sample Data" in the header to populate the system with example 
-                      work orders, employees, assets, and procedures.
-                    </p>
-                    <Badge variant="secondary" className="gap-1">
-                      <Sparkle className="h-3 w-3" weight="fill" />
-                      Recommended for first-time users
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
+              {quickStartItems.map((item, index) => {
+                const completed = completedChecklist.includes(item.id)
 
-              <Card className="p-4 border-l-4 border-l-blue-500">
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
-                    2
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-2">Explore the Dashboard</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Navigate through tabs to explore Work Orders, Analytics, Calendar views, 
-                      Employee Management, and Predictive Maintenance.
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      <Badge variant="outline">Work Orders</Badge>
-                      <Badge variant="outline">Analytics</Badge>
-                      <Badge variant="outline">Calendar</Badge>
-                      <Badge variant="outline">Resources</Badge>
+                return (
+                  <Card key={item.id} className="p-4 border-l-4 border-l-primary/70">
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <h4 className="font-semibold">{item.label}</h4>
+                          {completed ? (
+                            <Badge variant="secondary" className="gap-1">
+                              <CheckCircle className="h-3 w-3" weight="fill" />
+                              Complete
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">Pending</Badge>
+                          )}
+                        </div>
+
+                        <p className="text-sm text-muted-foreground mb-3">{item.description}</p>
+
+                        <Button
+                          variant={completed ? 'outline' : 'default'}
+                          size="sm"
+                          onClick={() => handleChecklistAction(item)}
+                        >
+                          {completed ? 'Open Page' : 'Mark Complete & Open'}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-4 border-l-4 border-l-green-500">
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
-                    3
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-2">Create Your First Work Order</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Click the "New Work Order" button to create a maintenance task. The 
-                      auto-scheduler will help assign it to the best technician.
-                    </p>
-                    <Badge variant="secondary" className="gap-1">
-                      <CheckCircle className="h-3 w-3" weight="fill" />
-                      Takes less than 1 minute
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
+                  </Card>
+                )
+              })}
             </div>
 
             <div className="flex items-center justify-between pt-4 border-t">

@@ -22,6 +22,7 @@ import {
   type WorkOrderDraft,
   type WorkOrderSuggestion 
 } from '@/lib/work-order-suggestions'
+import { generateRecommendations, type EmployeeRecommendation } from '@/lib/skill-matcher'
 import { Sparkle, CheckCircle, Lightbulb, Clock, User, Package } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
@@ -56,6 +57,8 @@ export function NewWorkOrderDialog({
   const [showSuggestions, setShowSuggestions] = useState(true)
   const [selectedSpares, setSelectedSpares] = useState<string[]>([])
   const [appliedSuggestions, setAppliedSuggestions] = useState<Array<{ field: string, value: string }>>([])
+  const [technicianRecommendations, setTechnicianRecommendations] = useState<EmployeeRecommendation[]>([])
+  const [showTechnicianRecommendations, setShowTechnicianRecommendations] = useState(false)
 
   const suggestions = useMemo(() => {
     return getComprehensiveSuggestions(
@@ -95,8 +98,61 @@ export function NewWorkOrderDialog({
       setSelectedSpares([])
       setShowSuggestions(true)
       setAppliedSuggestions([])
+      setTechnicianRecommendations([])
+      setShowTechnicianRecommendations(false)
     }
   }, [open, cloneFrom])
+
+  const handleSuggestTechnicians = () => {
+    if (!draft.equipment_area || !draft.priority_level || !draft.type || !draft.task) {
+      toast.error('Enter equipment, priority, type, and task before suggesting technicians')
+      return
+    }
+
+    const draftWorkOrder: WorkOrder = {
+      work_order_id: `DRAFT-${Date.now()}`,
+      equipment_area: draft.equipment_area,
+      priority_level: draft.priority_level,
+      status: 'Scheduled (Not Started)',
+      type: draft.type,
+      task: draft.task,
+      comments_description: draft.comments_description || '',
+      scheduled_date: draft.scheduled_date || new Date().toISOString(),
+      estimated_downtime_hours: draft.estimated_downtime_hours || 1,
+      assigned_technician: null,
+      entered_by: null,
+      terminal: draft.terminal || 'Hanceville Terminal',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      completed_at: null,
+      is_overdue: false,
+      auto_generated: false
+    }
+
+    const ranked = generateRecommendations(
+      draftWorkOrder,
+      employees.filter(emp => emp.status === 'Active'),
+      skillMatrix,
+      workOrders,
+      []
+    )
+
+    setTechnicianRecommendations(ranked)
+    setShowTechnicianRecommendations(true)
+
+    if (ranked.length === 0) {
+      toast.error('No technicians available for recommendation')
+      return
+    }
+
+    toast.success(`Generated ${ranked.length} ranked technician recommendation${ranked.length === 1 ? '' : 's'}`)
+  }
+
+  const handleSelectRecommendedTechnician = (recommendation: EmployeeRecommendation) => {
+    const technicianName = `${recommendation.employee.first_name} ${recommendation.employee.last_name}`
+    setDraft(prev => ({ ...prev, assigned_technician: technicianName }))
+    toast.success('Technician auto-filled from recommendation')
+  }
 
   const handleApplySuggestion = (field: string, value: string) => {
     setDraft(prev => ({ ...prev, [field]: value }))
@@ -343,6 +399,55 @@ export function NewWorkOrderDialog({
                     ))}
                 </SelectContent>
               </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2 gap-2"
+                onClick={handleSuggestTechnicians}
+              >
+                <Sparkle size={14} weight="fill" />
+                Suggest Technician
+              </Button>
+
+              {showTechnicianRecommendations && (
+                <Card className="p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold">Ranked Candidates</span>
+                    <Badge variant="secondary">{technicianRecommendations.length}</Badge>
+                  </div>
+
+                  {technicianRecommendations.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No matching technicians found.</p>
+                  ) : (
+                    <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                      {technicianRecommendations.slice(0, 5).map((candidate, index) => {
+                        const name = `${candidate.employee.first_name} ${candidate.employee.last_name}`
+                        return (
+                          <div key={candidate.employee.employee_id} className="flex items-center justify-between gap-2 border rounded-md p-2">
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium truncate">{index + 1}. {name}</div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {Math.round(candidate.score)}% score · {Math.round(candidate.match_percentage)}% skill match · {candidate.availability}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                Certs: {candidate.certifications_status}
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSelectRecommendedTechnician(candidate)}
+                            >
+                              Select
+                            </Button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </Card>
+              )}
             </div>
 
             <div className="space-y-2">

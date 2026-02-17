@@ -29,7 +29,8 @@ import {
   GearSix, 
   SignOut, 
   ShieldCheck,
-  UserCircle
+  UserCircle,
+  CompassTool
 } from '@phosphor-icons/react'
 import type { UserProfile, UserRole } from '@/lib/types'
 import { DEFAULT_USER_PREFERENCES } from '@/lib/permissions'
@@ -41,9 +42,10 @@ interface UserProfileMenuProps {
   onRoleChange?: (role: UserRole) => void
   onOpenImport?: () => void
   onExportData?: () => void
+  onRestartTour?: () => void
 }
 
-export function UserProfileMenu({ onRoleChange, onOpenImport, onExportData }: UserProfileMenuProps) {
+export function UserProfileMenu({ onRoleChange, onOpenImport, onExportData, onRestartTour }: UserProfileMenuProps) {
   const [userProfile, setUserProfile] = useKV<UserProfile | null>('user-profile', null)
   const [githubUser, setGithubUser] = useState<any>(null)
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
@@ -135,7 +137,7 @@ export function UserProfileMenu({ onRoleChange, onOpenImport, onExportData }: Us
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full" data-tour="user-menu">
           <Avatar className="h-10 w-10 ring-2 ring-primary/20">
             <AvatarImage src={userProfile.avatar_url} alt={userProfile.display_name} />
             <AvatarFallback>{initials}</AvatarFallback>
@@ -214,6 +216,11 @@ export function UserProfileMenu({ onRoleChange, onOpenImport, onExportData }: Us
         <DropdownMenuItem className="gap-2" onClick={() => setSettingsDialogOpen(true)}>
           <GearSix size={16} />
           Settings
+        </DropdownMenuItem>
+
+        <DropdownMenuItem className="gap-2" onClick={onRestartTour}>
+          <CompassTool size={16} />
+          Restart Tour
         </DropdownMenuItem>
         
         <DropdownMenuSeparator />
