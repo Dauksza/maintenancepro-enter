@@ -48,6 +48,7 @@ import {
 import { AddPartDialog } from './AddPartDialog'
 import { PartDetailDialog } from './PartDetailDialog'
 import { PartTransactionDialog } from './PartTransactionDialog'
+import { toast } from 'sonner'
 
 interface PartsInventoryProps {
   parts: PartInventoryItem[]
@@ -108,6 +109,43 @@ export function PartsInventory({
     setTransactionDialogOpen(true)
   }
 
+  const handleGenerateReorderList = () => {
+    const reorderRows = parts
+      .filter(part => part.quantity_on_hand <= part.minimum_stock_level && part.status !== 'Discontinued')
+      .map(part => {
+        const quantity = Math.max(part.reorder_quantity, part.minimum_stock_level - part.quantity_on_hand)
+        return {
+          part_number: part.part_number,
+          part_name: part.part_name,
+          quantity,
+          vendor: part.supplier,
+        }
+      })
+
+    if (reorderRows.length === 0) {
+      toast.info('No reorder items found')
+      return
+    }
+
+    const csvHeader = 'Part Number,Part Name,Quantity,Vendor\n'
+    const csvBody = reorderRows
+      .map(row => `"${row.part_number}","${row.part_name}",${row.quantity},"${row.vendor}"`)
+      .join('\n')
+    const csv = `${csvHeader}${csvBody}`
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `reorder-list-${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    toast.success(`Generated reorder list with ${reorderRows.length} item${reorderRows.length === 1 ? '' : 's'}`)
+  }
+
   const getStatusBadge = (status: PartStatus) => {
     const variants: Record<PartStatus, string> = {
       'In Stock': 'bg-green-500 text-white',
@@ -128,10 +166,16 @@ export function PartsInventory({
             Track spare parts, manage stock levels, and monitor usage
           </p>
         </div>
-        <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
-          <Plus size={18} weight="bold" />
-          Add Part
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleGenerateReorderList} className="gap-2">
+            <ShoppingCart size={16} weight="bold" />
+            Generate Reorder List
+          </Button>
+          <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
+            <Plus size={18} weight="bold" />
+            Add Part
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

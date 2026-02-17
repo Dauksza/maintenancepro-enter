@@ -21,18 +21,31 @@ import {
   Plus, 
   MagnifyingGlass,
   Wrench,
-  Users
+  Users,
+  Brain,
+  Warning,
+  Sparkle
 } from '@phosphor-icons/react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { AddAssetWizard } from '@/components/wizards/AddAssetWizard'
 import { AddAreaWizard } from '@/components/wizards/AddAreaWizard'
 import { AddSkillWizard } from '@/components/wizards/AddSkillWizard'
 import { toast } from 'sonner'
+import { analyzeMaintenancePatterns, predictFailures, type FailurePrediction } from '@/lib/ml-utils'
+import type { WorkOrder } from '@/lib/types'
 
 interface AssetsAreasManagementProps {
   employees: Employee[]
+  workOrders?: WorkOrder[]
 }
 
-export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps) {
+export function AssetsAreasManagement({ employees, workOrders = [] }: AssetsAreasManagementProps) {
   const [assets, setAssets] = useKV<Asset[]>('assets', [])
   const [areas, setAreas] = useKV<Area[]>('areas', [])
   const [skills, setSkills] = useKV<Skill[]>('skills', [])
@@ -44,6 +57,9 @@ export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps)
   const [assetSearch, setAssetSearch] = useState('')
   const [areaSearch, setAreaSearch] = useState('')
   const [skillSearch, setSkillSearch] = useState('')
+  const [predictionAsset, setPredictionAsset] = useState<Asset | null>(null)
+  const [predictionResult, setPredictionResult] = useState<FailurePrediction | null>(null)
+  const [predictionOpen, setPredictionOpen] = useState(false)
 
   const safeAssets = assets || []
   const safeAreas = areas || []
@@ -80,6 +96,21 @@ export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps)
     skill.skill_name.toLowerCase().includes(skillSearch.toLowerCase()) ||
     skill.skill_category.toLowerCase().includes(skillSearch.toLowerCase())
   )
+
+  const handlePredictFailure = (asset: Asset) => {
+    const patterns = analyzeMaintenancePatterns(workOrders)
+    const predictions = predictFailures(workOrders, patterns)
+
+    const matchingPrediction = predictions.find(
+      prediction =>
+        prediction.equipment_area.toLowerCase() === asset.asset_name.toLowerCase() ||
+        prediction.equipment_area.toLowerCase().includes(asset.asset_name.toLowerCase())
+    )
+
+    setPredictionAsset(asset)
+    setPredictionResult(matchingPrediction || null)
+    setPredictionOpen(true)
+  }
 
   return (
     <div className="space-y-6">
@@ -156,6 +187,7 @@ export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps)
                         <TableHead>Status</TableHead>
                         <TableHead>Area</TableHead>
                         <TableHead>Assigned To</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -185,6 +217,17 @@ export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps)
                               ) : (
                                 <span className="text-muted-foreground">None</span>
                               )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1"
+                                onClick={() => handlePredictFailure(asset)}
+                              >
+                                <Brain size={14} />
+                                Predict Failure
+                              </Button>
                             </TableCell>
                           </TableRow>
                         )
@@ -383,6 +426,61 @@ export function AssetsAreasManagement({ employees }: AssetsAreasManagementProps)
         onComplete={handleAddSkill}
         existingCategories={Array.from(new Set(safeSkills.map(s => s.skill_category)))}
       />
+
+      <Dialog open={predictionOpen} onOpenChange={setPredictionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain size={20} className="text-primary" />
+              Failure Prediction
+            </DialogTitle>
+            <DialogDescription>
+              Predictive analysis for {predictionAsset?.asset_name}
+            </DialogDescription>
+          </DialogHeader>
+
+          {predictionResult ? (
+            <div className="space-y-4">
+              <Card className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">Confidence Score</span>
+                  <Badge variant="secondary">{Math.round(predictionResult.confidence * 100)}%</Badge>
+                </div>
+                <div className="text-2xl font-semibold">{Math.round(predictionResult.probability * 100)}% failure probability</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Predicted date: {new Date(predictionResult.predicted_failure_date).toLocaleDateString()}
+                </div>
+              </Card>
+
+              <Card className="p-4">
+                <div className="text-sm font-semibold mb-2">Recommended Actions</div>
+                <div className="text-sm mb-2">{predictionResult.recommended_action}</div>
+                {predictionResult.factors.length > 0 && (
+                  <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
+                    {predictionResult.factors.slice(0, 4).map((factor, index) => (
+                      <li key={index}>{factor}</li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            </div>
+          ) : (
+            <Card className="p-4 bg-muted/40">
+              <div className="flex items-center gap-2 mb-2">
+                <Warning size={16} className="text-muted-foreground" />
+                <span className="text-sm font-medium">Limited historical data</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                No direct historical prediction is available for this asset yet. Recommended action: continue monitoring and log more maintenance history.
+              </p>
+              <Badge variant="outline" className="mt-3 gap-1">
+                <Sparkle size={12} />
+                Confidence Score: 35%
+              </Badge>
+            </Card>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

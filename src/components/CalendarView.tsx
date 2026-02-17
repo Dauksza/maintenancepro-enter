@@ -10,7 +10,8 @@ import {
   CalendarBlank,
   Rows,
   Clock,
-  Wrench
+  Wrench,
+  Sparkle
 } from '@phosphor-icons/react'
 import { getStatusColor, getPriorityColor } from '@/lib/maintenance-utils'
 import { cn } from '@/lib/utils'
@@ -20,6 +21,7 @@ interface CalendarViewProps {
   workOrders: WorkOrder[]
   onUpdateWorkOrder: (id: string, updates: Partial<WorkOrder>) => void
   onSelectWorkOrder: (wo: WorkOrder) => void
+  onOptimizeSchedule?: () => void
 }
 
 type CalendarView = 'month' | 'week'
@@ -33,7 +35,8 @@ interface DayCell {
 export function CalendarView({
   workOrders,
   onUpdateWorkOrder,
-  onSelectWorkOrder
+  onSelectWorkOrder,
+  onOptimizeSchedule
 }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<CalendarView>('month')
@@ -230,6 +233,10 @@ export function CalendarView({
           <h2 className="text-2xl font-semibold">Calendar View</h2>
           <Button variant="outline" size="sm" onClick={handleToday}>
             Today
+          </Button>
+          <Button size="sm" className="gap-2" onClick={onOptimizeSchedule}>
+            <Sparkle size={14} weight="fill" />
+            Optimize Schedule
           </Button>
         </div>
         
