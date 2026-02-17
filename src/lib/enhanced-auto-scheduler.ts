@@ -73,6 +73,10 @@ const SKILL_LEVEL_WEIGHTS = {
   'Beginner': 1
 }
 
+// Workload balance threshold in hours - if workers' loads differ by more than this,
+// prefer the less-loaded worker to ensure even distribution
+const WORKLOAD_BALANCE_THRESHOLD_HOURS = 0.5
+
 export function enhancedAutoSchedule(
   workOrders: WorkOrder[],
   employees: Employee[],
@@ -120,7 +124,25 @@ export function enhancedAutoSchedule(
   const employeeCapacityMap = new Map<string, Map<string, number>>()
   activeEmployees.forEach(emp => {
     const capacity = capacities.find(c => c.technician_name === `${emp.first_name} ${emp.last_name}`)
-    employeeCapacityMap.set(emp.employee_id, new Map())
+    const empDateMap = new Map<string, number>()
+    
+    // Pre-populate with existing scheduled work
+    const empName = `${emp.first_name} ${emp.last_name}`
+    const existingWork = workOrders.filter(wo => 
+      wo.assigned_technician === empName && 
+      wo.scheduled_date &&
+      wo.scheduled_date !== '' &&
+      wo.status !== 'Completed' &&
+      wo.status !== 'Cancelled'
+    )
+    
+    existingWork.forEach(wo => {
+      const dateStr = format(parseISO(wo.scheduled_date), 'yyyy-MM-dd')
+      const currentHours = empDateMap.get(dateStr) || 0
+      empDateMap.set(dateStr, currentHours + (wo.estimated_downtime_hours || 0))
+    })
+    
+    employeeCapacityMap.set(emp.employee_id, empDateMap)
   })
 
   for (const workOrder of sortedOrders) {
@@ -326,7 +348,23 @@ function scheduleWorkOrder(
     return { success: false, reason: 'All employees at capacity', conflicts }
   }
 
-  candidates.sort((a, b) => b.score.total - a.score.total)
+  // Sort candidates to balance workload across workers and dates
+  candidates.sort((a, b) => {
+    // First priority: Balance workload - prefer less loaded workers
+    const loadDiff = a.currentLoad - b.currentLoad
+    if (Math.abs(loadDiff) > WORKLOAD_BALANCE_THRESHOLD_HOURS) {
+      return loadDiff // Lower load first
+    }
+    
+    // Second priority: Spread across dates - prefer earlier dates when loads are similar
+    const dateDiff = a.date.getTime() - b.date.getTime()
+    if (dateDiff !== 0) {
+      return dateDiff // Earlier dates first
+    }
+    
+    // Third priority: Quality of match (skill, area, etc.)
+    return b.score.total - a.score.total
+  })
   
   const best = candidates[0]
   const empName = `${best.employee.first_name} ${best.employee.last_name}`
