@@ -54,6 +54,7 @@ import { WelcomeDialog } from '@/components/WelcomeDialog'
 import { PWAInstallBanner } from '@/components/PWAInstallBanner'
 import { SystemStatus, LiveActivityIndicator } from '@/components/SystemStatus'
 import { InteractiveTour, type TourStep } from '@/components/InteractiveTour'
+import { PMEquipmentManagement } from '@/components/PMEquipmentManagement'
 import { 
   Wrench, 
   ClipboardText, 
@@ -76,7 +77,8 @@ import {
   Database,
   Brain,
   Clock,
-  FileText
+  FileText,
+  Gear
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -160,6 +162,7 @@ function App() {
     'calendar',
     'employees',
     'assets',
+    'pm-equipment',
     'parts',
     'forms',
     'certifications',
@@ -721,6 +724,12 @@ function App() {
                   Assets
                 </TabsTrigger>
               )}
+              {canViewTab(currentUserRole, 'pm-equipment') && (
+                <TabsTrigger value="pm-equipment" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
+                  <Gear size={18} />
+                  PM Equipment
+                </TabsTrigger>
+              )}
               {canViewTab(currentUserRole, 'parts') && (
                 <TabsTrigger value="parts" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
                   <Toolbox size={18} />
@@ -1104,6 +1113,10 @@ function App() {
 
           <TabsContent value="assets" className="space-y-6 animate-fade-in">
             <AssetsAreasManagement employees={safeEmployees} workOrders={safeWorkOrders} />
+          </TabsContent>
+
+          <TabsContent value="pm-equipment" className="space-y-6 animate-fade-in">
+            <PMEquipmentManagement />
           </TabsContent>
 
           <TabsContent value="parts" className="space-y-6 animate-fade-in">
