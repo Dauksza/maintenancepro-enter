@@ -316,7 +316,200 @@ export interface CertificationRenewalStats {
 
 export type AssetStatus = 'Operational' | 'Under Maintenance' | 'Out of Service' | 'Decommissioned'
 
-export type AssetCategory = 'Equipment' | 'Vehicle' | 'Tool' | 'Instrument' | 'Facility'
+export type AssetCategory = 'Equipment' | 'Vehicle' | 'Tool' | 'Instrument' | 'Facility' | 'PM Equipment'
+
+// PM Equipment specific types
+export type PMEquipmentType = 
+  | 'Pump'
+  | 'Gearbox'
+  | 'Electric Motor'
+  | 'Pressure Gauge'
+  | 'Thermometer'
+  | 'Radar Transmitter'
+  | 'Process Controller - Level'
+  | 'Process Controller - Temperature'
+  | 'Valve'
+
+export type ValveType = 
+  | 'Gate Valve'
+  | 'Globe Valve'
+  | 'Ball Valve'
+  | 'Butterfly Valve'
+  | 'Check Valve'
+  | 'Plug Valve'
+  | 'Needle Valve'
+  | 'Diaphragm Valve'
+  | 'Safety Relief Valve'
+  | 'Control Valve'
+
+export type ValveActuationType = 'Manual' | 'Pneumatic' | 'Electric' | 'Hydraulic' | 'Solenoid'
+
+export type ProcessControllerType = 'Level' | 'Temperature' | 'Pressure' | 'Flow'
+
+// Valve hierarchy levels
+export type ValveHierarchyLevel = 'Valve' | 'Manifold' | 'Header' | 'Section' | 'Area' | 'System'
+
+export interface PMEquipment extends Asset {
+  pm_equipment_type: PMEquipmentType
+  specifications: Record<string, string | number>
+  operating_parameters: OperatingParameters
+}
+
+export interface OperatingParameters {
+  rated_capacity?: number
+  operating_pressure?: number
+  operating_temperature?: number
+  flow_rate?: number
+  power_rating?: number
+  voltage?: number
+  rpm?: number
+  efficiency?: number
+  control_range?: { min: number; max: number }
+}
+
+export interface Valve extends PMEquipment {
+  pm_equipment_type: 'Valve'
+  valve_type: ValveType
+  valve_size: number // in inches
+  actuation_type: ValveActuationType
+  body_material: string
+  seat_material: string
+  pressure_rating: number // in PSI
+  temperature_rating: number // in °F
+  flow_coefficient_cv: number
+  position_indicator: boolean
+  fail_position?: 'Open' | 'Closed' | 'As-Is'
+  // Hierarchy reference
+  manifold_id?: string | null
+  valve_tag: string
+}
+
+export interface ValveManifold extends Asset {
+  manifold_tag: string
+  valve_ids: string[]
+  header_id?: string | null
+  manifold_type: string
+  inlet_size: number
+  outlet_count: number
+}
+
+export interface ValveHeader extends Asset {
+  header_tag: string
+  manifold_ids: string[]
+  section_id?: string | null
+  header_type: 'Supply' | 'Return' | 'Distribution'
+  main_line_size: number
+}
+
+export interface ValveSection extends Asset {
+  section_tag: string
+  header_ids: string[]
+  process_area_id?: string | null
+  section_description: string
+}
+
+export interface ProcessArea extends Asset {
+  area_tag: string
+  section_ids: string[]
+  system_id?: string | null
+  area_description: string
+  operating_unit: string
+}
+
+export interface ProcessSystem extends Asset {
+  system_tag: string
+  area_ids: string[]
+  system_description: string
+  system_type: string
+  criticality: 'Low' | 'Medium' | 'High' | 'Critical'
+}
+
+export interface Pump extends PMEquipment {
+  pm_equipment_type: 'Pump'
+  pump_type: 'Centrifugal' | 'Positive Displacement' | 'Submersible' | 'Diaphragm' | 'Peristaltic'
+  flow_rate_gpm: number
+  head_feet: number
+  power_hp: number
+  impeller_material: string
+  casing_material: string
+  seal_type: string
+  bearing_type: string
+  suction_size: number
+  discharge_size: number
+}
+
+export interface Gearbox extends PMEquipment {
+  pm_equipment_type: 'Gearbox'
+  gearbox_type: 'Spur' | 'Helical' | 'Bevel' | 'Worm' | 'Planetary'
+  gear_ratio: string
+  input_rpm: number
+  output_rpm: number
+  torque_rating: number
+  lubrication_type: string
+  oil_capacity: number
+  mounting_type: string
+}
+
+export interface ElectricMotor extends PMEquipment {
+  pm_equipment_type: 'Electric Motor'
+  motor_type: 'AC Induction' | 'DC' | 'Synchronous' | 'Servo' | 'Stepper'
+  horsepower: number
+  voltage: number
+  current_amps: number
+  phase: '1-Phase' | '3-Phase'
+  rpm: number
+  frame_size: string
+  enclosure_type: string
+  efficiency_class: string
+  service_factor: number
+}
+
+export interface PressureGauge extends PMEquipment {
+  pm_equipment_type: 'Pressure Gauge'
+  gauge_type: 'Bourdon Tube' | 'Diaphragm' | 'Digital' | 'Capsule'
+  pressure_range: { min: number; max: number }
+  accuracy_percent: number
+  connection_size: string
+  dial_size: number
+  pressure_unit: 'PSI' | 'Bar' | 'kPa' | 'MPa'
+  calibration_due_date: string | null
+}
+
+export interface Thermometer extends PMEquipment {
+  pm_equipment_type: 'Thermometer'
+  thermometer_type: 'Bimetallic' | 'RTD' | 'Thermocouple' | 'Digital' | 'Infrared'
+  temperature_range: { min: number; max: number }
+  accuracy: number
+  probe_length: number
+  connection_type: string
+  temperature_unit: '°F' | '°C' | 'K'
+  calibration_due_date: string | null
+}
+
+export interface RadarTransmitter extends PMEquipment {
+  pm_equipment_type: 'Radar Transmitter'
+  transmitter_type: 'Guided Wave' | 'Non-Contact' | 'Pulse'
+  measurement_range: { min: number; max: number }
+  frequency_ghz: number
+  beam_angle: number
+  process_connection: string
+  output_signal: '4-20mA' | 'HART' | 'Profibus' | 'Modbus'
+  display_type: 'LCD' | 'LED' | 'None'
+  tank_application: string
+}
+
+export interface ProcessController extends PMEquipment {
+  pm_equipment_type: 'Process Controller - Level' | 'Process Controller - Temperature'
+  controller_type: ProcessControllerType
+  control_algorithm: 'PID' | 'On-Off' | 'Fuzzy Logic' | 'Cascade'
+  input_type: string
+  output_type: string
+  setpoint_range: { min: number; max: number }
+  control_accuracy: number
+  communication_protocol: 'Modbus' | 'HART' | 'Profibus' | 'Ethernet/IP' | 'OPC-UA'
+  display_features: string[]
+  alarm_outputs: number
+}
 
 export interface Asset {
   asset_id: string
@@ -844,4 +1037,181 @@ export interface AuditLogEntry {
   ip_address?: string
   user_agent?: string
   timestamp: string
+}
+
+// P&ID (Piping and Instrumentation Diagram) types
+export type PIDSymbolType = 
+  | 'Valve'
+  | 'Pump'
+  | 'Motor'
+  | 'Vessel'
+  | 'Tank'
+  | 'Heat Exchanger'
+  | 'Compressor'
+  | 'Instrument'
+  | 'Pipe'
+  | 'Fitting'
+  | 'Equipment'
+  | 'Custom'
+
+export type InstrumentationType = 
+  | 'Pressure'
+  | 'Temperature'
+  | 'Level'
+  | 'Flow'
+  | 'Analysis'
+  | 'Control'
+
+export type PipeLineType = 
+  | 'Process'
+  | 'Utility'
+  | 'Signal'
+  | 'Electrical'
+
+export interface PIDDrawing {
+  drawing_id: string
+  drawing_number: string
+  drawing_title: string
+  revision: number
+  project_name: string
+  area_id?: string | null
+  system_id?: string | null
+  canvas_width: number
+  canvas_height: number
+  grid_size: number
+  show_grid: boolean
+  snap_to_grid: boolean
+  zoom_level: number
+  pan_x: number
+  pan_y: number
+  symbols: PIDSymbol[]
+  connections: PIDConnection[]
+  annotations: PIDAnnotation[]
+  metadata: PIDMetadata
+  created_by: string
+  created_at: string
+  updated_at: string
+  last_modified_by: string
+}
+
+export interface PIDSymbol {
+  symbol_id: string
+  drawing_id: string
+  symbol_type: PIDSymbolType
+  x: number
+  y: number
+  width: number
+  height: number
+  rotation: number
+  scale: number
+  label: string
+  tag_number: string
+  asset_id?: string | null
+  properties: Record<string, string | number | boolean>
+  connection_points: ConnectionPoint[]
+  style: SymbolStyle
+  z_index: number
+}
+
+export interface ConnectionPoint {
+  point_id: string
+  x_offset: number
+  y_offset: number
+  direction: 'top' | 'bottom' | 'left' | 'right'
+  connected_to?: string | null
+}
+
+export interface PIDConnection {
+  connection_id: string
+  drawing_id: string
+  line_type: PipeLineType
+  from_symbol_id: string
+  from_point_id: string
+  to_symbol_id: string
+  to_point_id: string
+  path_points: { x: number; y: number }[]
+  line_number?: string | null
+  flow_direction?: 'forward' | 'reverse' | 'bidirectional' | null
+  line_size?: number | null
+  material?: string | null
+  service?: string | null
+  style: LineStyle
+}
+
+export interface PIDAnnotation {
+  annotation_id: string
+  drawing_id: string
+  annotation_type: 'Text' | 'Dimension' | 'Note' | 'Callout' | 'Arrow'
+  x: number
+  y: number
+  width?: number
+  height?: number
+  text: string
+  font_size: number
+  font_family: string
+  color: string
+  background_color?: string | null
+  border: boolean
+  leader_line?: { x: number; y: number }[] | null
+  z_index: number
+}
+
+export interface SymbolStyle {
+  fill_color: string
+  stroke_color: string
+  stroke_width: number
+  opacity: number
+  dash_array?: number[] | null
+}
+
+export interface LineStyle {
+  stroke_color: string
+  stroke_width: number
+  dash_array?: number[] | null
+  arrow_start: boolean
+  arrow_end: boolean
+  opacity: number
+}
+
+export interface PIDMetadata {
+  discipline: string
+  unit_number?: string | null
+  sheet_number: string
+  total_sheets: number
+  scale: string
+  approved_by?: string | null
+  approved_date?: string | null
+  status: 'Draft' | 'In Review' | 'Approved' | 'Superseded' | 'Archived'
+  tags: string[]
+  references: string[]
+}
+
+export interface PIDTemplate {
+  template_id: string
+  template_name: string
+  description: string
+  category: string
+  thumbnail_url?: string | null
+  symbols: Omit<PIDSymbol, 'symbol_id' | 'drawing_id'>[]
+  connections: Omit<PIDConnection, 'connection_id' | 'drawing_id'>[]
+  annotations: Omit<PIDAnnotation, 'annotation_id' | 'drawing_id'>[]
+  is_public: boolean
+  created_by: string
+  created_at: string
+  usage_count: number
+}
+
+export interface SymbolLibraryItem {
+  library_id: string
+  symbol_name: string
+  symbol_type: PIDSymbolType
+  category: string
+  svg_path: string
+  default_width: number
+  default_height: number
+  connection_points: Omit<ConnectionPoint, 'point_id' | 'connected_to'>[]
+  default_properties: Record<string, string | number | boolean>
+  thumbnail_url?: string | null
+  description: string
+  is_standard: boolean
 }
