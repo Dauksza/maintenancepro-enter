@@ -299,7 +299,7 @@ export function generateSampleInstruments(): Array<PressureGauge | Thermometer |
   // Generate Pressure Gauges
   for (let i = 0; i < 30; i++) {
     const gaugeType: 'Bourdon Tube' | 'Diaphragm' | 'Digital' | 'Capsule' = 
-      ['Bourdon Tube', 'Diaphragm', 'Digital', 'Capsule'][Math.floor(Math.random() * 4)] as any
+      ['Bourdon Tube', 'Diaphragm', 'Digital', 'Capsule'][Math.floor(Math.random() * 4)] as 'Bourdon Tube' | 'Diaphragm' | 'Digital' | 'Capsule'
     
     instruments.push({
       asset_id: uuidv4(),
@@ -347,7 +347,7 @@ export function generateSampleInstruments(): Array<PressureGauge | Thermometer |
   // Generate Thermometers
   for (let i = 0; i < 25; i++) {
     const thermType: 'Bimetallic' | 'RTD' | 'Thermocouple' | 'Digital' | 'Infrared' = 
-      ['Bimetallic', 'RTD', 'Thermocouple', 'Digital', 'Infrared'][Math.floor(Math.random() * 5)] as any
+      ['Bimetallic', 'RTD', 'Thermocouple', 'Digital', 'Infrared'][Math.floor(Math.random() * 5)] as 'Bimetallic' | 'RTD' | 'Thermocouple' | 'Digital' | 'Infrared'
     
     instruments.push({
       asset_id: uuidv4(),
@@ -395,7 +395,7 @@ export function generateSampleInstruments(): Array<PressureGauge | Thermometer |
   // Generate Radar Transmitters
   for (let i = 0; i < 15; i++) {
     const radarType: 'Guided Wave' | 'Non-Contact' | 'Pulse' = 
-      ['Guided Wave', 'Non-Contact', 'Pulse'][Math.floor(Math.random() * 3)] as any
+      ['Guided Wave', 'Non-Contact', 'Pulse'][Math.floor(Math.random() * 3)] as 'Guided Wave' | 'Non-Contact' | 'Pulse'
     
     instruments.push({
       asset_id: uuidv4(),
@@ -435,7 +435,7 @@ export function generateSampleInstruments(): Array<PressureGauge | Thermometer |
       frequency_ghz: [6, 26, 80][Math.floor(Math.random() * 3)],
       beam_angle: Math.floor(Math.random() * 15) + 5,
       process_connection: ['2" Flange', '3" Flange', '4" Flange'][Math.floor(Math.random() * 3)],
-      output_signal: ['4-20mA', 'HART', 'Profibus', 'Modbus'][Math.floor(Math.random() * 4)] as any,
+      output_signal: ['4-20mA', 'HART', 'Profibus', 'Modbus'][Math.floor(Math.random() * 4)] as '4-20mA' | 'HART' | 'Profibus' | 'Modbus',
       display_type: ['LCD', 'LED', 'None'][Math.floor(Math.random() * 3)] as 'LCD' | 'LED' | 'None',
       tank_application: ['Storage Tank', 'Process Vessel', 'Reactor', 'Day Tank'][Math.floor(Math.random() * 4)]
     })
@@ -481,7 +481,7 @@ export function generateSampleInstruments(): Array<PressureGauge | Thermometer |
         }
       },
       controller_type: controllerType,
-      control_algorithm: ['PID', 'On-Off', 'Cascade'][Math.floor(Math.random() * 3)] as any,
+      control_algorithm: ['PID', 'On-Off', 'Cascade'][Math.floor(Math.random() * 3)] as 'PID' | 'On-Off' | 'Fuzzy Logic' | 'Cascade',
       input_type: controllerType === 'Level' ? '4-20mA from LT' : 'Thermocouple Type K',
       output_type: '4-20mA to Control Valve',
       setpoint_range: {
@@ -489,7 +489,7 @@ export function generateSampleInstruments(): Array<PressureGauge | Thermometer |
         max: controllerType === 'Level' ? 100 : 500
       },
       control_accuracy: [0.1, 0.5, 1.0][Math.floor(Math.random() * 3)],
-      communication_protocol: ['Modbus', 'HART', 'Profibus', 'Ethernet/IP'][Math.floor(Math.random() * 4)] as any,
+      communication_protocol: ['Modbus', 'HART', 'Profibus', 'Ethernet/IP'][Math.floor(Math.random() * 4)] as 'Modbus' | 'HART' | 'Profibus' | 'Ethernet/IP' | 'OPC-UA',
       display_features: ['Trend Display', 'Alarm History', 'Tuning Parameters'],
       alarm_outputs: Math.floor(Math.random() * 4) + 2
     })

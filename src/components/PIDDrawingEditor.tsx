@@ -429,7 +429,7 @@ export function PIDDrawingEditor({
                   <Label className="text-xs text-muted-foreground">Status</Label>
                   <Select
                     value={currentDrawing.metadata.status}
-                    onValueChange={(value: any) =>
+                    onValueChange={(value: 'Draft' | 'In Review' | 'Approved' | 'Superseded' | 'Archived') =>
                       setCurrentDrawing({
                         ...currentDrawing,
                         metadata: { ...currentDrawing.metadata, status: value }

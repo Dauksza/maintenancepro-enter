@@ -221,7 +221,6 @@ When you first open MaintenancePro, you'll be greeted with an **interactive welc
 - **Areas**: Facility zones with employee and asset assignments
 - **Skills**: Technical competencies with certification tracking
 - **P&ID Drawings**: Piping and instrumentation diagrams
-- **Skills**: Technical competencies with certification tracking
 
 ### Key Relationships
 - Work Orders → SOPs (many-to-many)
