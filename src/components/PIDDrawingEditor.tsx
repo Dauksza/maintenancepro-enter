@@ -26,7 +26,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import {
-  Save,
+  FloppyDisk,
   Download,
   Upload,
   Plus,
@@ -370,7 +370,7 @@ export function PIDDrawingEditor({
               <Separator orientation="vertical" className="h-6 mx-2" />
               
               <Button onClick={handleSave} size="sm">
-                <Save className="h-4 w-4 mr-1" />
+                <FloppyDisk className="h-4 w-4 mr-1" />
                 Save
               </Button>
               <Button onClick={handleExportJSON} size="sm" variant="outline">
