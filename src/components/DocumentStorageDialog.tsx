@@ -38,6 +38,7 @@ import {
   Eye
 } from '@phosphor-icons/react'
 import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 
 export interface EquipmentDocument {
   document_id: string
@@ -86,7 +87,9 @@ export function DocumentStorageDialog({
     if (file) {
       // Check file size (max 5MB for base64 storage)
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB for inline storage. Consider using external storage for larger files.')
+        toast.error('File Too Large', {
+          description: 'File size must be less than 5MB for inline storage. Consider using external storage for larger files.'
+        })
         return
       }
       setSelectedFile(file)
@@ -117,7 +120,7 @@ export function DocumentStorageDialog({
           file_type: selectedFile.type,
           file_size: selectedFile.size,
           file_data: base64Data,
-          uploaded_by: 'Current User', // Should come from auth context
+          uploaded_by: 'System User', // TODO: Replace with actual auth context
           uploaded_at: new Date().toISOString(),
           tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : undefined
         }
@@ -137,14 +140,18 @@ export function DocumentStorageDialog({
       }
       
       reader.onerror = () => {
-        alert('Error reading file')
+        toast.error('Upload Failed', {
+          description: 'Error reading file. Please try again.'
+        })
         setIsUploading(false)
       }
       
       reader.readAsDataURL(selectedFile)
     } catch (error) {
       console.error('Upload error:', error)
-      alert('Failed to upload document')
+      toast.error('Upload Failed', {
+        description: 'Failed to upload document. Please try again.'
+      })
       setIsUploading(false)
     }
   }
@@ -367,9 +374,20 @@ export function DocumentStorageDialog({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => {
-                                  if (confirm('Delete this document?')) {
-                                    onDeleteDocument(doc.document_id)
-                                  }
+                                  toast('Delete Document?', {
+                                    description: `Are you sure you want to delete "${doc.title}"?`,
+                                    action: {
+                                      label: 'Delete',
+                                      onClick: () => {
+                                        onDeleteDocument(doc.document_id)
+                                        toast.success('Document deleted successfully')
+                                      }
+                                    },
+                                    cancel: {
+                                      label: 'Cancel',
+                                      onClick: () => {}
+                                    }
+                                  })
                                 }}
                               >
                                 <Trash className="h-3 w-3 mr-1" />

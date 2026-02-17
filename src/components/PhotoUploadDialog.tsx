@@ -26,6 +26,7 @@ import {
   Image as ImageIcon,
   Trash
 } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 
 export interface EquipmentPhoto {
   photo_id: string
@@ -109,7 +110,9 @@ export function PhotoUploadDialog({
       }
     } catch (error) {
       console.error('Camera access error:', error)
-      alert('Unable to access camera. Please check permissions or use the Upload tab.')
+      toast.error('Camera Access Denied', {
+        description: 'Unable to access camera. Please check permissions or use the Upload tab.'
+      })
     }
   }
   
@@ -151,13 +154,17 @@ export function PhotoUploadDialog({
     
     // Check if file is an image
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file')
+      toast.error('Invalid File Type', {
+        description: 'Please select an image file (PNG, JPG, WEBP)'
+      })
       return
     }
     
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image size must be less than 5MB')
+      toast.error('File Too Large', {
+        description: 'Image size must be less than 5MB'
+      })
       return
     }
     
@@ -175,12 +182,16 @@ export function PhotoUploadDialog({
   
   const handleSave = () => {
     if (!capturedImage) {
-      alert('Please capture or upload a photo first')
+      toast.error('No Photo Selected', {
+        description: 'Please capture or upload a photo first'
+      })
       return
     }
     
     if (!title.trim()) {
-      alert('Please enter a title for the photo')
+      toast.error('Title Required', {
+        description: 'Please enter a title for the photo'
+      })
       return
     }
     
@@ -191,7 +202,7 @@ export function PhotoUploadDialog({
       description: description.trim() || undefined,
       category,
       image_data: capturedImage,
-      captured_by: 'Current User', // Should come from auth context
+      captured_by: 'System User', // TODO: Replace with actual auth context
       captured_at: new Date().toISOString(),
       tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : undefined
     }
@@ -205,6 +216,10 @@ export function PhotoUploadDialog({
     setTags('')
     setCategory('General')
     setActiveTab('gallery')
+    
+    toast.success('Photo Saved', {
+      description: 'Photo has been successfully saved to the gallery'
+    })
   }
   
   const handleDiscard = () => {
@@ -274,9 +289,20 @@ export function PhotoUploadDialog({
                           className="w-full mt-2"
                           onClick={(e) => {
                             e.stopPropagation()
-                            if (confirm('Delete this photo?')) {
-                              onDeletePhoto(photo.photo_id)
-                            }
+                            toast('Delete Photo?', {
+                              description: `Are you sure you want to delete "${photo.title}"?`,
+                              action: {
+                                label: 'Delete',
+                                onClick: () => {
+                                  onDeletePhoto(photo.photo_id)
+                                  toast.success('Photo deleted successfully')
+                                }
+                              },
+                              cancel: {
+                                label: 'Cancel',
+                                onClick: () => {}
+                              }
+                            })
                           }}
                         >
                           <Trash className="h-3 w-3 mr-1" />
