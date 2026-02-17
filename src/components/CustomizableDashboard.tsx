@@ -265,6 +265,7 @@ export function CustomizableDashboard({
                     <div className="text-center py-12 text-muted-foreground animate-fade-in">
                       <CheckCircle size={52} className="mx-auto mb-3 opacity-40" weight="duotone" />
                       <p className="font-medium">No active assignments</p>
+                      <p className="text-sm mt-1">Your assigned tasks will appear here</p>
                     </div>
                   ) : (
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
