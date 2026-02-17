@@ -113,6 +113,17 @@ MaintenancePro is an enterprise-level maintenance management application that he
 - **Contextual Tooltips**: Helpful guidance integrated throughout the interface
 - **Smooth Animations**: Subtle, professional transitions that confirm actions without delay
 
+### 🏭 PM Equipment Management ✨ NEW
+- **Comprehensive Equipment Tracking**: Manage pumps, valves, motors, gearboxes, and instrumentation
+- **Hierarchical Valve Organization**: Track thousands of valves nested in manifolds, headers, sections, areas, and systems
+- **Equipment Types**: Specialized tracking for 9 equipment types with type-specific attributes
+- **P&ID Drawing Editor**: Create and maintain Piping and Instrumentation Diagrams
+- **Symbol Library**: Standard P&ID symbols for valves, pumps, vessels, instruments, and more
+- **Drawing Tools**: Select, pan, add symbols, connect lines, and annotate drawings
+- **Equipment Details**: Comprehensive specifications, maintenance history, and criticality ratings
+- **Valve Hierarchy View**: Interactive tree view with expand/collapse for easy navigation
+- **Sample Data Generator**: Quickly populate with 100 valves, 10 pumps, 20 motors, and more
+
 ## 🛠️ Technology Stack
 
 - **Frontend**: React 19, TypeScript 5.7
@@ -140,6 +151,10 @@ src/
 │   ├── EmployeeManagement.tsx
 │   ├── CertificationReminders.tsx
 │   ├── AssetsAreasManagement.tsx
+│   ├── PMEquipmentManagement.tsx    # PM Equipment tab
+│   ├── ValveHierarchyView.tsx       # Hierarchical valve view
+│   ├── PMEquipmentDetailDialog.tsx  # Equipment details
+│   ├── PIDDrawingEditor.tsx         # P&ID drawing editor
 │   └── NotificationCenter.tsx
 ├── lib/                # Utilities and business logic
 │   ├── types.ts        # TypeScript type definitions
@@ -150,6 +165,8 @@ src/
 │   ├── notification-utils.ts
 │   ├── ml-utils.ts     # Predictive ML algorithms
 │   ├── root-cause-analysis.ts # RCA pattern detection
+│   ├── pm-equipment-utils.ts   # PM equipment generators
+│   ├── pid-utils.ts            # P&ID drawing utilities
 │   └── maintenance-utils.ts
 ├── hooks/              # Custom React hooks
 ├── App.tsx             # Main application component
@@ -171,9 +188,19 @@ When you first open MaintenancePro, you'll be greeted with an **interactive welc
 4. **Import Your Data**: Use "Import Excel" to bring in your existing maintenance data
 5. **Configure Your Team**: Add employees in the Employees tab with skills, certifications, and schedules
 6. **Set Up Assets**: Define your equipment, areas, and required skills
-7. **Create Work Orders**: Use the "New Work Order" button or generate from SOPs
-8. **Try Auto-Schedule**: Let the intelligent scheduler optimize assignments based on skills and availability
-9. **Install as App**: Click the install prompt to add MaintenancePro to your home screen for offline access
+7. **Set Up PM Equipment**: Navigate to PM Equipment tab and load sample data for pumps, valves, and instrumentation
+8. **Create Work Orders**: Use the "New Work Order" button or generate from SOPs
+9. **Try Auto-Schedule**: Let the intelligent scheduler optimize assignments based on skills and availability
+10. **Install as App**: Click the install prompt to add MaintenancePro to your home screen for offline access
+
+### PM Equipment Quick Start
+
+1. **Navigate to PM Equipment Tab**: Click the PM Equipment tab in the main navigation
+2. **Load Sample Data**: Click "Load Sample Data" to populate with 100 valves, 10 pumps, 20 motors, 15 gearboxes, and 90 instruments
+3. **Explore Equipment List**: Search and filter equipment by type, view details by clicking any row
+4. **View Valve Hierarchy**: Switch to the Valve Hierarchy tab to see the 6-level organizational structure
+5. **Create P&ID Drawing**: Click "P&ID Editor" to start creating piping and instrumentation diagrams
+6. **Review Documentation**: See [PM Equipment Guide](PM_EQUIPMENT_GUIDE.md) and [P&ID Drawing Guide](PID_DRAWING_GUIDE.md) for detailed instructions
 
 ### Power User Tips
 
@@ -190,8 +217,10 @@ When you first open MaintenancePro, you'll be greeted with an **interactive welc
 - **SOPs**: Standard operating procedures with PM frequency definitions
 - **Employees**: Workforce directory with skills, schedules, and certifications
 - **Assets**: Equipment and facility inventory with skill requirements
+- **PM Equipment**: Specialized equipment tracking (pumps, valves, motors, gearboxes, instruments)
 - **Areas**: Facility zones with employee and asset assignments
 - **Skills**: Technical competencies with certification tracking
+- **P&ID Drawings**: Piping and instrumentation diagrams
 
 ### Key Relationships
 - Work Orders → SOPs (many-to-many)
@@ -276,6 +305,8 @@ The system supports importing three Excel sheets:
 - ✅ Advanced auto-scheduler with multi-factor optimization
 - ✅ Role-based access control and permissions
 - ✅ Global search across all entities
+- ✅ **PM Equipment Management** with hierarchical valve tracking
+- ✅ **P&ID Drawing Editor** for piping and instrumentation diagrams
 
 ### 🚀 Future Enhancements
 - **Enhanced Mobile Experience**: Native iOS and Android apps
