@@ -130,16 +130,16 @@ export function CustomizableDashboard({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">Dashboard</h2>
-          <p className="text-muted-foreground">Your personalized maintenance overview</p>
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <p className="text-muted-foreground mt-1">Your personalized maintenance overview</p>
         </div>
         <Button
           variant={editMode ? 'default' : 'outline'}
           onClick={() => setEditMode(!editMode)}
-          className="gap-2"
+          className="gap-2 shadow-sm"
         >
           <GearSix size={18} />
           {editMode ? 'Done Customizing' : 'Customize'}
@@ -147,7 +147,7 @@ export function CustomizableDashboard({
       </div>
 
       {editMode && (
-        <Card className="border-primary bg-primary/5">
+        <Card className="border-primary/30 bg-primary/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Visible Widgets</CardTitle>
           </CardHeader>
@@ -171,31 +171,31 @@ export function CustomizableDashboard({
       )}
 
       {stats.total === 0 && employees.length === 0 && (
-        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 animate-fade-in">
-          <CardContent className="pt-8 pb-8">
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 animate-fade-in shadow-md">
+          <CardContent className="pt-12 pb-12">
             <div className="text-center max-w-lg mx-auto">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-                <Sparkle size={32} className="text-primary" weight="duotone" />
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 mb-6 shadow-sm">
+                <Sparkle size={36} className="text-primary" weight="duotone" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Welcome to MaintenancePro</h3>
-              <p className="text-muted-foreground mb-6">
+              <h3 className="text-2xl font-bold mb-3">Welcome to MaintenancePro</h3>
+              <p className="text-muted-foreground mb-8 text-base leading-relaxed">
                 Get started by loading sample data to explore the full CMMS experience, or create your first work order.
               </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 {onLoadSampleData && (
-                  <Button onClick={onLoadSampleData} className="gap-2">
+                  <Button onClick={onLoadSampleData} className="gap-2 shadow-md">
                     <Sparkle size={16} weight="fill" />
                     Load Sample Data
                   </Button>
                 )}
                 {onCreateWorkOrder && (
-                  <Button variant="outline" onClick={onCreateWorkOrder} className="gap-2">
+                  <Button variant="outline" onClick={onCreateWorkOrder} className="gap-2 shadow-sm">
                     <Plus size={16} weight="bold" />
                     Create Work Order
                   </Button>
                 )}
                 {onOpenImport && (
-                  <Button variant="outline" onClick={onOpenImport} className="gap-2">
+                  <Button variant="outline" onClick={onOpenImport} className="gap-2 shadow-sm">
                     <UploadSimple size={16} />
                     Import Excel/CSV
                   </Button>
@@ -218,7 +218,7 @@ export function CustomizableDashboard({
             )}
           >
             {widget.type === 'quick-stats' && (
-              <div className="grid grid-cols-5 gap-4">
+              <div className="grid grid-cols-5 gap-5">
                 <StatCard
                   icon={Wrench}
                   label="Total Work Orders"
@@ -253,30 +253,31 @@ export function CustomizableDashboard({
             )}
 
             {widget.type === 'my-assignments' && (
-              <Card className="hover-lift transition-all duration-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Wrench size={20} />
+              <Card className="hover-lift transition-all duration-200 shadow-sm hover:shadow-md border-border/50">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2.5 text-lg">
+                    <Wrench size={22} weight="duotone" />
                     {widget.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {myAssignments.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground animate-fade-in">
-                      <CheckCircle size={48} className="mx-auto mb-2 opacity-50" />
-                      <p>No active assignments</p>
+                    <div className="text-center py-12 text-muted-foreground animate-fade-in">
+                      <CheckCircle size={52} className="mx-auto mb-3 opacity-40" weight="duotone" />
+                      <p className="font-medium">No active assignments</p>
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                       {myAssignments.slice(0, 10).map(wo => (
                         <button
                           key={wo.work_order_id}
                           onClick={() => onSelectWorkOrder?.(wo)}
-                          className="w-full p-3 rounded-lg border hover:border-primary hover:bg-accent/50 text-left transition-all hover:shadow-md hover:-translate-y-0.5"
+                          className="w-full p-4 rounded-xl border border-border/60 hover:border-primary/60 hover:bg-accent/50 text-left transition-all hover:shadow-md hover:-translate-y-0.5 bg-card"
                         >
-                          <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="flex items-start justify-between gap-2 mb-2">
                             <span className="font-semibold text-sm">{wo.work_order_id}</span>
                             <Badge className={cn(
+                              'shadow-sm',
                               wo.priority_level === 'Critical' && 'bg-red-600',
                               wo.priority_level === 'High' && 'bg-orange-600',
                               wo.priority_level === 'Medium' && 'bg-yellow-600',
@@ -285,9 +286,9 @@ export function CustomizableDashboard({
                               {wo.priority_level}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground mb-1">{wo.equipment_area}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">{wo.task}</p>
-                          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <p className="text-sm font-medium text-foreground mb-1">{wo.equipment_area}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{wo.task}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <CalendarIcon size={14} />
                             {new Date(wo.scheduled_date).toLocaleDateString()}
                           </div>
@@ -493,13 +494,15 @@ function StatCard({
   color: string
 }) {
   return (
-    <Card className="hover-lift transition-all duration-200 cursor-default">
-      <CardContent className="pt-6">
-        <div className="flex items-center justify-between mb-2">
-          <Icon size={24} className={color} weight="duotone" />
-          <span className="text-3xl font-bold">{value}</span>
+    <Card className="hover-lift transition-all duration-200 cursor-default shadow-sm hover:shadow-md border-border/50 bg-gradient-to-br from-card to-card/80">
+      <CardContent className="pt-6 pb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className={cn("p-2.5 rounded-xl bg-gradient-to-br", color.includes('blue') && 'from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900', color.includes('yellow') && 'from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900', color.includes('green') && 'from-green-50 to-green-100 dark:from-green-950 dark:to-green-900', color.includes('red') && 'from-red-50 to-red-100 dark:from-red-950 dark:to-red-900', color.includes('purple') && 'from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900')}>
+            <Icon size={26} className={color} weight="duotone" />
+          </div>
+          <span className="text-4xl font-bold tracking-tight">{value}</span>
         </div>
-        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-sm text-muted-foreground font-medium">{label}</p>
       </CardContent>
     </Card>
   )
