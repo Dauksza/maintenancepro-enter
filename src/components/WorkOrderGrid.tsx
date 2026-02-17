@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { WorkOrder, WorkOrderStatus, PriorityLevel } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -37,33 +37,38 @@ export function WorkOrderGrid({
   const [filterPriority, setFilterPriority] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
 
-  const filteredOrders = workOrders.filter(wo => {
-    if (filterStatus !== 'all' && wo.status !== filterStatus) return false
-    if (filterPriority !== 'all' && wo.priority_level !== filterPriority) return false
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase()
-      return (
-        wo.work_order_id.toLowerCase().includes(search) ||
-        wo.equipment_area.toLowerCase().includes(search) ||
-        wo.task.toLowerCase().includes(search) ||
-        (wo.assigned_technician || '').toLowerCase().includes(search)
-      )
-    }
-    return true
-  })
+  const filteredOrders = useMemo(() => {
+    return workOrders.filter(wo => {
+      if (filterStatus !== 'all' && wo.status !== filterStatus) return false
+      if (filterPriority !== 'all' && wo.priority_level !== filterPriority) return false
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase()
+        return (
+          wo.work_order_id.toLowerCase().includes(search) ||
+          wo.equipment_area.toLowerCase().includes(search) ||
+          wo.task.toLowerCase().includes(search) ||
+          (wo.assigned_technician || '').toLowerCase().includes(search)
+        )
+      }
+      return true
+    })
+  }, [workOrders, filterStatus, filterPriority, searchTerm])
 
-  const groupedOrders = groupBy === 'none' 
-    ? { 'All': filteredOrders }
-    : filteredOrders.reduce((acc, wo) => {
-        const key = groupBy === 'status' 
-          ? wo.status 
-          : groupBy === 'equipment' 
-          ? wo.equipment_area 
-          : wo.terminal
-        if (!acc[key]) acc[key] = []
-        acc[key].push(wo)
-        return acc
-      }, {} as Record<string, WorkOrder[]>)
+  const groupedOrders = useMemo(() => {
+    if (groupBy === 'none') {
+      return { 'All': filteredOrders }
+    }
+    return filteredOrders.reduce((acc, wo) => {
+      const key = groupBy === 'status' 
+        ? wo.status 
+        : groupBy === 'equipment' 
+        ? wo.equipment_area 
+        : wo.terminal
+      if (!acc[key]) acc[key] = []
+      acc[key].push(wo)
+      return acc
+    }, {} as Record<string, WorkOrder[]>)
+  }, [filteredOrders, groupBy])
 
   const handleQuickComplete = (wo: WorkOrder) => {
     onUpdateWorkOrder(wo.work_order_id, {

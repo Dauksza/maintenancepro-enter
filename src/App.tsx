@@ -543,128 +543,140 @@ function App() {
       
       <header className="bg-card/95 backdrop-blur-md border-b sticky top-0 z-10 shadow-sm" role="banner">
         <div className="max-w-[1600px] mx-auto px-6">
-          <div className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary text-primary-foreground">
-                <Wrench size={20} weight="bold" />
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
+                <Wrench size={22} weight="bold" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-primary tracking-tight leading-tight">
                   MaintenancePro
                 </h1>
-                <p className="text-xs text-muted-foreground leading-tight">
+                <p className="text-xs text-muted-foreground leading-tight flex items-center gap-2">
                   Enterprise CMMS
+                  <SystemStatus className="inline-flex" />
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <SystemStatus className="mr-2" />
-              <LiveActivityIndicator className="mr-2" />
+            <div className="flex items-center gap-3">
               <Button
                 variant="outline"
                 onClick={() => setSearchOpen(true)}
-                className="gap-2 min-w-[220px] justify-start text-muted-foreground h-9 text-sm"
+                className="gap-2 min-w-[240px] justify-start text-muted-foreground h-10 text-sm shadow-sm"
               >
-                <MagnifyingGlass size={16} />
+                <MagnifyingGlass size={18} />
                 Search...
-                <kbd className="ml-auto px-1.5 py-0.5 text-[10px] bg-muted rounded font-mono">⌘K</kbd>
+                <kbd className="ml-auto px-2 py-1 text-[10px] bg-muted rounded font-mono">⌘K</kbd>
               </Button>
-              <div className="w-px h-6 bg-border mx-1" />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setImportOpen(true)}
-                    className="h-9 w-9"
-                    aria-label="Import data"
-                  >
-                    <UploadSimple size={18} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Import Excel data</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleExportData}
-                    className="h-9 w-9"
-                    aria-label="Export data"
-                  >
-                    <DownloadSimple size={18} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Export to Excel</TooltipContent>
-              </Tooltip>
+              
+              <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg p-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setImportOpen(true)}
+                      className="h-8 w-8"
+                      aria-label="Import data"
+                    >
+                      <UploadSimple size={18} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Import data (Ctrl+I)</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleExportData}
+                      className="h-8 w-8"
+                      aria-label="Export data"
+                    >
+                      <DownloadSimple size={18} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Export data (Ctrl+E)</TooltipContent>
+                </Tooltip>
+              </div>
               <KeyboardShortcutsDialog 
                 open={keyboardShortcutsOpen}
                 onOpenChange={setKeyboardShortcutsOpen}
               />
-              <div className="w-px h-6 bg-border mx-1" />
-              <NotificationPreferencesDialog
-                preferences={notificationPreferences || {
-                  enabled: true,
-                  showToasts: true,
-                  playSound: false,
-                  notifyOnAssignmentSuggestions: true,
-                  notifyOnAssignmentChanges: true,
-                  notifyOnWorkOrderCreated: false,
-                  notifyOnWorkOrderOverdue: true,
-                  notifyOnPriorityEscalation: true,
-                  minimumMatchScore: 60,
-                  autoAcceptHighMatchScore: false,
-                  autoAcceptThreshold: 90
-                }}
-                onSave={setNotificationPreferences}
-              />
-              <NotificationCenter
-                notifications={notifications || []}
-                onUpdateNotification={handleUpdateNotification}
-                onAcceptAssignment={handleAcceptAssignment}
-                onRejectAssignment={handleRejectAssignment}
-                onViewWorkOrder={(woId) => {
-                  const wo = safeWorkOrders.find(w => w.work_order_id === woId)
-                  if (wo) handleSelectWorkOrder(wo)
-                }}
-              />
-              {certificationCounts.critical > 0 && (
-                <Button 
-                  onClick={() => setActiveTab('certifications')}
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground h-9"
-                >
-                  <Certificate size={16} weight="fill" />
-                  {certificationCounts.critical} Expiring
-                </Button>
-              )}
-              {overdueCount > 0 && hasPermission(currentUserRole, 'schedules', 'execute') && (
+              
+              <div className="w-px h-6 bg-border" />
+              
+              <div className="flex items-center gap-2">
+                <NotificationPreferencesDialog
+                  preferences={notificationPreferences || {
+                    enabled: true,
+                    showToasts: true,
+                    playSound: false,
+                    notifyOnAssignmentSuggestions: true,
+                    notifyOnAssignmentChanges: true,
+                    notifyOnWorkOrderCreated: false,
+                    notifyOnWorkOrderOverdue: true,
+                    notifyOnPriorityEscalation: true,
+                    minimumMatchScore: 60,
+                    autoAcceptHighMatchScore: false,
+                    autoAcceptThreshold: 90
+                  }}
+                  onSave={setNotificationPreferences}
+                />
+                <NotificationCenter
+                  notifications={notifications || []}
+                  onUpdateNotification={handleUpdateNotification}
+                  onAcceptAssignment={handleAcceptAssignment}
+                  onRejectAssignment={handleRejectAssignment}
+                  onViewWorkOrder={(woId) => {
+                    const wo = safeWorkOrders.find(w => w.work_order_id === woId)
+                    if (wo) handleSelectWorkOrder(wo)
+                  }}
+                />
+              </div>
+              
+              {(certificationCounts.critical > 0 || overdueCount > 0) && (
                 <>
-                  <div className="bg-destructive/10 text-destructive px-2.5 py-1 rounded-full text-xs font-semibold border border-destructive/20">
-                    {overdueCount} Overdue
+                  <div className="w-px h-6 bg-border" />
+                  <div className="flex items-center gap-2">
+                    {certificationCounts.critical > 0 && (
+                      <Button 
+                        onClick={() => setActiveTab('certifications')}
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30 h-9 shadow-sm"
+                      >
+                        <Certificate size={16} weight="fill" />
+                        {certificationCounts.critical} Expiring
+                      </Button>
+                    )}
+                    {overdueCount > 0 && hasPermission(currentUserRole, 'schedules', 'execute') && (
+                      <Button 
+                        onClick={() => setAutoSchedulerOpen(true)}
+                        size="sm"
+                        className="gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 h-9 shadow-md"
+                      >
+                        <Sparkle size={16} weight="fill" />
+                        {overdueCount} Overdue - Auto-Schedule
+                      </Button>
+                    )}
                   </div>
-                  <Button 
-                    onClick={() => setAutoSchedulerOpen(true)}
-                    size="sm"
-                    className="gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90 h-9"
-                  >
-                    <Sparkle size={16} weight="fill" />
-                    Auto-Schedule
-                  </Button>
                 </>
               )}
+              
               {hasPermission(currentUserRole, 'work-orders', 'create') && (
-                <Button 
-                  onClick={() => setNewWorkOrderOpen(true)}
-                  size="sm"
-                  className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 h-9"
-                  data-tour="new-work-order"
-                >
-                  <Plus size={16} weight="bold" />
-                  New Work Order
-                </Button>
+                <>
+                  <div className="w-px h-6 bg-border" />
+                  <Button 
+                    onClick={() => setNewWorkOrderOpen(true)}
+                    size="sm"
+                    className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 shadow-md font-medium"
+                    data-tour="new-work-order"
+                  >
+                    <Plus size={18} weight="bold" />
+                    New Work Order
+                  </Button>
+                </>
               )}
               <UserProfileMenu 
                 onRoleChange={setCurrentUserRole}
@@ -677,110 +689,167 @@ function App() {
         </div>
       </header>
 
-      <main id="main-content" className="max-w-[1600px] mx-auto px-6 py-6">
-        <Tabs value={safeActiveTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="inline-flex w-full max-w-full overflow-x-auto gap-0.5 p-1 bg-muted/60 backdrop-blur-sm rounded-lg border border-border/50" aria-label="Main navigation">
-            <TabsTrigger value="dashboard" className="flex items-center gap-1.5 text-sm rounded-md">
-              <House size={16} />
-              Dashboard
-            </TabsTrigger>
-            {canViewTab(currentUserRole, 'tracking') && (
-              <TabsTrigger value="tracking" className="flex items-center gap-1.5 text-sm rounded-md" data-tour="tracking-tab">
-                <Wrench size={16} />
-                Tracking
+      <main id="main-content" className="max-w-[1600px] mx-auto px-6 py-8">
+        <Tabs value={safeActiveTab} onValueChange={setActiveTab} className="space-y-8">
+          <div className="space-y-3">
+            <TabsList className="inline-flex w-full max-w-full overflow-x-auto gap-1 p-1.5 bg-muted/50 backdrop-blur-sm rounded-xl border border-border/40 shadow-sm" aria-label="Main navigation">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
+                <House size={18} />
+                Dashboard
               </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'timeline') && (
-              <TabsTrigger value="timeline" className="flex items-center gap-1.5 text-sm rounded-md">
-                <ChartLineUp size={16} />
-                Timeline
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'resources') && (
-              <TabsTrigger value="resources" className="flex items-center gap-1.5 text-sm rounded-md">
-                <Users size={16} />
-                Resources
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'capacity') && (
-              <TabsTrigger value="capacity" className="flex items-center gap-1.5 text-sm rounded-md">
-                <Gauge size={16} />
-                Capacity
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'calendar') && (
-              <TabsTrigger value="calendar" className="flex items-center gap-1.5 text-sm rounded-md">
-                <CalendarBlank size={16} />
-                Calendar
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'employees') && (
-              <TabsTrigger value="employees" className="flex items-center gap-1.5 text-sm rounded-md" data-tour="employees-tab">
-                <UserGear size={16} />
-                Employees
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'assets') && (
-              <TabsTrigger value="assets" className="flex items-center gap-1.5 text-sm rounded-md" data-tour="assets-tab">
-                <Package size={16} />
-                Assets
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'parts') && (
-              <TabsTrigger value="parts" className="flex items-center gap-1.5 text-sm rounded-md">
-                <Toolbox size={16} />
-                Parts
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'forms') && (
-              <TabsTrigger value="forms" className="flex items-center gap-1.5 text-sm rounded-md">
-                <CheckSquare size={16} />
-                Forms
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'certifications') && (
-              <TabsTrigger value="certifications" className="flex items-center gap-1.5 text-sm rounded-md">
-                <Certificate size={16} />
-                Certs
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'sops') && (
-              <TabsTrigger value="sops" className="flex items-center gap-1.5 text-sm rounded-md">
-                <ClipboardText size={16} />
-                SOPs
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'analytics') && (
-              <TabsTrigger value="analytics" className="flex items-center gap-1.5 text-sm rounded-md">
-                <ChartBar size={16} />
-                Analytics
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'predictive') && (
-              <TabsTrigger value="predictive" className="flex items-center gap-1.5 text-sm rounded-md">
-                <Brain size={16} />
-                Predictive
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'database') && (
-              <TabsTrigger value="database" className="flex items-center gap-1.5 text-sm rounded-md">
-                <Database size={16} />
-                Database
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'pm-schedules') && (
-              <TabsTrigger value="pm-schedules" className="flex items-center gap-1.5 text-sm rounded-md">
-                <Clock size={16} />
-                PM Schedules
-              </TabsTrigger>
-            )}
-            {canViewTab(currentUserRole, 'templates') && (
-              <TabsTrigger value="templates" className="flex items-center gap-1.5 text-sm rounded-md">
-                <FileText size={16} />
-                Templates
-              </TabsTrigger>
-            )}
-          </TabsList>
+              {canViewTab(currentUserRole, 'tracking') && (
+                <TabsTrigger value="tracking" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm" data-tour="tracking-tab">
+                  <Wrench size={18} />
+                  Work Orders
+                </TabsTrigger>
+              )}
+              {canViewTab(currentUserRole, 'calendar') && (
+                <TabsTrigger value="calendar" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
+                  <CalendarBlank size={18} />
+                  Calendar
+                </TabsTrigger>
+              )}
+              {canViewTab(currentUserRole, 'employees') && (
+                <TabsTrigger value="employees" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm" data-tour="employees-tab">
+                  <UserGear size={18} />
+                  Employees
+                </TabsTrigger>
+              )}
+              {canViewTab(currentUserRole, 'assets') && (
+                <TabsTrigger value="assets" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm" data-tour="assets-tab">
+                  <Package size={18} />
+                  Assets
+                </TabsTrigger>
+              )}
+              {canViewTab(currentUserRole, 'parts') && (
+                <TabsTrigger value="parts" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
+                  <Toolbox size={18} />
+                  Parts
+                </TabsTrigger>
+              )}
+              {canViewTab(currentUserRole, 'analytics') && (
+                <TabsTrigger value="analytics" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
+                  <ChartBar size={18} />
+                  Analytics
+                </TabsTrigger>
+              )}
+            </TabsList>
+            
+            {/* Secondary Navigation - Additional Tools */}
+            <div className="flex flex-wrap items-center gap-2 px-1">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">More Tools:</span>
+              {canViewTab(currentUserRole, 'timeline') && (
+                <Button
+                  variant={safeActiveTab === 'timeline' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('timeline')}
+                  className="gap-1.5 h-8 text-xs"
+                >
+                  <ChartLineUp size={14} />
+                  Timeline
+                </Button>
+              )}
+              {canViewTab(currentUserRole, 'resources') && (
+                <Button
+                  variant={safeActiveTab === 'resources' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('resources')}
+                  className="gap-1.5 h-8 text-xs"
+                >
+                  <Users size={14} />
+                  Resources
+                </Button>
+              )}
+              {canViewTab(currentUserRole, 'capacity') && (
+                <Button
+                  variant={safeActiveTab === 'capacity' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('capacity')}
+                  className="gap-1.5 h-8 text-xs"
+                >
+                  <Gauge size={14} />
+                  Capacity
+                </Button>
+              )}
+              {canViewTab(currentUserRole, 'forms') && (
+                <Button
+                  variant={safeActiveTab === 'forms' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('forms')}
+                  className="gap-1.5 h-8 text-xs"
+                >
+                  <CheckSquare size={14} />
+                  Forms
+                </Button>
+              )}
+              {canViewTab(currentUserRole, 'certifications') && (
+                <Button
+                  variant={safeActiveTab === 'certifications' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('certifications')}
+                  className="gap-1.5 h-8 text-xs"
+                >
+                  <Certificate size={14} />
+                  Certifications
+                </Button>
+              )}
+              {canViewTab(currentUserRole, 'sops') && (
+                <Button
+                  variant={safeActiveTab === 'sops' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('sops')}
+                  className="gap-1.5 h-8 text-xs"
+                >
+                  <ClipboardText size={14} />
+                  SOPs
+                </Button>
+              )}
+              {canViewTab(currentUserRole, 'predictive') && (
+                <Button
+                  variant={safeActiveTab === 'predictive' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('predictive')}
+                  className="gap-1.5 h-8 text-xs"
+                >
+                  <Brain size={14} />
+                  Predictive
+                </Button>
+              )}
+              {canViewTab(currentUserRole, 'database') && (
+                <Button
+                  variant={safeActiveTab === 'database' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('database')}
+                  className="gap-1.5 h-8 text-xs"
+                >
+                  <Database size={14} />
+                  Database
+                </Button>
+              )}
+              {canViewTab(currentUserRole, 'pm-schedules') && (
+                <Button
+                  variant={safeActiveTab === 'pm-schedules' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('pm-schedules')}
+                  className="gap-1.5 h-8 text-xs"
+                >
+                  <Clock size={14} />
+                  PM Schedules
+                </Button>
+              )}
+              {canViewTab(currentUserRole, 'templates') && (
+                <Button
+                  variant={safeActiveTab === 'templates' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('templates')}
+                  className="gap-1.5 h-8 text-xs"
+                >
+                  <FileText size={14} />
+                  Templates
+                </Button>
+              )}
+            </div>
+          </div>
 
           <TabsContent value="dashboard" className="space-y-6 animate-fade-in">
             <CustomizableDashboard

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { WorkOrder } from '@/lib/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -44,42 +45,48 @@ const PRIORITY_COLORS = {
 }
 
 export function AnalyticsDashboard({ workOrders }: AnalyticsDashboardProps) {
-  const statusData = Object.entries(
-    workOrders.reduce((acc, wo) => {
-      acc[wo.status] = (acc[wo.status] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-  ).map(([status, count]) => ({
-    name: status,
-    value: count,
-    fill: STATUS_COLORS[status as keyof typeof STATUS_COLORS] || '#888'
-  }))
-
-  const priorityData = Object.entries(
-    workOrders.reduce((acc, wo) => {
-      acc[wo.priority_level] = (acc[wo.priority_level] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-  ).map(([priority, count]) => ({
-    name: priority,
-    value: count,
-    fill: PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || '#888'
-  }))
-
-  const equipmentData = Object.entries(
-    workOrders.reduce((acc, wo) => {
-      acc[wo.equipment_area] = (acc[wo.equipment_area] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-  )
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([area, count]) => ({
-      area,
-      count
+  const statusData = useMemo(() => {
+    return Object.entries(
+      workOrders.reduce((acc, wo) => {
+        acc[wo.status] = (acc[wo.status] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+    ).map(([status, count]) => ({
+      name: status,
+      value: count,
+      fill: STATUS_COLORS[status as keyof typeof STATUS_COLORS] || '#888'
     }))
+  }, [workOrders])
 
-  const downtimeByMonth = (() => {
+  const priorityData = useMemo(() => {
+    return Object.entries(
+      workOrders.reduce((acc, wo) => {
+        acc[wo.priority_level] = (acc[wo.priority_level] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+    ).map(([priority, count]) => ({
+      name: priority,
+      value: count,
+      fill: PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || '#888'
+    }))
+  }, [workOrders])
+
+  const equipmentData = useMemo(() => {
+    return Object.entries(
+      workOrders.reduce((acc, wo) => {
+        acc[wo.equipment_area] = (acc[wo.equipment_area] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+    )
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([area, count]) => ({
+        area,
+        count
+      }))
+  }, [workOrders])
+
+  const downtimeByMonth = useMemo(() => {
     const monthData: Record<string, number> = {}
     workOrders.forEach(wo => {
       const date = new Date(wo.scheduled_date)
@@ -92,12 +99,23 @@ export function AnalyticsDashboard({ workOrders }: AnalyticsDashboardProps) {
         month,
         hours: Math.round(hours * 10) / 10
       }))
-  })()
+  }, [workOrders])
 
-  const completedCount = workOrders.filter(wo => wo.status === 'Completed').length
-  const overdueCount = workOrders.filter(wo => wo.is_overdue).length
-  const inProgressCount = workOrders.filter(wo => wo.status === 'In Progress').length
-  const totalDowntime = workOrders.reduce((sum, wo) => sum + wo.estimated_downtime_hours, 0)
+  const stats = useMemo(() => {
+    const completedCount = workOrders.filter(wo => wo.status === 'Completed').length
+    const overdueCount = workOrders.filter(wo => wo.is_overdue).length
+    const inProgressCount = workOrders.filter(wo => wo.status === 'In Progress').length
+    const totalDowntime = workOrders.reduce((sum, wo) => sum + wo.estimated_downtime_hours, 0)
+    
+    return {
+      completedCount,
+      overdueCount,
+      inProgressCount,
+      totalDowntime
+    }
+  }, [workOrders])
+
+  const { completedCount, overdueCount, inProgressCount, totalDowntime } = stats
   const completionRate = workOrders.length > 0 
     ? Math.round((completedCount / workOrders.length) * 100)
     : 0
