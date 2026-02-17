@@ -67,6 +67,8 @@ interface PIDDrawingEditorProps {
 
 type Tool = 'select' | 'pan' | 'symbol' | 'line' | 'text'
 
+type LineType = 'Process' | 'Utility' | 'Signal' | 'Electrical'
+
 export function PIDDrawingEditor({
   open,
   onOpenChange,
@@ -89,6 +91,12 @@ export function PIDDrawingEditor({
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [undoStack, setUndoStack] = useState<PIDDrawing[]>([])
   const [redoStack, setRedoStack] = useState<PIDDrawing[]>([])
+  const [lineDrawingState, setLineDrawingState] = useState<{
+    fromSymbol: PIDSymbol | null
+    fromPointId: string | null
+  }>({ fromSymbol: null, fromPointId: null })
+  const [selectedLineType, setSelectedLineType] = useState<LineType>('Process')
+  const [hoveredSymbol, setHoveredSymbol] = useState<PIDSymbol | null>(null)
   
   useEffect(() => {
     if (initialDrawing) {
@@ -173,7 +181,59 @@ export function PIDDrawingEditor({
     } else if (activeTool === 'select') {
       const symbol = getSymbolAtPosition(currentDrawing, x, y)
       setSelectedDrawingSymbol(symbol)
+    } else if (activeTool === 'line') {
+      // Line drawing mode - connect two symbols
+      const symbol = getSymbolAtPosition(currentDrawing, x, y)
+      
+      if (symbol && symbol.connection_points.length > 0) {
+        // Find the closest connection point
+        const closestPoint = findClosestConnectionPoint(symbol, x, y)
+        
+        if (!lineDrawingState.fromSymbol) {
+          // First click - select start point
+          setLineDrawingState({
+            fromSymbol: symbol,
+            fromPointId: closestPoint.point_id
+          })
+        } else if (lineDrawingState.fromSymbol.symbol_id !== symbol.symbol_id) {
+          // Second click - connect to end point
+          pushToUndoStack()
+          const updated = { ...currentDrawing }
+          connectSymbols(
+            updated,
+            lineDrawingState.fromSymbol.symbol_id,
+            lineDrawingState.fromPointId!,
+            symbol.symbol_id,
+            closestPoint.point_id,
+            selectedLineType
+          )
+          setCurrentDrawing(updated)
+          setLineDrawingState({ fromSymbol: null, fromPointId: null })
+        } else {
+          // Clicked same symbol - reset
+          setLineDrawingState({ fromSymbol: null, fromPointId: null })
+        }
+      }
     }
+  }
+  
+  // Find the closest connection point on a symbol
+  const findClosestConnectionPoint = (symbol: PIDSymbol, clickX: number, clickY: number) => {
+    let closest = symbol.connection_points[0]
+    let minDist = Infinity
+    
+    for (const point of symbol.connection_points) {
+      const pointX = symbol.x + point.x_offset
+      const pointY = symbol.y + point.y_offset
+      const dist = Math.sqrt(Math.pow(clickX - pointX, 2) + Math.pow(clickY - pointY, 2))
+      
+      if (dist < minDist) {
+        minDist = dist
+        closest = point
+      }
+    }
+    
+    return closest
   }
   
   const handleSVGMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -217,6 +277,19 @@ export function PIDDrawingEditor({
       if (updatedSymbol) {
         setSelectedDrawingSymbol(updatedSymbol)
       }
+    } else if (activeTool === 'line' && svgRef.current) {
+      // Update hovered symbol for connection point highlighting
+      const svg = svgRef.current
+      const pt = svg.createSVGPoint()
+      pt.x = e.clientX
+      pt.y = e.clientY
+      
+      const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse())
+      const x = (svgP.x - currentDrawing.pan_x) / zoomLevel
+      const y = (svgP.y - currentDrawing.pan_y) / zoomLevel
+      
+      const symbol = getSymbolAtPosition(currentDrawing, x, y)
+      setHoveredSymbol(symbol)
     }
   }
   
@@ -375,6 +448,52 @@ export function PIDDrawingEditor({
             </div>
             
             <Separator />
+            
+            {/* Line drawing options when line tool is active */}
+            {activeTool === 'line' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Line Type</Label>
+                  <select
+                    value={selectedLineType}
+                    onChange={(e) => setSelectedLineType(e.target.value as LineType)}
+                    className="w-full border rounded-md p-2 text-sm"
+                  >
+                    <option value="Process">Process (Black)</option>
+                    <option value="Utility">Utility (Blue)</option>
+                    <option value="Signal">Signal (Red Dashed)</option>
+                    <option value="Electrical">Electrical (Blue)</option>
+                  </select>
+                  
+                  {lineDrawingState.fromSymbol && (
+                    <div className="p-2 bg-green-50 border border-green-200 rounded-md text-sm">
+                      <p className="font-medium text-green-800">Step 2:</p>
+                      <p className="text-green-700 text-xs mt-1">
+                        Click on another symbol to connect
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full mt-2"
+                        onClick={() => setLineDrawingState({ fromSymbol: null, fromPointId: null })}
+                      >
+                        Cancel Connection
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {!lineDrawingState.fromSymbol && (
+                    <div className="p-2 bg-blue-50 border border-blue-200 rounded-md text-sm">
+                      <p className="font-medium text-blue-800">Step 1:</p>
+                      <p className="text-blue-700 text-xs mt-1">
+                        Click on a symbol to start connecting
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <Separator />
+              </>
+            )}
             
             {/* Symbol operations when a symbol is selected */}
             {selectedDrawingSymbol && (
@@ -587,6 +706,8 @@ export function PIDDrawingEditor({
                   {currentDrawing.symbols.map(symbol => {
                     const svgPath = getSymbolSVGPath(symbol)
                     const isSelected = selectedDrawingSymbol?.symbol_id === symbol.symbol_id
+                    const isHovered = hoveredSymbol?.symbol_id === symbol.symbol_id
+                    const isLineStart = lineDrawingState.fromSymbol?.symbol_id === symbol.symbol_id
                     
                     return (
                       <g
@@ -605,6 +726,20 @@ export function PIDDrawingEditor({
                             stroke="#2563eb"
                             strokeWidth={2 / zoomLevel}
                             strokeDasharray="5,5"
+                          />
+                        )}
+                        
+                        {/* Line mode start symbol highlight */}
+                        {isLineStart && (
+                          <rect
+                            x={-3}
+                            y={-3}
+                            width={symbol.width + 6}
+                            height={symbol.height + 6}
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth={2 / zoomLevel}
+                            strokeDasharray="3,3"
                           />
                         )}
                         
@@ -631,6 +766,20 @@ export function PIDDrawingEditor({
                             />
                           )}
                         </g>
+                        
+                        {/* Connection points - show in line mode or when hovered */}
+                        {(activeTool === 'line' || isHovered) && symbol.connection_points.map(point => (
+                          <circle
+                            key={point.point_id}
+                            cx={point.x_offset}
+                            cy={point.y_offset}
+                            r={4 / zoomLevel}
+                            fill={isLineStart ? '#10b981' : '#3b82f6'}
+                            stroke="#ffffff"
+                            strokeWidth={1 / zoomLevel}
+                            opacity={0.8}
+                          />
+                        ))}
                         
                         {/* Label */}
                         <text
