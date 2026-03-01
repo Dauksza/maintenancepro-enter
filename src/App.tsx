@@ -538,15 +538,15 @@ function App() {
   })
 
   return (
-    <div className="min-h-screen bg-background grid-pattern">
+    <div className="h-screen flex flex-col bg-background grid-pattern overflow-hidden">
       <Toaster position="top-right" />
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-primary focus:text-primary-foreground">
         Skip to main content
       </a>
       
-      <header className="bg-card/95 backdrop-blur-md border-b sticky top-0 z-10 shadow-sm" role="banner">
-        <div className="max-w-[1600px] mx-auto px-6">
-          <div className="flex items-center justify-between py-4">
+      <header className="bg-card/95 backdrop-blur-md border-b sticky top-0 z-10 shadow-sm flex-shrink-0" role="banner">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between py-3 gap-2 min-w-0">
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
                 <Wrench size={22} weight="bold" />
@@ -561,15 +561,24 @@ function App() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="outline"
                 onClick={() => setSearchOpen(true)}
-                className="gap-2 min-w-[240px] justify-start text-muted-foreground h-10 text-sm shadow-sm"
+                className="gap-2 min-w-[180px] max-w-[240px] justify-start text-muted-foreground h-10 text-sm shadow-sm hidden sm:flex"
               >
                 <MagnifyingGlass size={18} />
                 Search...
                 <kbd className="ml-auto px-2 py-1 text-[10px] bg-muted rounded font-mono">⌘K</kbd>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearchOpen(true)}
+                className="sm:hidden h-9 w-9"
+                aria-label="Search"
+              >
+                <MagnifyingGlass size={18} />
               </Button>
               
               <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg p-1">
@@ -692,8 +701,9 @@ function App() {
         </div>
       </header>
 
-      <main id="main-content" className="max-w-[1600px] mx-auto px-6 py-8">
-        <Tabs value={safeActiveTab} onValueChange={setActiveTab} className="space-y-8">
+      <main id="main-content" className="flex-1 overflow-auto w-full">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        <Tabs value={safeActiveTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="space-y-3">
             <TabsList className="inline-flex w-full max-w-full overflow-x-auto gap-1 p-1.5 bg-muted/50 backdrop-blur-sm rounded-xl border border-border/40 shadow-sm" aria-label="Main navigation">
               <TabsTrigger value="dashboard" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
@@ -1289,6 +1299,7 @@ function App() {
             <WorkOrderTemplates />
           </TabsContent>
         </Tabs>
+        </div>
       </main>
 
       <WorkOrderDetail
