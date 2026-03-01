@@ -89,6 +89,8 @@ export function PIDDrawingEditor({
   const [isDragging, setIsDragging] = useState(false)
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 })
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true)
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(true)
   const [undoStack, setUndoStack] = useState<PIDDrawing[]>([])
   const [redoStack, setRedoStack] = useState<PIDDrawing[]>([])
   const [lineDrawingState, setLineDrawingState] = useState<{
@@ -112,7 +114,14 @@ export function PIDDrawingEditor({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!open) return
       
-      if (e.key === 'Escape') {
+      if (e.key === 'F11') {
+        e.preventDefault()
+        setIsFullscreen(prev => !prev)
+      } else if (e.key === 'Escape') {
+        if (isFullscreen) {
+          setIsFullscreen(false)
+          return
+        }
         setActiveTool('select')
         setSelectedDrawingSymbol(null)
       } else if (e.key === 'Delete' && selectedDrawingSymbol) {
@@ -341,7 +350,7 @@ export function PIDDrawingEditor({
   }
   
   const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen)
+    setIsFullscreen(prev => !prev)
   }
   
   // Get SVG path for a symbol from the library
@@ -378,22 +387,43 @@ export function PIDDrawingEditor({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`flex flex-col ${isFullscreen ? 'max-w-full max-h-full w-screen h-screen' : 'max-w-[95vw] max-h-[95vh]'}`}>
-        <DialogHeader>
+      <DialogContent className={`flex flex-col p-0 overflow-hidden gap-0 ${isFullscreen ? 'pid-editor-fullscreen' : 'max-w-[95vw] max-h-[95vh]'}`}>
+        <DialogHeader className="px-4 pt-4 pb-2 border-b shrink-0">
           <DialogTitle className="flex items-center justify-between">
-            <span>P&ID Drawing Editor</span>
-            <Button onClick={toggleFullscreen} size="sm" variant="ghost">
-              {isFullscreen ? <ArrowsIn className="h-4 w-4" /> : <ArrowsOut className="h-4 w-4" />}
-            </Button>
+            <span>P&amp;ID Drawing Editor</span>
+            <div className="flex items-center gap-1">
+              <Button
+                onClick={() => setLeftSidebarOpen(prev => !prev)}
+                size="sm"
+                variant="ghost"
+                title="Toggle left panel"
+                aria-label={leftSidebarOpen ? 'Collapse tools and symbols panel' : 'Expand tools and symbols panel'}
+              >
+                {leftSidebarOpen ? '◀' : '▶'}
+              </Button>
+              <Button
+                onClick={() => setRightSidebarOpen(prev => !prev)}
+                size="sm"
+                variant="ghost"
+                title="Toggle right panel"
+                aria-label={rightSidebarOpen ? 'Collapse properties panel' : 'Expand properties panel'}
+              >
+                {rightSidebarOpen ? '▶' : '◀'}
+              </Button>
+              <Button onClick={toggleFullscreen} size="sm" variant="ghost" title={isFullscreen ? 'Exit fullscreen (F11)' : 'Fullscreen (F11)'}>
+                {isFullscreen ? <ArrowsIn className="h-4 w-4" /> : <ArrowsOut className="h-4 w-4" />}
+              </Button>
+            </div>
           </DialogTitle>
           <DialogDescription>
             {currentDrawing.drawing_title} - {currentDrawing.drawing_number} Rev {currentDrawing.revision}
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex-1 flex gap-4 overflow-hidden">
+        <div className="flex-1 flex gap-0 overflow-hidden min-h-0">
           {/* Left Sidebar - Tools and Symbols */}
-          <div className="w-64 flex flex-col gap-4">
+          {leftSidebarOpen && (
+          <nav aria-label="Tools and Symbols" className="w-56 flex flex-col gap-3 overflow-y-auto border-r p-3 shrink-0">
             {/* Tools */}
             <div className="space-y-2">
               <Label>Tools</Label>
@@ -568,12 +598,13 @@ export function PIDDrawingEditor({
                 </div>
               </ScrollArea>
             </div>
-          </div>
+          </nav>
+          )}
           
           {/* Canvas Area */}
-          <div className="flex-1 flex flex-col gap-2">
+          <div className="flex-1 flex flex-col gap-2 overflow-hidden p-3">
             {/* Toolbar */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <Button onClick={zoomOut} size="sm" variant="outline" title="Zoom out">
                 <MagnifyingGlassMinus className="h-4 w-4" />
               </Button>
@@ -629,7 +660,7 @@ export function PIDDrawingEditor({
             </div>
             
             {/* SVG Canvas */}
-            <div className="flex-1 border rounded-lg overflow-hidden bg-white">
+            <div className="flex-1 border rounded-lg overflow-hidden bg-white dark:bg-slate-900">
               <svg
                 ref={svgRef}
                 width="100%"
@@ -838,7 +869,8 @@ export function PIDDrawingEditor({
           </div>
           
           {/* Right Sidebar - Properties */}
-          <div className="w-64 flex flex-col gap-4">
+          {rightSidebarOpen && (
+          <aside aria-label="Drawing Properties" className="w-56 flex flex-col gap-3 overflow-y-auto border-l p-3 shrink-0">
             <div>
               <Label>Drawing Properties</Label>
               <div className="space-y-2 mt-2">
@@ -922,7 +954,8 @@ export function PIDDrawingEditor({
             
             <div className="text-xs text-muted-foreground space-y-1">
               <div><strong>Tips:</strong></div>
-              <div>• Esc - Select tool</div>
+              <div>• F11 - Toggle fullscreen</div>
+              <div>• Esc - Select tool / Exit fullscreen</div>
               <div>• Delete - Remove selected</div>
               <div>• Ctrl+Z - Undo</div>
               <div>• Ctrl+Y - Redo</div>
@@ -930,7 +963,8 @@ export function PIDDrawingEditor({
               <div>• Drag in Pan mode - Move canvas</div>
               <div>• Drag symbol in Select mode - Move it</div>
             </div>
-          </div>
+          </aside>
+          )}
         </div>
       </DialogContent>
     </Dialog>
