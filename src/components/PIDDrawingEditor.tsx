@@ -378,7 +378,7 @@ export function PIDDrawingEditor({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`flex flex-col ${isFullscreen ? 'max-w-full max-h-full w-screen h-screen' : 'max-w-[95vw] max-h-[95vh]'}`}>
+      <DialogContent className={`flex flex-col overflow-hidden ${isFullscreen ? 'top-0 left-0 translate-x-0 translate-y-0 rounded-none border-0 w-screen h-screen max-w-none sm:max-w-none' : 'w-[95vw] max-w-[95vw] sm:max-w-[95vw] h-[90vh]'}`}>
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>P&ID Drawing Editor</span>

@@ -73,10 +73,16 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  height: 100%;
 }
 
 html {
   scroll-behavior: smooth;
+  height: 100%;
+}
+
+#root {
+  height: 100%;
 }
 
 .font-mono {
