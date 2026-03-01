@@ -228,6 +228,521 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
     default_properties: { duty: '1 MMBTU/hr', area: '100 sqft' },
     description: 'Shell and tube heat exchanger',
     is_standard: true
+  },
+
+  // ── Electrical ────────────────────────────────────────────────────────────
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Transformer',
+    symbol_type: 'Electrical',
+    category: 'Electrical',
+    svg_path: 'M 20,30 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0 M 50,30 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0',
+    default_width: 70,
+    default_height: 60,
+    connection_points: [
+      { x_offset: 0, y_offset: 30, direction: 'left' },
+      { x_offset: 70, y_offset: 30, direction: 'right' }
+    ],
+    default_properties: { kva: '100', primary_voltage: '480V', secondary_voltage: '120V' },
+    description: 'Power transformer symbol',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Circuit Breaker',
+    symbol_type: 'Electrical',
+    category: 'Electrical',
+    svg_path: 'M 0,20 L 15,20 M 15,20 L 25,5 M 25,5 L 35,20 L 45,20',
+    default_width: 45,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 45, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { amperage: '100A', voltage: '480V' },
+    description: 'Circuit breaker symbol',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Disconnect Switch',
+    symbol_type: 'Electrical',
+    category: 'Electrical',
+    svg_path: 'M 0,20 L 15,20 M 15,18 L 35,5 M 35,20 L 45,20',
+    default_width: 45,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 45, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { amperage: '60A', voltage: '480V' },
+    description: 'Disconnect switch symbol',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Fuse',
+    symbol_type: 'Electrical',
+    category: 'Electrical',
+    svg_path: 'M 0,20 L 10,20 M 10,10 L 35,10 L 35,30 L 10,30 Z M 35,20 L 45,20',
+    default_width: 45,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 45, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { amperage: '20A', type: 'Class J' },
+    description: 'Fuse element symbol',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Motor Starter',
+    symbol_type: 'Electrical',
+    category: 'Electrical',
+    svg_path: 'M 20,20 m -18,0 a 18,18 0 1,0 36,0 a 18,18 0 1,0 -36,0 M 13,20 L 27,20 M 20,13 L 20,27 M 5,10 L 35,30',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' },
+      { x_offset: 20, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { amperage: '30A', voltage: '460V', hp: '15' },
+    description: 'Motor starter / contactor symbol',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Ground',
+    symbol_type: 'Electrical',
+    category: 'Electrical',
+    svg_path: 'M 20,0 L 20,20 M 5,20 L 35,20 M 10,26 L 30,26 M 15,32 L 25,32',
+    default_width: 40,
+    default_height: 35,
+    connection_points: [
+      { x_offset: 20, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { type: 'Earth Ground' },
+    description: 'Electrical ground / earth symbol',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Power Supply',
+    symbol_type: 'Electrical',
+    category: 'Electrical',
+    svg_path: 'M 20,20 m -18,0 a 18,18 0 1,0 36,0 a 18,18 0 1,0 -36,0 M 15,13 L 15,27 M 22,13 L 22,27 M 20,2 L 20,8',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 20, y_offset: 0, direction: 'top' },
+      { x_offset: 20, y_offset: 40, direction: 'bottom' }
+    ],
+    default_properties: { voltage: '24VDC', amperage: '5A' },
+    description: 'DC power supply symbol',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Junction Box',
+    symbol_type: 'Electrical',
+    category: 'Electrical',
+    svg_path: 'M 5,5 L 55,5 L 55,45 L 5,45 Z M 15,5 L 15,0 M 30,5 L 30,0 M 45,5 L 45,0 M 15,45 L 15,50 M 30,45 L 30,50 M 45,45 L 45,50',
+    default_width: 60,
+    default_height: 50,
+    connection_points: [
+      { x_offset: 15, y_offset: 0, direction: 'top' },
+      { x_offset: 30, y_offset: 0, direction: 'top' },
+      { x_offset: 45, y_offset: 0, direction: 'top' },
+      { x_offset: 15, y_offset: 50, direction: 'bottom' },
+      { x_offset: 30, y_offset: 50, direction: 'bottom' },
+      { x_offset: 45, y_offset: 50, direction: 'bottom' }
+    ],
+    default_properties: { nema_rating: 'NEMA 4X', terminals: '12' },
+    description: 'Electrical junction box',
+    is_standard: true
+  },
+
+  // ── Hydraulic ─────────────────────────────────────────────────────────────
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Hydraulic Pump',
+    symbol_type: 'Hydraulic',
+    category: 'Hydraulic',
+    svg_path: 'M 25,25 m -20,0 a 20,20 0 1,0 40,0 a 20,20 0 1,0 -40,0 M 25,25 L 15,15 L 15,35 Z M 25,5 L 25,12',
+    default_width: 50,
+    default_height: 50,
+    connection_points: [
+      { x_offset: 5, y_offset: 25, direction: 'left' },
+      { x_offset: 45, y_offset: 25, direction: 'right' },
+      { x_offset: 25, y_offset: 5, direction: 'top' }
+    ],
+    default_properties: { displacement: '2.5 cc/rev', pressure: '3000 PSI', flow: '10 GPM' },
+    description: 'Fixed-displacement hydraulic pump',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Hydraulic Motor',
+    symbol_type: 'Hydraulic',
+    category: 'Hydraulic',
+    svg_path: 'M 25,25 m -20,0 a 20,20 0 1,0 40,0 a 20,20 0 1,0 -40,0 M 25,25 L 35,15 L 35,35 Z',
+    default_width: 50,
+    default_height: 50,
+    connection_points: [
+      { x_offset: 5, y_offset: 25, direction: 'left' },
+      { x_offset: 45, y_offset: 25, direction: 'right' }
+    ],
+    default_properties: { displacement: '2.5 cc/rev', torque: '50 Nm' },
+    description: 'Fixed-displacement hydraulic motor',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Hydraulic Cylinder',
+    symbol_type: 'Hydraulic',
+    category: 'Hydraulic',
+    svg_path: 'M 5,15 L 45,15 L 45,35 L 5,35 Z M 45,25 L 60,25 M 5,20 L 0,20 M 5,30 L 0,30 M 25,15 L 25,8',
+    default_width: 60,
+    default_height: 50,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 0, y_offset: 30, direction: 'left' },
+      { x_offset: 60, y_offset: 25, direction: 'right' },
+      { x_offset: 25, y_offset: 8, direction: 'top' }
+    ],
+    default_properties: { bore: '2"', stroke: '12"', pressure: '3000 PSI' },
+    description: 'Double-acting hydraulic cylinder',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Hydraulic Accumulator',
+    symbol_type: 'Hydraulic',
+    category: 'Hydraulic',
+    svg_path: 'M 20,5 L 20,55 M 5,5 L 35,5 L 35,55 L 5,55 Z M 5,30 L 35,30',
+    default_width: 40,
+    default_height: 60,
+    connection_points: [
+      { x_offset: 20, y_offset: 60, direction: 'bottom' },
+      { x_offset: 20, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { volume: '1 gal', precharge: '1500 PSI' },
+    description: 'Hydraulic bladder accumulator',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Pressure Relief Valve',
+    symbol_type: 'Hydraulic',
+    category: 'Hydraulic',
+    svg_path: 'M 0,20 L 40,20 M 20,20 L 20,5 M 15,5 L 25,5 M 15,0 L 25,0 M 15,0 L 15,5 M 25,0 L 25,5',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' },
+      { x_offset: 20, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { set_pressure: '3000 PSI', cracking_pressure: '2800 PSI' },
+    description: 'Hydraulic pressure relief valve',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Hydraulic Filter',
+    symbol_type: 'Hydraulic',
+    category: 'Hydraulic',
+    svg_path: 'M 0,20 L 10,20 M 10,5 L 30,5 L 30,35 L 10,35 Z M 15,10 L 25,10 M 15,16 L 25,16 M 15,22 L 25,22 M 15,28 L 25,28 M 30,20 L 40,20',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { micron_rating: '10 micron', flow: '20 GPM' },
+    description: 'Hydraulic line filter',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Flow Control Valve',
+    symbol_type: 'Hydraulic',
+    category: 'Hydraulic',
+    svg_path: 'M 0,20 L 40,20 M 20,20 m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0 M 12,12 L 28,28',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { flow_setting: '5 GPM', pressure_comp: 'Yes' },
+    description: 'Pressure-compensated flow control valve',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Directional Control Valve 4/2',
+    symbol_type: 'Hydraulic',
+    category: 'Hydraulic',
+    svg_path: 'M 5,10 L 35,10 L 35,30 L 5,30 Z M 40,10 L 60,10 L 60,30 L 40,30 Z M 35,20 L 40,20 M 20,10 L 20,5 M 20,30 L 20,35 M 50,10 L 50,5 M 50,30 L 50,35',
+    default_width: 60,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 20, y_offset: 5, direction: 'top' },
+      { x_offset: 50, y_offset: 5, direction: 'top' },
+      { x_offset: 20, y_offset: 35, direction: 'bottom' },
+      { x_offset: 50, y_offset: 35, direction: 'bottom' }
+    ],
+    default_properties: { configuration: '4/2', actuation: 'Solenoid', flow: '15 GPM' },
+    description: '4-way 2-position directional control valve',
+    is_standard: true
+  },
+
+  // ── Pneumatic ─────────────────────────────────────────────────────────────
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Air Compressor',
+    symbol_type: 'Pneumatic',
+    category: 'Pneumatic',
+    svg_path: 'M 25,25 m -20,0 a 20,20 0 1,0 40,0 a 20,20 0 1,0 -40,0 M 25,25 L 15,15 L 15,35 Z M 10,10 L 5,5 M 10,40 L 5,45 M 40,10 L 45,5',
+    default_width: 50,
+    default_height: 50,
+    connection_points: [
+      { x_offset: 45, y_offset: 25, direction: 'right' },
+      { x_offset: 25, y_offset: 5, direction: 'top' }
+    ],
+    default_properties: { cfm: '50', pressure: '125 PSI', hp: '10' },
+    description: 'Reciprocating air compressor',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Pneumatic Actuator',
+    symbol_type: 'Pneumatic',
+    category: 'Pneumatic',
+    svg_path: 'M 10,5 L 40,5 L 40,25 L 10,25 Z M 25,25 L 25,45 M 15,45 L 35,45 M 25,5 L 25,0',
+    default_width: 50,
+    default_height: 50,
+    connection_points: [
+      { x_offset: 25, y_offset: 50, direction: 'bottom' },
+      { x_offset: 25, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { bore: '2"', stroke: '6"', pressure: '80 PSI' },
+    description: 'Spring-return pneumatic actuator',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'FRL Unit',
+    symbol_type: 'Pneumatic',
+    category: 'Pneumatic',
+    svg_path: 'M 5,10 L 55,10 L 55,40 L 5,40 Z M 20,40 L 20,50 M 20,50 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0 M 35,10 L 35,5 M 35,5 m -4,0 L 39,5 M 0,25 L 5,25 M 55,25 L 60,25',
+    default_width: 60,
+    default_height: 60,
+    connection_points: [
+      { x_offset: 0, y_offset: 25, direction: 'left' },
+      { x_offset: 60, y_offset: 25, direction: 'right' }
+    ],
+    default_properties: { filter_micron: '40', regulator_range: '0-125 PSI', lubricator: 'Yes' },
+    description: 'Filter-Regulator-Lubricator unit',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Solenoid Valve',
+    symbol_type: 'Pneumatic',
+    category: 'Pneumatic',
+    svg_path: 'M 0,20 L 40,20 M 10,10 L 30,10 L 30,30 L 10,30 Z M 10,20 L 30,10 M 20,10 L 20,0 M 20,30 L 20,35',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' },
+      { x_offset: 20, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { voltage: '24VDC', cv: '0.5', port_size: '1/4"' },
+    description: 'Pneumatic solenoid valve',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Pneumatic Silencer',
+    symbol_type: 'Pneumatic',
+    category: 'Pneumatic',
+    svg_path: 'M 0,20 L 10,20 M 10,8 L 25,8 L 25,32 L 10,32 Z M 13,12 L 22,12 M 13,16 L 22,16 M 13,20 L 22,20 M 13,24 L 22,24 M 13,28 L 22,28 M 25,20 L 35,20',
+    default_width: 35,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 35, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { port_size: '1/4"', db_reduction: '25 dB' },
+    description: 'Pneumatic exhaust silencer / muffler',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Air Reservoir',
+    symbol_type: 'Pneumatic',
+    category: 'Pneumatic',
+    svg_path: 'M 20,30 m -15,0 a 15,15 0 0,1 0,-20 L 50,10 a 15,15 0 0,1 0,20 Z M 5,20 L 0,20 M 65,20 L 70,20',
+    default_width: 70,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 70, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { volume: '10 gal', max_pressure: '150 PSI' },
+    description: 'Compressed air receiver / reservoir',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Pressure Regulator',
+    symbol_type: 'Pneumatic',
+    category: 'Pneumatic',
+    svg_path: 'M 0,25 L 10,25 M 10,10 L 30,10 L 30,40 L 10,40 Z M 25,10 L 25,3 M 18,3 L 32,3 M 15,25 L 25,15 L 25,35 Z M 30,25 L 40,25',
+    default_width: 40,
+    default_height: 45,
+    connection_points: [
+      { x_offset: 0, y_offset: 25, direction: 'left' },
+      { x_offset: 40, y_offset: 25, direction: 'right' }
+    ],
+    default_properties: { inlet_max: '150 PSI', outlet_range: '0-125 PSI', cv: '1.2' },
+    description: 'Pneumatic pressure regulator',
+    is_standard: true
+  },
+
+  // ── Mechanical ────────────────────────────────────────────────────────────
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Gear Reducer',
+    symbol_type: 'Mechanical',
+    category: 'Mechanical',
+    svg_path: 'M 5,5 L 65,5 L 65,55 L 5,55 Z M 20,30 m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0 M 50,30 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0 M 0,30 L 5,30 M 65,30 L 70,30',
+    default_width: 70,
+    default_height: 60,
+    connection_points: [
+      { x_offset: 0, y_offset: 30, direction: 'left' },
+      { x_offset: 70, y_offset: 30, direction: 'right' }
+    ],
+    default_properties: { ratio: '10:1', input_rpm: '1800', output_rpm: '180', hp: '5' },
+    description: 'Parallel-shaft gear reducer',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Belt Drive',
+    symbol_type: 'Mechanical',
+    category: 'Mechanical',
+    svg_path: 'M 15,25 m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0 M 55,25 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0 M 3,15 L 47,17 M 3,35 L 47,33',
+    default_width: 70,
+    default_height: 50,
+    connection_points: [
+      { x_offset: 0, y_offset: 25, direction: 'left' },
+      { x_offset: 70, y_offset: 25, direction: 'right' }
+    ],
+    default_properties: { belt_type: 'V-Belt', ratio: '3:1', center_distance: '18"' },
+    description: 'V-belt drive assembly',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Chain Drive',
+    symbol_type: 'Mechanical',
+    category: 'Mechanical',
+    svg_path: 'M 15,25 m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0 M 55,25 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0 M 3,15 L 47,17 M 3,35 L 47,33 M 8,13 L 14,13 M 20,13 L 26,13 M 32,13 L 38,13 M 8,37 L 14,37 M 20,37 L 26,37 M 32,37 L 38,37',
+    default_width: 70,
+    default_height: 50,
+    connection_points: [
+      { x_offset: 0, y_offset: 25, direction: 'left' },
+      { x_offset: 70, y_offset: 25, direction: 'right' }
+    ],
+    default_properties: { chain_pitch: '1"', ratio: '2:1', center_distance: '15"' },
+    description: 'Roller chain drive assembly',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Coupling',
+    symbol_type: 'Mechanical',
+    category: 'Mechanical',
+    svg_path: 'M 0,20 L 15,20 M 15,10 L 15,30 M 25,10 L 25,30 M 15,10 L 25,10 M 15,30 L 25,30 M 25,20 L 40,20',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { type: 'Rigid', bore: '1.5"', torque: '200 Nm' },
+    description: 'Rigid shaft coupling',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Bearing',
+    symbol_type: 'Mechanical',
+    category: 'Mechanical',
+    svg_path: 'M 20,20 m -18,0 a 18,18 0 1,0 36,0 a 18,18 0 1,0 -36,0 M 20,20 m -10,0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0 M 20,20 m -3,0 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { type: 'Deep Groove Ball', bore: '25mm', load_rating: '10 kN' },
+    description: 'Rolling element bearing (ball/roller)',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Shaft Seal',
+    symbol_type: 'Mechanical',
+    category: 'Mechanical',
+    svg_path: 'M 10,5 L 30,5 L 30,35 L 10,35 Z M 10,20 L 0,20 M 30,20 L 40,20 M 15,10 L 25,10 M 15,30 L 25,30',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { type: 'Lip Seal', shaft_dia: '1.5"', material: 'Nitrile' },
+    description: 'Rotary shaft seal / oil seal',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Gearbox',
+    symbol_type: 'Mechanical',
+    category: 'Mechanical',
+    svg_path: 'M 5,10 L 65,10 L 65,50 L 5,50 Z M 20,30 m -10,0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0 M 45,30 m -10,0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0 M 30,30 L 35,30 M 0,30 L 5,30 M 65,30 L 70,30',
+    default_width: 70,
+    default_height: 60,
+    connection_points: [
+      { x_offset: 0, y_offset: 30, direction: 'left' },
+      { x_offset: 70, y_offset: 30, direction: 'right' }
+    ],
+    default_properties: { type: 'Helical', ratio: '5:1', efficiency: '98%' },
+    description: 'Multi-stage enclosed gearbox',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Flexible Coupling',
+    symbol_type: 'Mechanical',
+    category: 'Mechanical',
+    svg_path: 'M 0,20 L 15,20 M 15,10 L 15,30 M 25,10 L 25,30 M 18,10 L 22,10 M 18,30 L 22,30 M 17,15 L 23,15 M 17,25 L 23,25 M 25,20 L 40,20',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { type: 'Jaw/Spider', bore: '1.5"', misalignment: '1°' },
+    description: 'Flexible jaw coupling with elastomer insert',
+    is_standard: true
   }
 ]
 
@@ -250,6 +765,7 @@ export function createBlankPIDDrawing(params?: {
     grid_size: 20,
     show_grid: true,
     snap_to_grid: true,
+    snap_to_grip: true,
     zoom_level: 1.0,
     pan_x: 0,
     pan_y: 0,
@@ -333,7 +849,11 @@ function generateTagNumber(symbolType: PIDSymbolType, index: number): string {
     'Pipe': 'L',
     'Fitting': 'F',
     'Equipment': 'EQ',
-    'Custom': 'X'
+    'Custom': 'X',
+    'Electrical': 'EL',
+    'Hydraulic': 'HYD',
+    'Pneumatic': 'PNU',
+    'Mechanical': 'MECH'
   }
   
   const prefix = prefixes[symbolType] || 'X'
@@ -347,7 +867,7 @@ export function connectSymbols(
   fromPointId: string,
   toSymbolId: string,
   toPointId: string,
-  lineType: 'Process' | 'Utility' | 'Signal' | 'Electrical' = 'Process'
+  lineType: 'Process' | 'Utility' | 'Signal' | 'Electrical' | 'Hydraulic' | 'Pneumatic' | 'Mechanical' = 'Process'
 ): PIDConnection | null {
   const fromSymbol = drawing.symbols.find(s => s.symbol_id === fromSymbolId)
   const toSymbol = drawing.symbols.find(s => s.symbol_id === toSymbolId)
@@ -387,9 +907,18 @@ export function connectSymbols(
     material: lineType === 'Process' ? 'CS' : null,
     service: null,
     style: {
-      stroke_color: lineType === 'Process' ? '#000000' : lineType === 'Signal' ? '#FF0000' : '#0000FF',
+      stroke_color: lineType === 'Process' ? '#000000' : 
+                    lineType === 'Signal' ? '#FF0000' : 
+                    lineType === 'Electrical' ? '#0000FF' :
+                    lineType === 'Hydraulic' ? '#FF8C00' :
+                    lineType === 'Pneumatic' ? '#008000' :
+                    lineType === 'Mechanical' ? '#8B4513' :
+                    '#0000FF',
       stroke_width: lineType === 'Process' ? 3 : 2,
-      dash_array: lineType === 'Signal' ? [5, 5] : null,
+      dash_array: lineType === 'Signal' ? [5, 5] :
+                  lineType === 'Pneumatic' ? [8, 3] :
+                  lineType === 'Mechanical' ? [5, 2, 1, 2] :
+                  null,
       arrow_start: false,
       arrow_end: true,
       opacity: 1.0
@@ -634,4 +1163,42 @@ export function scaleSymbol(
   symbol.scale = Math.max(0.1, Math.min(5.0, symbol.scale * scaleFactor))
   drawing.updated_at = new Date().toISOString()
   return true
+}
+
+// Snap a moving symbol's connection points to nearby symbols' connection points
+export function snapToConnectionPoint(
+  drawing: PIDDrawing,
+  movingSymbolId: string,
+  proposedX: number,
+  proposedY: number,
+  snapDistance: number = 20
+): { x: number; y: number; snapped: boolean } {
+  const movingSymbol = drawing.symbols.find(s => s.symbol_id === movingSymbolId)
+  if (!movingSymbol) return { x: proposedX, y: proposedY, snapped: false }
+
+  // For each connection point on the moving symbol, check against all other symbols' connection points
+  for (const movingPoint of movingSymbol.connection_points) {
+    const movingAbsX = proposedX + movingPoint.x_offset
+    const movingAbsY = proposedY + movingPoint.y_offset
+
+    for (const otherSymbol of drawing.symbols) {
+      if (otherSymbol.symbol_id === movingSymbolId) continue
+      for (const otherPoint of otherSymbol.connection_points) {
+        const otherAbsX = otherSymbol.x + otherPoint.x_offset
+        const otherAbsY = otherSymbol.y + otherPoint.y_offset
+        const dist = Math.sqrt(
+          Math.pow(movingAbsX - otherAbsX, 2) + Math.pow(movingAbsY - otherAbsY, 2)
+        )
+        if (dist < snapDistance) {
+          // Snap so that movingPoint aligns with otherPoint
+          return {
+            x: otherAbsX - movingPoint.x_offset,
+            y: otherAbsY - movingPoint.y_offset,
+            snapped: true
+          }
+        }
+      }
+    }
+  }
+  return { x: proposedX, y: proposedY, snapped: false }
 }

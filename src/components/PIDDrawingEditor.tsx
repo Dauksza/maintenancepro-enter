@@ -54,7 +54,8 @@ import {
   getSymbolAtPosition,
   deleteSymbol,
   rotateSymbol,
-  scaleSymbol
+  scaleSymbol,
+  snapToConnectionPoint
 } from '@/lib/pid-utils'
 
 interface PIDDrawingEditorProps {
@@ -67,7 +68,7 @@ interface PIDDrawingEditorProps {
 
 type Tool = 'select' | 'pan' | 'symbol' | 'line' | 'text'
 
-type LineType = 'Process' | 'Utility' | 'Signal' | 'Electrical'
+type LineType = 'Process' | 'Utility' | 'Signal' | 'Electrical' | 'Hydraulic' | 'Pneumatic' | 'Mechanical'
 
 export function PIDDrawingEditor({
   open,
@@ -99,6 +100,8 @@ export function PIDDrawingEditor({
   }>({ fromSymbol: null, fromPointId: null })
   const [selectedLineType, setSelectedLineType] = useState<LineType>('Process')
   const [hoveredSymbol, setHoveredSymbol] = useState<PIDSymbol | null>(null)
+  const [symbolCategory, setSymbolCategory] = useState<string>('All')
+  const [symbolSearch, setSymbolSearch] = useState<string>('')
   
   useEffect(() => {
     if (initialDrawing) {
@@ -274,14 +277,27 @@ export function PIDDrawingEditor({
       pt.y = e.clientY
       
       const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse())
-      const x = (svgP.x - currentDrawing.pan_x) / zoomLevel
-      const y = (svgP.y - currentDrawing.pan_y) / zoomLevel
+      const rawX = (svgP.x - currentDrawing.pan_x) / zoomLevel - selectedDrawingSymbol.width / 2
+      const rawY = (svgP.y - currentDrawing.pan_y) / zoomLevel - selectedDrawingSymbol.height / 2
       
       const updated = { ...currentDrawing }
-      moveSymbol(updated, selectedDrawingSymbol.symbol_id, x - selectedDrawingSymbol.width / 2, y - selectedDrawingSymbol.height / 2, currentDrawing.snap_to_grid)
+      
+      // Apply grid snap first
+      let finalX = currentDrawing.snap_to_grid ? Math.round(rawX / updated.grid_size) * updated.grid_size : rawX
+      let finalY = currentDrawing.snap_to_grid ? Math.round(rawY / updated.grid_size) * updated.grid_size : rawY
+      
+      // Then check snap to grip (connection point snapping)
+      if (updated.snap_to_grip) {
+        const gripResult = snapToConnectionPoint(updated, selectedDrawingSymbol.symbol_id, finalX, finalY)
+        if (gripResult.snapped) {
+          finalX = gripResult.x
+          finalY = gripResult.y
+        }
+      }
+      
+      moveSymbol(updated, selectedDrawingSymbol.symbol_id, finalX, finalY, false)
       setCurrentDrawing(updated)
       
-      // Update selected symbol reference
       const updatedSymbol = updated.symbols.find(s => s.symbol_id === selectedDrawingSymbol.symbol_id)
       if (updatedSymbol) {
         setSelectedDrawingSymbol(updatedSymbol)
@@ -346,6 +362,39 @@ export function PIDDrawingEditor({
     const updatedSymbol = updated.symbols.find(s => s.symbol_id === selectedDrawingSymbol.symbol_id)
     if (updatedSymbol) {
       setSelectedDrawingSymbol(updatedSymbol)
+    }
+  }
+
+  const handleUpdateSymbolLabel = (newLabel: string) => {
+    if (!selectedDrawingSymbol) return
+    const updated = { ...currentDrawing }
+    const sym = updated.symbols.find(s => s.symbol_id === selectedDrawingSymbol.symbol_id)
+    if (sym) {
+      sym.label = newLabel
+      setCurrentDrawing(updated)
+      setSelectedDrawingSymbol({ ...sym })
+    }
+  }
+
+  const handleUpdateSymbolDescription = (newDesc: string) => {
+    if (!selectedDrawingSymbol) return
+    const updated = { ...currentDrawing }
+    const sym = updated.symbols.find(s => s.symbol_id === selectedDrawingSymbol.symbol_id)
+    if (sym) {
+      sym.description = newDesc
+      setCurrentDrawing(updated)
+      setSelectedDrawingSymbol({ ...sym })
+    }
+  }
+
+  const handleUpdateSymbolTag = (newTag: string) => {
+    if (!selectedDrawingSymbol) return
+    const updated = { ...currentDrawing }
+    const sym = updated.symbols.find(s => s.symbol_id === selectedDrawingSymbol.symbol_id)
+    if (sym) {
+      sym.tag_number = newTag
+      setCurrentDrawing(updated)
+      setSelectedDrawingSymbol({ ...sym })
     }
   }
   
@@ -493,6 +542,9 @@ export function PIDDrawingEditor({
                     <option value="Utility">Utility (Blue)</option>
                     <option value="Signal">Signal (Red Dashed)</option>
                     <option value="Electrical">Electrical (Blue)</option>
+                    <option value="Hydraulic">Hydraulic (Orange)</option>
+                    <option value="Pneumatic">Pneumatic (Green)</option>
+                    <option value="Mechanical">Mechanical (Brown)</option>
                   </select>
                   
                   {lineDrawingState.fromSymbol && (
@@ -579,22 +631,44 @@ export function PIDDrawingEditor({
             {/* Symbol Library */}
             <div className="flex-1 flex flex-col">
               <Label className="mb-2">Symbol Library</Label>
+              <input
+                type="text"
+                placeholder="Search symbols..."
+                value={symbolSearch}
+                onChange={e => setSymbolSearch(e.target.value)}
+                className="w-full border rounded-md p-1 text-xs mb-2"
+              />
+              <select
+                value={symbolCategory}
+                onChange={e => setSymbolCategory(e.target.value)}
+                className="w-full border rounded-md p-1 text-xs mb-2"
+              >
+                <option value="All">All Categories</option>
+                {Array.from(new Set(standardSymbolLibrary.map(s => s.category))).map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
               <ScrollArea className="flex-1">
-                <div className="space-y-2">
-                  {standardSymbolLibrary.map(symbol => (
-                    <Button
-                      key={symbol.library_id}
-                      variant={selectedSymbol?.library_id === symbol.library_id ? 'default' : 'outline'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => {
-                        setSelectedSymbol(symbol)
-                        setActiveTool('symbol')
-                      }}
-                    >
-                      <span className="truncate">{symbol.symbol_name}</span>
-                    </Button>
-                  ))}
+                <div className="space-y-1">
+                  {standardSymbolLibrary
+                    .filter(sym =>
+                      (symbolCategory === 'All' || sym.category === symbolCategory) &&
+                      (symbolSearch === '' || sym.symbol_name.toLowerCase().includes(symbolSearch.toLowerCase()))
+                    )
+                    .map(symbol => (
+                      <Button
+                        key={symbol.library_id}
+                        variant={selectedSymbol?.library_id === symbol.library_id ? 'default' : 'outline'}
+                        size="sm"
+                        className="w-full justify-start text-xs h-7"
+                        onClick={() => {
+                          setSelectedSymbol(symbol)
+                          setActiveTool('symbol')
+                        }}
+                      >
+                        <span className="truncate">{symbol.symbol_name}</span>
+                      </Button>
+                    ))}
                 </div>
               </ScrollArea>
             </div>
@@ -947,10 +1021,102 @@ export function PIDDrawingEditor({
                   />
                   <Label className="text-sm">Snap to Grid</Label>
                 </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={currentDrawing.snap_to_grip}
+                    onChange={(e) =>
+                      setCurrentDrawing({ ...currentDrawing, snap_to_grip: e.target.checked })
+                    }
+                    className="h-4 w-4"
+                  />
+                  <Label className="text-sm">Snap to Grip</Label>
+                </div>
               </div>
             </div>
             
             <Separator />
+            
+            {/* Selected Symbol Properties */}
+            {selectedDrawingSymbol && (
+              <>
+                <div>
+                  <Label className="font-semibold text-sm">Symbol Properties</Label>
+                  <div className="space-y-2 mt-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Name / Label</Label>
+                      <Input
+                        value={selectedDrawingSymbol.label}
+                        onChange={e => handleUpdateSymbolLabel(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Tag Number</Label>
+                      <Input
+                        value={selectedDrawingSymbol.tag_number}
+                        onChange={e => handleUpdateSymbolTag(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Description</Label>
+                      <textarea
+                        value={selectedDrawingSymbol.description || ''}
+                        onChange={e => handleUpdateSymbolDescription(e.target.value)}
+                        className="w-full border rounded-md p-1 text-xs h-16 resize-none"
+                        placeholder="Enter description..."
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Type</Label>
+                      <div className="text-xs font-medium py-1">{selectedDrawingSymbol.symbol_type}</div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Position</Label>
+                      <div className="text-xs text-muted-foreground">
+                        X: {Math.round(selectedDrawingSymbol.x)}, Y: {Math.round(selectedDrawingSymbol.y)}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Rotation</Label>
+                      <div className="text-xs text-muted-foreground">{selectedDrawingSymbol.rotation}°</div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Scale</Label>
+                      <div className="text-xs text-muted-foreground">
+                        {(selectedDrawingSymbol.scale * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                    {Object.entries(selectedDrawingSymbol.properties)
+                      .filter(([k]) => k !== 'description')
+                      .map(([key, value]) => (
+                        <div key={key}>
+                          <Label className="text-xs text-muted-foreground capitalize">
+                            {key.replace(/_/g, ' ')}
+                          </Label>
+                          <Input
+                            value={String(value)}
+                            onChange={e => {
+                              const updated = { ...currentDrawing }
+                              const sym = updated.symbols.find(
+                                s => s.symbol_id === selectedDrawingSymbol.symbol_id
+                              )
+                              if (sym) {
+                                sym.properties = { ...sym.properties, [key]: e.target.value }
+                                setCurrentDrawing(updated)
+                                setSelectedDrawingSymbol({ ...sym })
+                              }
+                            }}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                      ))}
+                  </div>
+                </div>
+                <Separator />
+              </>
+            )}
             
             <div className="text-xs text-muted-foreground space-y-1">
               <div><strong>Tips:</strong></div>
