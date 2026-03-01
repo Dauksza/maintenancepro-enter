@@ -545,7 +545,7 @@ function App() {
       </a>
       
       <header className="bg-card/95 backdrop-blur-md border-b sticky top-0 z-10 shadow-sm" role="banner">
-        <div className="max-w-[1600px] mx-auto px-6">
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-6">
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
@@ -565,7 +565,7 @@ function App() {
               <Button
                 variant="outline"
                 onClick={() => setSearchOpen(true)}
-                className="gap-2 min-w-[240px] justify-start text-muted-foreground h-10 text-sm shadow-sm"
+                className="gap-2 w-[180px] sm:min-w-[240px] justify-start text-muted-foreground h-10 text-sm shadow-sm"
               >
                 <MagnifyingGlass size={18} />
                 Search...
@@ -692,7 +692,7 @@ function App() {
         </div>
       </header>
 
-      <main id="main-content" className="max-w-[1600px] mx-auto px-6 py-8">
+      <main id="main-content" className="max-w-[1600px] mx-auto px-3 sm:px-6 py-4 sm:py-8">
         <Tabs value={safeActiveTab} onValueChange={setActiveTab} className="space-y-8">
           <div className="space-y-3">
             <TabsList className="inline-flex w-full max-w-full overflow-x-auto gap-1 p-1.5 bg-muted/50 backdrop-blur-sm rounded-xl border border-border/40 shadow-sm" aria-label="Main navigation">
