@@ -660,12 +660,30 @@ export function PIDDrawingEditor({
                         key={symbol.library_id}
                         variant={selectedSymbol?.library_id === symbol.library_id ? 'default' : 'outline'}
                         size="sm"
-                        className="w-full justify-start text-xs h-7"
+                        className="w-full justify-start text-xs h-9 gap-1.5"
+                        title={symbol.description}
                         onClick={() => {
                           setSelectedSymbol(symbol)
                           setActiveTool('symbol')
                         }}
                       >
+                        {/* Mini SVG preview of the symbol */}
+                        <svg
+                          width="22"
+                          height="22"
+                          viewBox={`0 0 ${symbol.default_width} ${symbol.default_height}`}
+                          className="shrink-0 overflow-visible"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d={symbol.svg_path}
+                            fill="var(--background, white)"
+                            stroke="currentColor"
+                            strokeWidth={Math.max(1.5, symbol.default_width / 20)}
+                            strokeLinejoin="round"
+                            strokeLinecap="round"
+                          />
+                        </svg>
                         <span className="truncate">{symbol.symbol_name}</span>
                       </Button>
                     ))}
@@ -871,6 +889,22 @@ export function PIDDrawingEditor({
                             />
                           )}
                         </g>
+                        
+                        {/* Instrument / element code inside the symbol body (e.g. PI, PT, LT) */}
+                        {symbol.properties.code && (
+                          <text
+                            x={symbol.width / 2}
+                            // Vertically centre text: SVG text y is the baseline, so shift down by ~35% of font size
+                            y={symbol.height / 2 + Math.min(10, symbol.width * 0.22) * 0.35 / zoomLevel}
+                            textAnchor="middle"
+                            fontSize={Math.min(10, symbol.width * 0.22) / zoomLevel}
+                            fontWeight="bold"
+                            fill="#000000"
+                            pointerEvents="none"
+                          >
+                            {String(symbol.properties.code)}
+                          </text>
+                        )}
                         
                         {/* Connection points - show in line mode or when hovered */}
                         {(activeTool === 'line' || isHovered) && symbol.connection_points.map(point => (
