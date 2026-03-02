@@ -1240,6 +1240,8 @@ export type AsphaltProduct =
 
 export type TankStatus = 'Active' | 'Inactive' | 'Maintenance'
 
+export type TankShape = 'Vertical Cylinder' | 'Horizontal Cylinder' | 'Rectangular'
+
 export interface AsphaltTank {
   tank_id: string
   tank_name: string
@@ -1253,6 +1255,12 @@ export interface AsphaltTank {
   location: string
   last_updated: string
   notes: string
+  // Dimensional data (optional – for 3-D rendering and capacity calculation)
+  tank_shape?: TankShape
+  diameter_ft?: number
+  height_ft?: number
+  length_ft?: number
+  width_ft?: number
 }
 
 export type RailCarStatus =
