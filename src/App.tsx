@@ -790,7 +790,7 @@ function App() {
               className="gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 h-8 text-xs shadow-sm hidden sm:flex"
             >
               <Sparkle size={14} weight="fill" />
-              {overdueCount} Overdue – Auto-Schedule
+              {overdueCount} Overdue - Auto-Schedule
             </Button>
           )}
           {certificationCounts.critical > 0 && (
