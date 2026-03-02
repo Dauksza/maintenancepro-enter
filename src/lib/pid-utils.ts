@@ -12,13 +12,14 @@ import type {
 
 // Symbol library with standard P&ID symbols
 export const standardSymbolLibrary: SymbolLibraryItem[] = [
-  // Valves
+  // ── Valves ───────────────────────────────────────────────────────────────
   {
     library_id: uuidv4(),
     symbol_name: 'Gate Valve',
     symbol_type: 'Valve',
     category: 'Valves',
-    svg_path: 'M 20,0 L 20,40 M 0,20 L 40,20 M 15,15 L 15,25 L 25,25 L 25,15 Z',
+    // Two triangles tip-to-tip (bowtie / hourglass) — ISO 10628-2 gate valve
+    svg_path: 'M 0,20 L 20,6 L 20,34 Z M 40,20 L 20,6 L 20,34 Z',
     default_width: 40,
     default_height: 40,
     connection_points: [
@@ -26,7 +27,7 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
       { x_offset: 40, y_offset: 20, direction: 'right' }
     ],
     default_properties: { size: '2"', material: 'CS', pressure_rating: '150#' },
-    description: 'Standard gate valve symbol',
+    description: 'Gate valve – full-bore on/off isolation',
     is_standard: true
   },
   {
@@ -34,7 +35,8 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
     symbol_name: 'Ball Valve',
     symbol_type: 'Valve',
     category: 'Valves',
-    svg_path: 'M 20,0 L 20,40 M 0,20 L 40,20 M 20,20 m -10,0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0',
+    // Circle (ball body) with short pipe stubs + diagonal bore-open line
+    svg_path: 'M 0,20 L 8,20 M 32,20 L 40,20 M 20,20 m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0 M 11,29 L 29,11',
     default_width: 40,
     default_height: 40,
     connection_points: [
@@ -42,7 +44,58 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
       { x_offset: 40, y_offset: 20, direction: 'right' }
     ],
     default_properties: { size: '2"', material: 'SS', pressure_rating: '300#' },
-    description: 'Ball valve symbol with circular element',
+    description: 'Ball valve – quick quarter-turn shutoff',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Globe Valve',
+    symbol_type: 'Valve',
+    category: 'Valves',
+    // Bowtie with a small globe (circle) overlaid at the pinch-point — visually distinct from gate valve
+    svg_path: 'M 0,20 L 20,6 L 20,34 Z M 40,20 L 20,6 L 20,34 Z M 20,20 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { size: '2"', material: 'CS', pressure_rating: '150#' },
+    description: 'Globe valve – throttling / flow regulation',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Butterfly Valve',
+    symbol_type: 'Valve',
+    category: 'Valves',
+    // Circle body with central shaft line + two curved disc wings
+    svg_path: 'M 0,20 L 40,20 M 20,20 m -14,0 a 14,14 0 1,0 28,0 a 14,14 0 1,0 -28,0 M 20,7 L 20,33 M 9,13 Q 20,20 9,27 M 31,13 Q 20,20 31,27',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { size: '4"', material: 'CS', pressure_rating: '150#' },
+    description: 'Butterfly valve – low-pressure on/off or throttling',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Needle Valve',
+    symbol_type: 'Valve',
+    category: 'Valves',
+    // Bowtie with a tapered needle/stem pointing down into the body
+    svg_path: 'M 0,20 L 20,8 L 20,32 Z M 40,20 L 20,8 L 20,32 Z M 20,8 L 20,0 M 17,3 L 20,8 L 23,3',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { size: '0.5"', material: 'SS', cv: '0.1' },
+    description: 'Needle valve – precise fine-flow metering',
     is_standard: true
   },
   {
@@ -50,7 +103,8 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
     symbol_name: 'Control Valve',
     symbol_type: 'Valve',
     category: 'Valves',
-    svg_path: 'M 20,0 L 20,40 M 0,20 L 40,20 M 20,10 L 10,20 L 20,30 L 30,20 Z M 20,0 L 20,10',
+    // Bowtie body + stem + rectangular diaphragm-actuator cap at top
+    svg_path: 'M 0,20 L 20,10 L 20,30 Z M 40,20 L 20,10 L 20,30 Z M 20,10 L 20,4 M 10,4 L 30,4 L 30,0 L 10,0 Z',
     default_width: 40,
     default_height: 50,
     connection_points: [
@@ -59,7 +113,7 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
       { x_offset: 20, y_offset: 0, direction: 'top' }
     ],
     default_properties: { size: '3"', cv: '50', fail_position: 'FC' },
-    description: 'Control valve with actuator',
+    description: 'Control valve – automated flow / pressure regulation',
     is_standard: true
   },
   {
@@ -67,7 +121,8 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
     symbol_name: 'Check Valve',
     symbol_type: 'Valve',
     category: 'Valves',
-    svg_path: 'M 20,0 L 20,40 M 0,20 L 40,20 M 15,10 L 25,20 L 15,30 Z',
+    // Triangle (disc) pointing in flow direction + vertical backstop / seat line
+    svg_path: 'M 0,20 L 40,20 M 10,8 L 28,20 L 10,32 Z M 28,8 L 28,32',
     default_width: 40,
     default_height: 40,
     connection_points: [
@@ -75,16 +130,35 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
       { x_offset: 40, y_offset: 20, direction: 'right' }
     ],
     default_properties: { size: '2"', type: 'Swing' },
-    description: 'Check valve - allows one-way flow',
+    description: 'Check valve – prevents reverse flow',
     is_standard: true
   },
-  // Pumps
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Safety Relief Valve',
+    symbol_type: 'Valve',
+    category: 'Valves',
+    // Bowtie + stem + continuous spring-coil zigzag at top indicating spring-loaded mechanism
+    svg_path: 'M 0,26 L 20,16 L 20,36 Z M 40,26 L 20,16 L 20,36 Z M 20,16 L 20,12 L 14,10 L 26,7 L 14,4 L 26,1 L 20,0',
+    default_width: 40,
+    default_height: 50,
+    connection_points: [
+      { x_offset: 0, y_offset: 26, direction: 'left' },
+      { x_offset: 40, y_offset: 26, direction: 'right' },
+      { x_offset: 20, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { size: '1"', set_pressure: '150 PSI', type: 'Spring-Loaded' },
+    description: 'Safety / pressure relief valve – overpressure protection',
+    is_standard: true
+  },
+  // ── Pumps ────────────────────────────────────────────────────────────────
   {
     library_id: uuidv4(),
     symbol_name: 'Centrifugal Pump',
     symbol_type: 'Pump',
     category: 'Pumps',
-    svg_path: 'M 30,30 m -25,0 a 25,25 0 1,0 50,0 a 25,25 0 1,0 -50,0 M 20,30 L 40,30 M 30,20 L 30,40',
+    // Circle casing + three curved impeller vanes radiating from center
+    svg_path: 'M 30,30 m -25,0 a 25,25 0 1,0 50,0 a 25,25 0 1,0 -50,0 M 5,30 L 30,30 M 55,30 L 30,30 M 30,30 L 40,18 M 30,30 L 20,20 M 30,30 L 22,44',
     default_width: 60,
     default_height: 60,
     connection_points: [
@@ -92,7 +166,7 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
       { x_offset: 55, y_offset: 30, direction: 'right' }
     ],
     default_properties: { type: 'Centrifugal', power: '10 HP', flow: '100 GPM' },
-    description: 'Centrifugal pump symbol',
+    description: 'Centrifugal pump – general liquid transfer',
     is_standard: true
   },
   {
@@ -100,7 +174,8 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
     symbol_name: 'Positive Displacement Pump',
     symbol_type: 'Pump',
     category: 'Pumps',
-    svg_path: 'M 30,30 m -25,0 a 25,25 0 1,0 50,0 a 25,25 0 1,0 -50,0 M 30,30 m -10,0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0',
+    // Circle casing + multiple straight reciprocating vanes (vs curved in centrifugal)
+    svg_path: 'M 30,30 m -25,0 a 25,25 0 1,0 50,0 a 25,25 0 1,0 -50,0 M 5,30 L 30,30 M 55,30 L 30,30 M 22,18 L 22,42 M 30,18 L 30,42 M 38,18 L 38,42',
     default_width: 60,
     default_height: 60,
     connection_points: [
@@ -108,16 +183,34 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
       { x_offset: 55, y_offset: 30, direction: 'right' }
     ],
     default_properties: { type: 'PD', power: '5 HP', flow: '50 GPM' },
-    description: 'Positive displacement pump symbol',
+    description: 'Positive displacement pump – high-pressure/viscous fluids',
     is_standard: true
   },
-  // Vessels and Tanks
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Compressor',
+    symbol_type: 'Compressor',
+    category: 'Pumps',
+    // Circle casing + large triangle pointing toward discharge (compression direction)
+    svg_path: 'M 30,30 m -25,0 a 25,25 0 1,0 50,0 a 25,25 0 1,0 -50,0 M 5,30 L 30,30 M 55,30 L 30,30 M 16,20 L 16,40 L 44,30 Z',
+    default_width: 60,
+    default_height: 60,
+    connection_points: [
+      { x_offset: 5, y_offset: 30, direction: 'left' },
+      { x_offset: 55, y_offset: 30, direction: 'right' }
+    ],
+    default_properties: { type: 'Centrifugal', power: '50 HP', cfm: '500', pressure: '150 PSI' },
+    description: 'Gas compressor – pressure / flow of compressible fluids',
+    is_standard: true
+  },
+  // ── Vessels and Tanks ────────────────────────────────────────────────────
   {
     library_id: uuidv4(),
     symbol_name: 'Vertical Tank',
     symbol_type: 'Tank',
     category: 'Vessels',
-    svg_path: 'M 10,10 L 50,10 L 50,70 L 10,70 Z M 10,50 L 50,50',
+    // Vertical cylinder with elliptical top and bottom heads + level mark
+    svg_path: 'M 10,10 L 50,10 L 50,72 L 10,72 Z M 10,10 Q 30,4 50,10 M 10,72 Q 30,78 50,72 M 10,50 L 50,50',
     default_width: 60,
     default_height: 80,
     connection_points: [
@@ -127,7 +220,7 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
       { x_offset: 50, y_offset: 40, direction: 'right' }
     ],
     default_properties: { capacity: '1000 gal', design_pressure: '50 PSI' },
-    description: 'Vertical storage tank',
+    description: 'Vertical storage / process tank',
     is_standard: true
   },
   {
@@ -135,7 +228,8 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
     symbol_name: 'Horizontal Vessel',
     symbol_type: 'Vessel',
     category: 'Vessels',
-    svg_path: 'M 20,30 m -15,0 a 15,15 0 0,1 0,-30 L 70,0 a 15,15 0 0,1 0,30 Z',
+    // Horizontal capsule with elliptical end-caps + internal head lines
+    svg_path: 'M 20,5 L 70,5 L 70,55 L 20,55 Z M 20,5 Q 5,5 5,30 Q 5,55 20,55 M 70,5 Q 85,5 85,30 Q 85,55 70,55 M 20,5 Q 12,30 20,55 M 70,5 Q 78,30 70,55',
     default_width: 90,
     default_height: 60,
     connection_points: [
@@ -145,23 +239,59 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
       { x_offset: 45, y_offset: 60, direction: 'bottom' }
     ],
     default_properties: { capacity: '500 gal', design_pressure: '150 PSI' },
-    description: 'Horizontal pressure vessel',
+    description: 'Horizontal pressure vessel / separator',
     is_standard: true
   },
-  // Instruments
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Agitator / Mixer',
+    symbol_type: 'Tank',
+    category: 'Vessels',
+    // Vertical tank body + top-entry shaft + two propeller / impeller blades
+    svg_path: 'M 10,20 L 50,20 L 50,72 L 10,72 Z M 10,72 Q 30,78 50,72 M 30,20 L 30,0 M 18,50 L 30,40 L 42,50 M 18,62 L 30,54 L 42,62',
+    default_width: 60,
+    default_height: 80,
+    connection_points: [
+      { x_offset: 30, y_offset: 80, direction: 'bottom' },
+      { x_offset: 10, y_offset: 46, direction: 'left' },
+      { x_offset: 50, y_offset: 46, direction: 'right' },
+      { x_offset: 30, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { volume: '500 gal', impeller: 'Pitched Blade', rpm: '60' },
+    description: 'Agitator / mixer – tank with mechanical mixing',
+    is_standard: true
+  },
+  // ── Instruments ──────────────────────────────────────────────────────────
   {
     library_id: uuidv4(),
     symbol_name: 'Pressure Gauge',
     symbol_type: 'Instrument',
     category: 'Instruments',
-    svg_path: 'M 20,20 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0 M 20,5 L 20,15 M 20,25 L 20,35',
+    // Circle with a needle pointer + scale arc — local PI indicator
+    svg_path: 'M 20,20 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0 M 20,20 L 26,10 M 9,28 A 13,13 0 0,1 31,28',
     default_width: 40,
     default_height: 40,
     connection_points: [
       { x_offset: 20, y_offset: 40, direction: 'bottom' }
     ],
-    default_properties: { range: '0-300 PSI', tag: 'PG-001' },
-    description: 'Local pressure gauge',
+    default_properties: { range: '0-300 PSI', code: 'PI', tag: 'PI-001' },
+    description: 'Pressure indicator – local pressure gauge',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Pressure Transmitter',
+    symbol_type: 'Instrument',
+    category: 'Instruments',
+    // Double concentric circles — remote PT signal transmitter
+    svg_path: 'M 20,20 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0 M 20,20 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 20, y_offset: 40, direction: 'bottom' }
+    ],
+    default_properties: { range: '0-300 PSI', code: 'PT', output: '4-20mA', tag: 'PT-001' },
+    description: 'Pressure transmitter – remote 4-20 mA signal',
     is_standard: true
   },
   {
@@ -169,14 +299,31 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
     symbol_name: 'Temperature Element',
     symbol_type: 'Instrument',
     category: 'Instruments',
-    svg_path: 'M 20,20 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0 M 12,12 L 28,28 M 12,28 L 28,12',
+    // Circle with a rectangular thermowell extending downward
+    svg_path: 'M 20,16 m -13,0 a 13,13 0 1,0 26,0 a 13,13 0 1,0 -26,0 M 17,28 L 17,40 L 23,40 L 23,28 M 20,37 L 20,40',
     default_width: 40,
     default_height: 40,
     connection_points: [
       { x_offset: 20, y_offset: 40, direction: 'bottom' }
     ],
-    default_properties: { range: '0-500 F', tag: 'TE-001' },
-    description: 'Temperature element',
+    default_properties: { range: '0-500 F', code: 'TE', type: 'RTD', tag: 'TE-001' },
+    description: 'Temperature element – RTD / thermocouple with thermowell',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Temperature Transmitter',
+    symbol_type: 'Instrument',
+    category: 'Instruments',
+    // Double circles + shorter thermowell — TT remote transmitter
+    svg_path: 'M 20,16 m -13,0 a 13,13 0 1,0 26,0 a 13,13 0 1,0 -26,0 M 20,16 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0 M 17,28 L 17,40 L 23,40 L 23,28',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 20, y_offset: 40, direction: 'bottom' }
+    ],
+    default_properties: { range: '0-500 F', code: 'TT', output: '4-20mA', tag: 'TT-001' },
+    description: 'Temperature transmitter – 4-20 mA remote signal',
     is_standard: true
   },
   {
@@ -184,39 +331,75 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
     symbol_name: 'Level Transmitter',
     symbol_type: 'Instrument',
     category: 'Instruments',
-    svg_path: 'M 20,20 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0 M 20,10 L 20,30 M 10,20 L 30,20',
+    // Circle with two horizontal wave lines — liquid surface indication
+    svg_path: 'M 20,20 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0 M 8,17 Q 12,13 16,17 Q 20,21 24,17 Q 28,13 32,17 M 8,23 Q 12,27 16,23 Q 20,19 24,23 Q 28,27 32,23',
     default_width: 40,
     default_height: 40,
     connection_points: [
       { x_offset: 20, y_offset: 40, direction: 'bottom' }
     ],
-    default_properties: { range: '0-100%', tag: 'LT-001', output: '4-20mA' },
-    description: 'Level transmitter',
+    default_properties: { range: '0-100%', code: 'LT', output: '4-20mA', tag: 'LT-001' },
+    description: 'Level transmitter – radar / ultrasonic / DP type',
     is_standard: true
   },
-  // Motors
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Flow Transmitter',
+    symbol_type: 'Instrument',
+    category: 'Instruments',
+    // Circle with an arrow pointing right — flow measurement / FT
+    svg_path: 'M 20,20 m -15,0 a 15,15 0 1,0 30,0 a 15,15 0 1,0 -30,0 M 8,20 L 32,20 M 26,14 L 32,20 L 26,26',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 20, y_offset: 40, direction: 'bottom' }
+    ],
+    default_properties: { range: '0-500 GPM', code: 'FT', output: '4-20mA', tag: 'FT-001' },
+    description: 'Flow transmitter – flow measurement with remote output',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Flow Element (Orifice)',
+    symbol_type: 'Instrument',
+    category: 'Instruments',
+    // Two close parallel vertical lines across the pipe — orifice plate FE
+    svg_path: 'M 0,20 L 40,20 M 17,6 L 17,34 M 23,6 L 23,34',
+    default_width: 40,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 40, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { bore: '1.5"', beta: '0.65', code: 'FE', tag: 'FE-001' },
+    description: 'Flow element – orifice plate primary measurement device',
+    is_standard: true
+  },
+  // ── Motors ────────────────────────────────────────────────────────────────
   {
     library_id: uuidv4(),
     symbol_name: 'Electric Motor',
     symbol_type: 'Motor',
     category: 'Motors',
-    svg_path: 'M 25,25 m -20,0 a 20,20 0 1,0 40,0 a 20,20 0 1,0 -40,0 M 25,25 L 40,25',
-    default_width: 50,
+    // Circle casing + shaft stub + "M"-shaped winding mark inside
+    svg_path: 'M 25,25 m -20,0 a 20,20 0 1,0 40,0 a 20,20 0 1,0 -40,0 M 45,25 L 55,25 M 14,18 L 19,32 L 25,18 L 31,32 L 36,18',
+    default_width: 55,
     default_height: 50,
     connection_points: [
-      { x_offset: 50, y_offset: 25, direction: 'right' }
+      { x_offset: 55, y_offset: 25, direction: 'right' }
     ],
     default_properties: { power: '10 HP', voltage: '460V', rpm: '1800' },
-    description: 'Electric motor',
+    description: 'Electric motor – AC induction / DC drive',
     is_standard: true
   },
-  // Heat Exchangers
+  // ── Heat Exchangers ───────────────────────────────────────────────────────
   {
     library_id: uuidv4(),
     symbol_name: 'Shell and Tube Heat Exchanger',
     symbol_type: 'Heat Exchanger',
     category: 'Heat Exchangers',
-    svg_path: 'M 10,10 L 70,10 L 70,50 L 10,50 Z M 20,20 L 60,20 M 20,30 L 60,30 M 20,40 L 60,40',
+    // Capsule shell with elliptical end caps + three tube bundle lines
+    svg_path: 'M 18,8 L 62,8 L 62,52 L 18,52 Z M 18,8 Q 6,8 6,30 Q 6,52 18,52 M 62,8 Q 74,8 74,30 Q 74,52 62,52 M 22,20 L 58,20 M 22,30 L 58,30 M 22,40 L 58,40',
     default_width: 80,
     default_height: 60,
     connection_points: [
@@ -226,7 +409,26 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
       { x_offset: 60, y_offset: 60, direction: 'bottom' }
     ],
     default_properties: { duty: '1 MMBTU/hr', area: '100 sqft' },
-    description: 'Shell and tube heat exchanger',
+    description: 'Shell-and-tube heat exchanger',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Plate Heat Exchanger',
+    symbol_type: 'Heat Exchanger',
+    category: 'Heat Exchangers',
+    // Alternating vertical plates (corrugated) between two end bars
+    svg_path: 'M 5,5 L 5,55 M 75,5 L 75,55 M 20,5 L 20,55 M 30,5 L 30,55 M 40,5 L 40,55 M 50,5 L 50,55 M 60,5 L 60,55 M 5,5 L 75,5 M 5,55 L 75,55 M 0,20 L 5,20 M 75,40 L 80,40 M 0,40 L 5,40 M 75,20 L 80,20',
+    default_width: 80,
+    default_height: 60,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 0, y_offset: 40, direction: 'left' },
+      { x_offset: 80, y_offset: 20, direction: 'right' },
+      { x_offset: 80, y_offset: 40, direction: 'right' }
+    ],
+    default_properties: { duty: '500 kBTU/hr', plates: '20', material: 'SS316' },
+    description: 'Gasketed plate-and-frame heat exchanger',
     is_standard: true
   },
 
