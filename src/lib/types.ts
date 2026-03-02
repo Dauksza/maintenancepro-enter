@@ -1224,3 +1224,103 @@ export interface SymbolLibraryItem {
   description: string
   is_standard: boolean
 }
+
+// ── Asphalt Industry Types ──────────────────────────────────────────────────
+
+export type AsphaltProduct =
+  | 'PG 58-28'
+  | 'PG 64-22'
+  | 'PG 70-22'
+  | 'PG 76-22'
+  | 'PG 82-22'
+  | 'AC-20'
+  | 'AC-30'
+  | 'Emulsion'
+  | 'Other'
+
+export type TankStatus = 'Active' | 'Inactive' | 'Maintenance'
+
+export interface AsphaltTank {
+  tank_id: string
+  tank_name: string
+  tank_number: string
+  capacity_gallons: number
+  current_volume_gallons: number
+  product: AsphaltProduct
+  temperature_f: number
+  min_level_gallons: number
+  status: TankStatus
+  location: string
+  last_updated: string
+  notes: string
+}
+
+export type RailCarStatus =
+  | 'En Route'
+  | 'Arrived'
+  | 'Unloading'
+  | 'Unloaded'
+  | 'Returned'
+  | 'Cancelled'
+
+export interface RailCarDelivery {
+  delivery_id: string
+  car_number: string
+  product: AsphaltProduct
+  carrier: string
+  expected_arrival: string
+  actual_arrival: string | null
+  estimated_volume_gallons: number
+  actual_volume_gallons: number | null
+  temperature_f: number | null
+  status: RailCarStatus
+  unload_to_tank_id: string | null
+  unload_start: string | null
+  unload_end: string | null
+  operator: string
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export type TankerLoadingStatus = 'Pending' | 'Loading' | 'Complete' | 'Cancelled'
+
+export interface TankerLoadingTicket {
+  ticket_id: string
+  ticket_number: string
+  customer: string
+  destination: string
+  truck_id: string
+  driver_name: string
+  product: AsphaltProduct
+  tare_weight_lbs: number
+  gross_weight_lbs: number | null
+  net_weight_lbs: number | null
+  volume_gallons: number | null
+  load_from_tank_id: string
+  temperature_f: number | null
+  status: TankerLoadingStatus
+  scheduled_load_time: string
+  actual_load_start: string | null
+  actual_load_end: string | null
+  operator: string
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export type PolymerType = 'SBS' | 'SBR Latex' | 'Gilsonite' | 'Crumb Rubber' | 'Polyphosphoric Acid' | 'Custom'
+
+export interface BlendFormulation {
+  formulation_id: string
+  name: string
+  target_grade: AsphaltProduct
+  base_grade: AsphaltProduct
+  polymer_type: PolymerType
+  polymer_percentage: number
+  blend_temp_f: number
+  mix_time_minutes: number
+  notes: string
+  created_at: string
+  is_active: boolean
+}

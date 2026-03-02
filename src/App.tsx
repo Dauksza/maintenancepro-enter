@@ -55,6 +55,10 @@ import { PWAInstallBanner } from '@/components/PWAInstallBanner'
 import { SystemStatus, LiveActivityIndicator } from '@/components/SystemStatus'
 import { InteractiveTour, type TourStep } from '@/components/InteractiveTour'
 import { PMEquipmentManagement } from '@/components/PMEquipmentManagement'
+import { AsphaltBlendCalculator } from '@/components/AsphaltBlendCalculator'
+import { TankInventoryManagement } from '@/components/TankInventoryManagement'
+import { RailOperations } from '@/components/RailOperations'
+import { TankerLoading } from '@/components/TankerLoading'
 import { 
   Wrench, 
   ClipboardText, 
@@ -78,7 +82,11 @@ import {
   Brain,
   Clock,
   FileText,
-  Gear
+  Gear,
+  Flask,
+  Drop,
+  Train,
+  Truck
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -171,7 +179,11 @@ function App() {
     'predictive',
     'database',
     'pm-schedules',
-    'templates'
+    'templates',
+    'blend-calculator',
+    'tanks',
+    'rail-ops',
+    'tanker-loading'
   ]
   const safeActiveTab = activeTab && validTabs.includes(activeTab) ? activeTab : 'dashboard'
 
@@ -757,6 +769,41 @@ function App() {
               </button>
             </div>
           </div>
+
+          {/* Asphalt Operations */}
+          <div>
+            <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Asphalt Operations</p>
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('blend-calculator')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'blend-calculator' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Flask size={16} weight={safeActiveTab === 'blend-calculator' ? 'fill' : 'regular'} />
+                Blend Calculator
+              </button>
+              <button
+                onClick={() => setActiveTab('tanks')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'tanks' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Drop size={16} weight={safeActiveTab === 'tanks' ? 'fill' : 'regular'} />
+                Tank Inventory
+              </button>
+              <button
+                onClick={() => setActiveTab('rail-ops')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'rail-ops' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Train size={16} weight={safeActiveTab === 'rail-ops' ? 'fill' : 'regular'} />
+                Rail Operations
+              </button>
+              <button
+                onClick={() => setActiveTab('tanker-loading')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'tanker-loading' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Truck size={16} weight={safeActiveTab === 'tanker-loading' ? 'fill' : 'regular'} />
+                Tanker Loading
+              </button>
+            </div>
+          </div>
         </nav>
 
         {/* Sidebar Footer */}
@@ -1310,6 +1357,22 @@ function App() {
 
             <TabsContent value="templates" className="space-y-6 animate-fade-in">
               <WorkOrderTemplates />
+            </TabsContent>
+
+            <TabsContent value="blend-calculator" className="space-y-6 animate-fade-in">
+              <AsphaltBlendCalculator />
+            </TabsContent>
+
+            <TabsContent value="tanks" className="space-y-6 animate-fade-in">
+              <TankInventoryManagement />
+            </TabsContent>
+
+            <TabsContent value="rail-ops" className="space-y-6 animate-fade-in">
+              <RailOperations />
+            </TabsContent>
+
+            <TabsContent value="tanker-loading" className="space-y-6 animate-fade-in">
+              <TankerLoading />
             </TabsContent>
           </Tabs>
         </main>
