@@ -1053,6 +1053,10 @@ export type PIDSymbolType =
   | 'Fitting'
   | 'Equipment'
   | 'Custom'
+  | 'Electrical'
+  | 'Hydraulic'
+  | 'Pneumatic'
+  | 'Mechanical'
 
 export type InstrumentationType = 
   | 'Pressure'
@@ -1067,6 +1071,9 @@ export type PipeLineType =
   | 'Utility'
   | 'Signal'
   | 'Electrical'
+  | 'Hydraulic'
+  | 'Pneumatic'
+  | 'Mechanical'
 
 export interface PIDDrawing {
   drawing_id: string
@@ -1081,6 +1088,7 @@ export interface PIDDrawing {
   grid_size: number
   show_grid: boolean
   snap_to_grid: boolean
+  snap_to_grip: boolean
   zoom_level: number
   pan_x: number
   pan_y: number
@@ -1105,6 +1113,7 @@ export interface PIDSymbol {
   rotation: number
   scale: number
   label: string
+  description?: string
   tag_number: string
   asset_id?: string | null
   properties: Record<string, string | number | boolean>
