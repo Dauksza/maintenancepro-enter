@@ -18,7 +18,7 @@ import type {
   UserRole,
   UserProfile
 } from '@/lib/types'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -538,758 +538,782 @@ function App() {
   })
 
   return (
-    <div className="min-h-screen bg-background grid-pattern">
+    <div className="min-h-screen bg-background flex">
       <Toaster position="top-right" />
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-primary focus:text-primary-foreground">
         Skip to main content
       </a>
-      
-      <header className="bg-card/95 backdrop-blur-md border-b sticky top-0 z-10 shadow-sm" role="banner">
-        <div className="max-w-[1600px] mx-auto px-3 sm:px-6">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
-                <Wrench size={22} weight="bold" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-primary tracking-tight leading-tight">
-                  MaintenancePro
-                </h1>
-                <p className="text-xs text-muted-foreground leading-tight flex items-center gap-2">
-                  Enterprise CMMS
-                  <SystemStatus className="inline-flex" />
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setSearchOpen(true)}
-                className="gap-2 w-[180px] sm:min-w-[240px] justify-start text-muted-foreground h-10 text-sm shadow-sm"
+
+      {/* ── Sidebar Navigation ── */}
+      <aside className="w-60 shrink-0 bg-card border-r flex flex-col sticky top-0 h-screen overflow-y-auto z-20">
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-4 h-14 border-b shrink-0">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm">
+            <Wrench size={18} weight="bold" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-primary leading-tight">MaintenancePro</p>
+            <p className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
+              <LiveActivityIndicator />
+              <span>Enterprise CMMS</span>
+            </p>
+          </div>
+        </div>
+
+        {/* New Work Order CTA */}
+        {hasPermission(currentUserRole, 'work-orders', 'create') && (
+          <div className="px-3 py-3 border-b shrink-0">
+            <Button
+              onClick={() => setNewWorkOrderOpen(true)}
+              className="w-full gap-2 h-9 font-semibold shadow-sm"
+              data-tour="new-work-order"
+            >
+              <Plus size={16} weight="bold" />
+              New Work Order
+            </Button>
+          </div>
+        )}
+
+        {/* Nav Groups */}
+        <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-4" aria-label="Main navigation">
+
+          {/* My Work */}
+          <div>
+            <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">My Work</p>
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'dashboard' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
               >
-                <MagnifyingGlass size={18} />
-                Search...
-                <kbd className="ml-auto px-2 py-1 text-[10px] bg-muted rounded font-mono">⌘K</kbd>
-              </Button>
-              
-              <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg p-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setImportOpen(true)}
-                      className="h-8 w-8"
-                      aria-label="Import data"
-                    >
-                      <UploadSimple size={18} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">Import data (Ctrl+I)</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleExportData}
-                      className="h-8 w-8"
-                      aria-label="Export data"
-                    >
-                      <DownloadSimple size={18} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">Export data (Ctrl+E)</TooltipContent>
-                </Tooltip>
-              </div>
-              <KeyboardShortcutsDialog 
-                open={keyboardShortcutsOpen}
-                onOpenChange={setKeyboardShortcutsOpen}
+                <House size={16} weight={safeActiveTab === 'dashboard' ? 'fill' : 'regular'} />
+                Dashboard
+              </button>
+              <button
+                onClick={() => setActiveTab('tracking')}
+                data-tour="tracking-tab"
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'tracking' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Wrench size={16} weight={safeActiveTab === 'tracking' ? 'fill' : 'regular'} />
+                Work Orders
+                {overdueCount > 0 && (
+                  <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                    {overdueCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('calendar')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'calendar' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <CalendarBlank size={16} weight={safeActiveTab === 'calendar' ? 'fill' : 'regular'} />
+                Calendar
+              </button>
+            </div>
+          </div>
+
+          {/* Schedule */}
+          <div>
+            <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Schedule</p>
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('timeline')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'timeline' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <ChartLineUp size={16} weight={safeActiveTab === 'timeline' ? 'fill' : 'regular'} />
+                Timeline
+              </button>
+              <button
+                onClick={() => setActiveTab('resources')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'resources' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Users size={16} weight={safeActiveTab === 'resources' ? 'fill' : 'regular'} />
+                Resources
+              </button>
+              <button
+                onClick={() => setActiveTab('capacity')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'capacity' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Gauge size={16} weight={safeActiveTab === 'capacity' ? 'fill' : 'regular'} />
+                Capacity
+              </button>
+              <button
+                onClick={() => setActiveTab('pm-schedules')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'pm-schedules' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Clock size={16} weight={safeActiveTab === 'pm-schedules' ? 'fill' : 'regular'} />
+                PM Schedules
+              </button>
+            </div>
+          </div>
+
+          {/* Equipment & Parts */}
+          <div>
+            <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Equipment & Parts</p>
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('assets')}
+                data-tour="assets-tab"
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'assets' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Package size={16} weight={safeActiveTab === 'assets' ? 'fill' : 'regular'} />
+                Assets
+              </button>
+              <button
+                onClick={() => setActiveTab('pm-equipment')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'pm-equipment' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Gear size={16} weight={safeActiveTab === 'pm-equipment' ? 'fill' : 'regular'} />
+                PM Equipment
+              </button>
+              <button
+                onClick={() => setActiveTab('parts')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'parts' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Toolbox size={16} weight={safeActiveTab === 'parts' ? 'fill' : 'regular'} />
+                Parts
+              </button>
+            </div>
+          </div>
+
+          {/* Documentation */}
+          <div>
+            <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Documentation</p>
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('forms')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'forms' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <CheckSquare size={16} weight={safeActiveTab === 'forms' ? 'fill' : 'regular'} />
+                Forms & Inspections
+              </button>
+              <button
+                onClick={() => setActiveTab('sops')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'sops' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <ClipboardText size={16} weight={safeActiveTab === 'sops' ? 'fill' : 'regular'} />
+                SOPs
+              </button>
+              <button
+                onClick={() => setActiveTab('certifications')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'certifications' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Certificate size={16} weight={safeActiveTab === 'certifications' ? 'fill' : 'regular'} />
+                Certifications
+                {certificationCounts.critical > 0 && (
+                  <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+                    {certificationCounts.critical}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Insights */}
+          <div>
+            <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Insights</p>
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'analytics' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <ChartBar size={16} weight={safeActiveTab === 'analytics' ? 'fill' : 'regular'} />
+                Analytics
+              </button>
+              <button
+                onClick={() => setActiveTab('predictive')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'predictive' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Brain size={16} weight={safeActiveTab === 'predictive' ? 'fill' : 'regular'} />
+                Predictive
+              </button>
+            </div>
+          </div>
+
+          {/* Team & Admin */}
+          <div>
+            <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Team & Admin</p>
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('employees')}
+                data-tour="employees-tab"
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'employees' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <UserGear size={16} weight={safeActiveTab === 'employees' ? 'fill' : 'regular'} />
+                Employees
+              </button>
+              <button
+                onClick={() => setActiveTab('templates')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'templates' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <FileText size={16} weight={safeActiveTab === 'templates' ? 'fill' : 'regular'} />
+                Templates
+              </button>
+              <button
+                onClick={() => setActiveTab('database')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'database' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <Database size={16} weight={safeActiveTab === 'database' ? 'fill' : 'regular'} />
+                Database
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="px-3 py-2 border-t shrink-0">
+          <SystemStatus />
+        </div>
+      </aside>
+
+      {/* ── Main Area ── */}
+      <div className="flex-1 flex flex-col min-w-0">
+
+        {/* Compact Top Header */}
+        <header className="bg-card/95 backdrop-blur-md border-b sticky top-0 z-10 h-14 flex items-center gap-2 px-4 shrink-0" role="banner">
+          <Button
+            variant="outline"
+            onClick={() => setSearchOpen(true)}
+            className="gap-2 w-[220px] justify-start text-muted-foreground h-9 text-sm shadow-sm"
+          >
+            <MagnifyingGlass size={16} />
+            Search...
+            <kbd className="ml-auto px-1.5 py-0.5 text-[10px] bg-muted rounded font-mono">⌘K</kbd>
+          </Button>
+
+          <div className="flex-1" />
+
+          {/* Alert banners */}
+          {overdueCount > 0 && hasPermission(currentUserRole, 'schedules', 'execute') && (
+            <Button
+              onClick={() => setAutoSchedulerOpen(true)}
+              size="sm"
+              className="gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 h-8 text-xs shadow-sm hidden sm:flex"
+            >
+              <Sparkle size={14} weight="fill" />
+              {overdueCount} Overdue - Auto-Schedule
+            </Button>
+          )}
+          {certificationCounts.critical > 0 && (
+            <Button
+              onClick={() => setActiveTab('certifications')}
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30 h-8 text-xs hidden sm:flex"
+            >
+              <Certificate size={14} weight="fill" />
+              {certificationCounts.critical} Expiring
+            </Button>
+          )}
+
+          {/* Import / Export */}
+          <div className="flex items-center gap-0.5 bg-muted/50 rounded-md p-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setImportOpen(true)}
+                  className="h-8 w-8"
+                  aria-label="Import data"
+                >
+                  <UploadSimple size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Import data (Ctrl+I)</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleExportData}
+                  className="h-8 w-8"
+                  aria-label="Export data"
+                >
+                  <DownloadSimple size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Export data (Ctrl+E)</TooltipContent>
+            </Tooltip>
+          </div>
+
+          <KeyboardShortcutsDialog
+            open={keyboardShortcutsOpen}
+            onOpenChange={setKeyboardShortcutsOpen}
+          />
+
+          <div className="flex items-center gap-1">
+            <NotificationPreferencesDialog
+              preferences={notificationPreferences || {
+                enabled: true,
+                showToasts: true,
+                playSound: false,
+                notifyOnAssignmentSuggestions: true,
+                notifyOnAssignmentChanges: true,
+                notifyOnWorkOrderCreated: false,
+                notifyOnWorkOrderOverdue: true,
+                notifyOnPriorityEscalation: true,
+                minimumMatchScore: 60,
+                autoAcceptHighMatchScore: false,
+                autoAcceptThreshold: 90
+              }}
+              onSave={setNotificationPreferences}
+            />
+            <NotificationCenter
+              notifications={notifications || []}
+              onUpdateNotification={handleUpdateNotification}
+              onAcceptAssignment={handleAcceptAssignment}
+              onRejectAssignment={handleRejectAssignment}
+              onViewWorkOrder={(woId) => {
+                const wo = safeWorkOrders.find(w => w.work_order_id === woId)
+                if (wo) handleSelectWorkOrder(wo)
+              }}
+            />
+          </div>
+
+          <UserProfileMenu
+            onRoleChange={setCurrentUserRole}
+            onOpenImport={() => setImportOpen(true)}
+            onExportData={handleExportData}
+            onRestartTour={startTour}
+          />
+        </header>
+
+        {/* Main Content */}
+        <main id="main-content" className="flex-1 px-4 sm:px-6 py-6 overflow-auto">
+          <Tabs value={safeActiveTab} onValueChange={setActiveTab}>
+
+            <TabsContent value="dashboard" className="space-y-6 animate-fade-in">
+              <CustomizableDashboard
+                workOrders={safeWorkOrders}
+                employees={safeEmployees}
+                parts={parts || []}
+                certifications={reminders || []}
+                onSelectWorkOrder={handleSelectWorkOrder}
+                userEmployeeId={userProfile?.employee_id || undefined}
+                onLoadSampleData={handleLoadSampleData}
+                onOpenImport={() => setImportOpen(true)}
+                onCreateWorkOrder={() => setNewWorkOrderOpen(true)}
               />
-              
-              <div className="w-px h-6 bg-border" />
-              
-              <div className="flex items-center gap-2">
-                <NotificationPreferencesDialog
-                  preferences={notificationPreferences || {
-                    enabled: true,
-                    showToasts: true,
-                    playSound: false,
-                    notifyOnAssignmentSuggestions: true,
-                    notifyOnAssignmentChanges: true,
-                    notifyOnWorkOrderCreated: false,
-                    notifyOnWorkOrderOverdue: true,
-                    notifyOnPriorityEscalation: true,
-                    minimumMatchScore: 60,
-                    autoAcceptHighMatchScore: false,
-                    autoAcceptThreshold: 90
-                  }}
-                  onSave={setNotificationPreferences}
-                />
-                <NotificationCenter
-                  notifications={notifications || []}
-                  onUpdateNotification={handleUpdateNotification}
-                  onAcceptAssignment={handleAcceptAssignment}
-                  onRejectAssignment={handleRejectAssignment}
-                  onViewWorkOrder={(woId) => {
-                    const wo = safeWorkOrders.find(w => w.work_order_id === woId)
-                    if (wo) handleSelectWorkOrder(wo)
-                  }}
-                />
-              </div>
-              
-              {(certificationCounts.critical > 0 || overdueCount > 0) && (
-                <>
-                  <div className="w-px h-6 bg-border" />
-                  <div className="flex items-center gap-2">
-                    {certificationCounts.critical > 0 && (
-                      <Button 
-                        onClick={() => setActiveTab('certifications')}
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30 h-9 shadow-sm"
-                      >
-                        <Certificate size={16} weight="fill" />
-                        {certificationCounts.critical} Expiring
-                      </Button>
-                    )}
-                    {overdueCount > 0 && hasPermission(currentUserRole, 'schedules', 'execute') && (
-                      <Button 
-                        onClick={() => setAutoSchedulerOpen(true)}
-                        size="sm"
-                        className="gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 h-9 shadow-md"
-                      >
-                        <Sparkle size={16} weight="fill" />
-                        {overdueCount} Overdue - Auto-Schedule
-                      </Button>
-                    )}
-                  </div>
-                </>
-              )}
-              
-              {hasPermission(currentUserRole, 'work-orders', 'create') && (
-                <>
-                  <div className="w-px h-6 bg-border" />
-                  <Button 
+            </TabsContent>
+
+            <TabsContent value="tracking" className="space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold">Work Order Management</h2>
+                  <p className="text-muted-foreground">
+                    Track and manage maintenance tasks across all equipment
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
                     onClick={() => setNewWorkOrderOpen(true)}
-                    size="sm"
-                    className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 shadow-md font-medium"
-                    data-tour="new-work-order"
+                    className="gap-2"
                   >
                     <Plus size={18} weight="bold" />
                     New Work Order
                   </Button>
-                </>
-              )}
-              <UserProfileMenu 
-                onRoleChange={setCurrentUserRole}
-                onOpenImport={() => setImportOpen(true)}
-                onExportData={handleExportData}
-                onRestartTour={startTour}
-              />
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main id="main-content" className="max-w-[1600px] mx-auto px-3 sm:px-6 py-4 sm:py-8">
-        <Tabs value={safeActiveTab} onValueChange={setActiveTab} className="space-y-8">
-          <div className="space-y-3">
-            <TabsList className="inline-flex w-full max-w-full overflow-x-auto gap-1 p-1.5 bg-muted/50 backdrop-blur-sm rounded-xl border border-border/40 shadow-sm" aria-label="Main navigation">
-              <TabsTrigger value="dashboard" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
-                <House size={18} />
-                Dashboard
-              </TabsTrigger>
-              {canViewTab(currentUserRole, 'tracking') && (
-                <TabsTrigger value="tracking" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm" data-tour="tracking-tab">
-                  <Wrench size={18} />
-                  Work Orders
-                </TabsTrigger>
-              )}
-              {canViewTab(currentUserRole, 'calendar') && (
-                <TabsTrigger value="calendar" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
-                  <CalendarBlank size={18} />
-                  Calendar
-                </TabsTrigger>
-              )}
-              {canViewTab(currentUserRole, 'employees') && (
-                <TabsTrigger value="employees" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm" data-tour="employees-tab">
-                  <UserGear size={18} />
-                  Employees
-                </TabsTrigger>
-              )}
-              {canViewTab(currentUserRole, 'assets') && (
-                <TabsTrigger value="assets" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm" data-tour="assets-tab">
-                  <Package size={18} />
-                  Assets
-                </TabsTrigger>
-              )}
-              {canViewTab(currentUserRole, 'pm-equipment') && (
-                <TabsTrigger value="pm-equipment" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
-                  <Gear size={18} />
-                  PM Equipment
-                </TabsTrigger>
-              )}
-              {canViewTab(currentUserRole, 'parts') && (
-                <TabsTrigger value="parts" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
-                  <Toolbox size={18} />
-                  Parts
-                </TabsTrigger>
-              )}
-              {canViewTab(currentUserRole, 'analytics') && (
-                <TabsTrigger value="analytics" className="flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 font-medium transition-all data-[state=active]:shadow-sm">
-                  <ChartBar size={18} />
-                  Analytics
-                </TabsTrigger>
-              )}
-            </TabsList>
-            
-            {/* Secondary Navigation - Additional Tools */}
-            <div className="flex flex-wrap items-center gap-2 px-1">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">More Tools:</span>
-              {canViewTab(currentUserRole, 'timeline') && (
-                <Button
-                  variant={safeActiveTab === 'timeline' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('timeline')}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <ChartLineUp size={14} />
-                  Timeline
-                </Button>
-              )}
-              {canViewTab(currentUserRole, 'resources') && (
-                <Button
-                  variant={safeActiveTab === 'resources' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('resources')}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <Users size={14} />
-                  Resources
-                </Button>
-              )}
-              {canViewTab(currentUserRole, 'capacity') && (
-                <Button
-                  variant={safeActiveTab === 'capacity' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('capacity')}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <Gauge size={14} />
-                  Capacity
-                </Button>
-              )}
-              {canViewTab(currentUserRole, 'forms') && (
-                <Button
-                  variant={safeActiveTab === 'forms' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('forms')}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <CheckSquare size={14} />
-                  Forms
-                </Button>
-              )}
-              {canViewTab(currentUserRole, 'certifications') && (
-                <Button
-                  variant={safeActiveTab === 'certifications' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('certifications')}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <Certificate size={14} />
-                  Certifications
-                </Button>
-              )}
-              {canViewTab(currentUserRole, 'sops') && (
-                <Button
-                  variant={safeActiveTab === 'sops' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('sops')}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <ClipboardText size={14} />
-                  SOPs
-                </Button>
-              )}
-              {canViewTab(currentUserRole, 'predictive') && (
-                <Button
-                  variant={safeActiveTab === 'predictive' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('predictive')}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <Brain size={14} />
-                  Predictive
-                </Button>
-              )}
-              {canViewTab(currentUserRole, 'database') && (
-                <Button
-                  variant={safeActiveTab === 'database' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('database')}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <Database size={14} />
-                  Database
-                </Button>
-              )}
-              {canViewTab(currentUserRole, 'pm-schedules') && (
-                <Button
-                  variant={safeActiveTab === 'pm-schedules' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('pm-schedules')}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <Clock size={14} />
-                  PM Schedules
-                </Button>
-              )}
-              {canViewTab(currentUserRole, 'templates') && (
-                <Button
-                  variant={safeActiveTab === 'templates' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveTab('templates')}
-                  className="gap-1.5 h-8 text-xs"
-                >
-                  <FileText size={14} />
-                  Templates
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <TabsContent value="dashboard" className="space-y-6 animate-fade-in">
-            <CustomizableDashboard
-              workOrders={safeWorkOrders}
-              employees={safeEmployees}
-              parts={parts || []}
-              certifications={reminders || []}
-              onSelectWorkOrder={handleSelectWorkOrder}
-              userEmployeeId={userProfile?.employee_id || undefined}
-              onLoadSampleData={handleLoadSampleData}
-              onOpenImport={() => setImportOpen(true)}
-              onCreateWorkOrder={() => setNewWorkOrderOpen(true)}
-            />
-          </TabsContent>
-
-          <TabsContent value="tracking" className="space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold">Work Order Management</h2>
-                <p className="text-muted-foreground">
-                  Track and manage maintenance tasks across all equipment
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => setNewWorkOrderOpen(true)}
-                  className="gap-2"
-                >
-                  <Plus size={18} weight="bold" />
-                  New Work Order
-                </Button>
-                {overdueCount > 0 && (
-                  <Button 
-                    onClick={() => setAutoSchedulerOpen(true)}
-                    className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
-                  >
-                    <Sparkle size={18} weight="fill" />
-                    Auto-Schedule {overdueCount} Overdue
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {safeWorkOrders.length === 0 ? (
-              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
-                  <Wrench size={32} className="text-primary" weight="duotone" />
+                  {overdueCount > 0 && (
+                    <Button
+                      onClick={() => setAutoSchedulerOpen(true)}
+                      className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+                    >
+                      <Sparkle size={18} weight="fill" />
+                      Auto-Schedule {overdueCount} Overdue
+                    </Button>
+                  )}
                 </div>
-                <h3 className="text-xl font-semibold mb-2">No Work Orders Yet</h3>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Create a new work order, import Excel/CSV data, or load sample work orders to get started
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <Button onClick={() => setNewWorkOrderOpen(true)} className="gap-2">
-                    <Plus size={16} />
-                    Create Work Order
-                  </Button>
-                  <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
-                    <UploadSimple size={16} />
-                    Import Excel/CSV
-                  </Button>
-                  <Button variant="outline" onClick={handleLoadSampleData}>
+              </div>
+
+              {safeWorkOrders.length === 0 ? (
+                <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                    <Wrench size={32} className="text-primary" weight="duotone" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">No Work Orders Yet</h3>
+                  <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                    Create a new work order, import Excel/CSV data, or load sample work orders to get started
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button onClick={() => setNewWorkOrderOpen(true)} className="gap-2">
+                      <Plus size={16} />
+                      Create Work Order
+                    </Button>
+                    <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+                      <UploadSimple size={16} />
+                      Import Excel/CSV
+                    </Button>
+                    <Button variant="outline" onClick={handleLoadSampleData}>
+                      Load Sample Data
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <WorkOrderGrid
+                  workOrders={safeWorkOrders}
+                  onUpdateWorkOrder={handleUpdateWorkOrder}
+                  onSelectWorkOrder={handleSelectWorkOrder}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="timeline" className="space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold">Timeline / Gantt View</h2>
+                  <p className="text-muted-foreground">
+                    Visualize work orders on a continuous timeline - drag to reschedule
+                  </p>
+                </div>
+              </div>
+
+              {safeWorkOrders.length === 0 ? (
+                <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                    <ChartLineUp size={32} className="text-primary" weight="duotone" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">No Work Orders to Display</h3>
+                  <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                    Import Excel/CSV data or load sample work orders to view the timeline
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button className="gap-2" onClick={() => setImportOpen(true)}>
+                      <UploadSimple size={16} />
+                      Import Excel/CSV
+                    </Button>
+                    <Button variant="outline" onClick={handleLoadSampleData}>
+                      Load Sample Data
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <TimelineView
+                  workOrders={safeWorkOrders}
+                  onUpdateWorkOrder={handleUpdateWorkOrder}
+                  onSelectWorkOrder={handleSelectWorkOrder}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="resources" className="space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold">Resource Allocation</h2>
+                  <p className="text-muted-foreground">
+                    Track technician workload and balance resource assignments
+                  </p>
+                </div>
+              </div>
+
+              {safeWorkOrders.length === 0 ? (
+                <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                    <Users size={32} className="text-primary" weight="duotone" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">No Work Orders to Display</h3>
+                  <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                    Import Excel/CSV data or load sample work orders to view resource allocation
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button className="gap-2" onClick={() => setImportOpen(true)}>
+                      <UploadSimple size={16} />
+                      Import Excel/CSV
+                    </Button>
+                    <Button variant="outline" onClick={handleLoadSampleData}>
+                      Load Sample Data
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <ResourceAllocationView
+                  workOrders={safeWorkOrders}
+                  onUpdateWorkOrder={handleUpdateWorkOrder}
+                  onSelectWorkOrder={handleSelectWorkOrder}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="capacity" className="space-y-6 animate-fade-in">
+              <CapacityPlanning workOrders={safeWorkOrders} />
+            </TabsContent>
+
+            <TabsContent value="calendar" className="space-y-6 animate-fade-in">
+              {safeWorkOrders.length === 0 ? (
+                <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                    <CalendarBlank size={32} className="text-primary" weight="duotone" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">No Work Orders to Schedule</h3>
+                  <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                    Import Excel/CSV data or load sample work orders to view the calendar
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button className="gap-2" onClick={() => setImportOpen(true)}>
+                      <UploadSimple size={16} />
+                      Import Excel/CSV
+                    </Button>
+                    <Button variant="outline" onClick={handleLoadSampleData}>
+                      Load Sample Data
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <CalendarView
+                  workOrders={safeWorkOrders}
+                  onUpdateWorkOrder={handleUpdateWorkOrder}
+                  onSelectWorkOrder={handleSelectWorkOrder}
+                  onOptimizeSchedule={() => setAutoSchedulerOpen(true)}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="sops" className="space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold">Standard Operating Procedures</h2>
+                  <p className="text-muted-foreground">
+                    Manage SOPs and generate preventive maintenance schedules
+                  </p>
+                </div>
+              </div>
+
+              {safeSOPs.length === 0 ? (
+                <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                    <ClipboardText size={32} className="text-primary" weight="duotone" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">No SOPs Available</h3>
+                  <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                    Import your SOP library via Excel/CSV to enable automated PM scheduling
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button className="gap-2" onClick={() => setImportOpen(true)}>
+                      <UploadSimple size={16} />
+                      Import Excel/CSV
+                    </Button>
+                    <Button variant="outline" onClick={handleLoadSampleData}>
+                      Load Sample Data
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <SOPLibrary
+                  sops={safeSOPs}
+                  onGenerateWorkOrders={handleGenerateWorkOrders}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="employees" className="space-y-6 animate-fade-in">
+              {safeEmployees.length === 0 ? (
+                <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                    <UserGear size={32} className="text-primary" weight="duotone" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">No Employees in System</h3>
+                  <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                    Load sample employee data to get started with team management
+                  </p>
+                  <Button onClick={handleLoadSampleData}>
                     Load Sample Data
                   </Button>
                 </div>
-              </div>
-            ) : (
-              <WorkOrderGrid
-                workOrders={safeWorkOrders}
-                onUpdateWorkOrder={handleUpdateWorkOrder}
-                onSelectWorkOrder={handleSelectWorkOrder}
-              />
-            )}
-          </TabsContent>
+              ) : (
+                <EmployeeManagement
+                  employees={safeEmployees}
+                  skillMatrix={safeSkillMatrix}
+                  schedules={safeSchedules}
+                  messages={safeMessages}
+                  workOrders={safeWorkOrders}
+                  onUpdateEmployee={handleUpdateEmployee}
+                  onAddEmployee={handleAddEmployee}
+                  onUpdateSkill={handleUpdateSkill}
+                  onUpdateSchedule={handleUpdateSchedule}
+                  onSendMessage={handleSendMessage}
+                />
+              )}
+            </TabsContent>
 
-          <TabsContent value="timeline" className="space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold">Timeline / Gantt View</h2>
-                <p className="text-muted-foreground">
-                  Visualize work orders on a continuous timeline - drag to reschedule
-                </p>
-              </div>
-            </div>
+            <TabsContent value="assets" className="space-y-6 animate-fade-in">
+              <AssetsAreasManagement employees={safeEmployees} workOrders={safeWorkOrders} />
+            </TabsContent>
 
-            {safeWorkOrders.length === 0 ? (
-              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
-                  <ChartLineUp size={32} className="text-primary" weight="duotone" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">No Work Orders to Display</h3>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Import Excel/CSV data or load sample work orders to view the timeline
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <Button className="gap-2" onClick={() => setImportOpen(true)}>
-                    <UploadSimple size={16} />
-                    Import Excel/CSV
-                  </Button>
-                  <Button variant="outline" onClick={handleLoadSampleData}>
-                    Load Sample Data
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <TimelineView
-                workOrders={safeWorkOrders}
-                onUpdateWorkOrder={handleUpdateWorkOrder}
-                onSelectWorkOrder={handleSelectWorkOrder}
-              />
-            )}
-          </TabsContent>
+            <TabsContent value="pm-equipment" className="space-y-6 animate-fade-in">
+              <PMEquipmentManagement />
+            </TabsContent>
 
-          <TabsContent value="resources" className="space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold">Resource Allocation</h2>
-                <p className="text-muted-foreground">
-                  Track technician workload and balance resource assignments
-                </p>
-              </div>
-            </div>
-
-            {safeWorkOrders.length === 0 ? (
-              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
-                  <Users size={32} className="text-primary" weight="duotone" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">No Work Orders to Display</h3>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Import Excel/CSV data or load sample work orders to view resource allocation
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <Button className="gap-2" onClick={() => setImportOpen(true)}>
-                    <UploadSimple size={16} />
-                    Import Excel/CSV
-                  </Button>
-                  <Button variant="outline" onClick={handleLoadSampleData}>
-                    Load Sample Data
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <ResourceAllocationView
-                workOrders={safeWorkOrders}
-                onUpdateWorkOrder={handleUpdateWorkOrder}
-                onSelectWorkOrder={handleSelectWorkOrder}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="capacity" className="space-y-6 animate-fade-in">
-            <CapacityPlanning workOrders={safeWorkOrders} />
-          </TabsContent>
-
-          <TabsContent value="calendar" className="space-y-6 animate-fade-in">
-            {safeWorkOrders.length === 0 ? (
-              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
-                  <CalendarBlank size={32} className="text-primary" weight="duotone" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">No Work Orders to Schedule</h3>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Import Excel/CSV data or load sample work orders to view the calendar
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <Button className="gap-2" onClick={() => setImportOpen(true)}>
-                    <UploadSimple size={16} />
-                    Import Excel/CSV
-                  </Button>
-                  <Button variant="outline" onClick={handleLoadSampleData}>
-                    Load Sample Data
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <CalendarView
-                workOrders={safeWorkOrders}
-                onUpdateWorkOrder={handleUpdateWorkOrder}
-                onSelectWorkOrder={handleSelectWorkOrder}
-                onOptimizeSchedule={() => setAutoSchedulerOpen(true)}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="sops" className="space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold">Standard Operating Procedures</h2>
-                <p className="text-muted-foreground">
-                  Manage SOPs and generate preventive maintenance schedules
-                </p>
-              </div>
-            </div>
-
-            {safeSOPs.length === 0 ? (
-              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
-                  <ClipboardText size={32} className="text-primary" weight="duotone" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">No SOPs Available</h3>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Import your SOP library via Excel/CSV to enable automated PM scheduling
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <Button className="gap-2" onClick={() => setImportOpen(true)}>
-                    <UploadSimple size={16} />
-                    Import Excel/CSV
-                  </Button>
-                  <Button variant="outline" onClick={handleLoadSampleData}>
-                    Load Sample Data
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <SOPLibrary
-                sops={safeSOPs}
-                onGenerateWorkOrders={handleGenerateWorkOrders}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="employees" className="space-y-6 animate-fade-in">
-            {safeEmployees.length === 0 ? (
-              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
-                  <UserGear size={32} className="text-primary" weight="duotone" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">No Employees in System</h3>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Load sample employee data to get started with team management
-                </p>
-                <Button onClick={handleLoadSampleData}>
-                  Load Sample Data
-                </Button>
-              </div>
-            ) : (
-              <EmployeeManagement
-                employees={safeEmployees}
-                skillMatrix={safeSkillMatrix}
-                schedules={safeSchedules}
-                messages={safeMessages}
-                workOrders={safeWorkOrders}
-                onUpdateEmployee={handleUpdateEmployee}
-                onAddEmployee={handleAddEmployee}
-                onUpdateSkill={handleUpdateSkill}
-                onUpdateSchedule={handleUpdateSchedule}
-                onSendMessage={handleSendMessage}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="assets" className="space-y-6 animate-fade-in">
-            <AssetsAreasManagement employees={safeEmployees} workOrders={safeWorkOrders} />
-          </TabsContent>
-
-          <TabsContent value="pm-equipment" className="space-y-6 animate-fade-in">
-            <PMEquipmentManagement />
-          </TabsContent>
-
-          <TabsContent value="parts" className="space-y-6 animate-fade-in">
-            <PartsInventory
-              parts={parts || []}
-              transactions={partTransactions || []}
-              onAddPart={(part) => setParts((current) => [...(current || []), part])}
-              onUpdatePart={(partId, updates) => {
-                setParts((current) =>
-                  (current || []).map(p => p.part_id === partId ? { ...p, ...updates } : p)
-                )
-              }}
-              onAddTransaction={(transaction) => {
-                setPartTransactions((current) => [...(current || []), transaction])
-                const part = (parts || []).find(p => p.part_id === transaction.part_id)
-                if (part) {
-                  let newQuantity = part.quantity_on_hand
-                  switch (transaction.transaction_type) {
-                    case 'Purchase':
-                    case 'Return':
-                      newQuantity += transaction.quantity
-                      break
-                    case 'Use':
-                    case 'Transfer':
-                      newQuantity -= transaction.quantity
-                      break
-                    case 'Adjustment':
-                      newQuantity = transaction.quantity
-                      break
-                  }
-                  const status = newQuantity === 0 ? 'Out of Stock' : 
-                                newQuantity <= part.minimum_stock_level ? 'Low Stock' : 'In Stock'
+            <TabsContent value="parts" className="space-y-6 animate-fade-in">
+              <PartsInventory
+                parts={parts || []}
+                transactions={partTransactions || []}
+                onAddPart={(part) => setParts((current) => [...(current || []), part])}
+                onUpdatePart={(partId, updates) => {
                   setParts((current) =>
-                    (current || []).map(p => 
-                      p.part_id === transaction.part_id 
-                        ? { ...p, quantity_on_hand: Math.max(0, newQuantity), status, updated_at: transaction.created_at }
-                        : p
-                    )
+                    (current || []).map(p => p.part_id === partId ? { ...p, ...updates } : p)
                   )
-                }
-              }}
-            />
-          </TabsContent>
-
-          <TabsContent value="forms" className="space-y-6 animate-fade-in">
-            <FormsInspections
-              templates={formTemplates || []}
-              submissions={formSubmissions || []}
-              onCreateTemplate={(template) => {
-                setFormTemplates((current) => [...(current || []), template])
-              }}
-              onUpdateTemplate={(templateId, updates) => {
-                setFormTemplates((current) =>
-                  (current || []).map(t => t.template_id === templateId ? { ...t, ...updates } : t)
-                )
-              }}
-              onDeleteTemplate={(templateId) => {
-                setFormTemplates((current) =>
-                  (current || []).filter(t => t.template_id !== templateId)
-                )
-              }}
-              onCreateSubmission={(submission) => {
-                setFormSubmissions((current) => [...(current || []), submission])
-              }}
-              onUpdateSubmission={(submissionId, updates) => {
-                setFormSubmissions((current) =>
-                  (current || []).map(s => s.submission_id === submissionId ? { ...s, ...updates } : s)
-                )
-              }}
-            />
-          </TabsContent>
-
-          <TabsContent value="certifications" className="space-y-6 animate-fade-in">
-            {safeEmployees.length === 0 ? (
-              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
-                  <Certificate size={32} className="text-primary" weight="duotone" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">No Certification Data</h3>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Load sample employee data to get started with certification tracking
-                </p>
-                <Button onClick={handleLoadSampleData}>
-                  Load Sample Data
-                </Button>
-              </div>
-            ) : (
-              <CertificationReminders
-                employees={safeEmployees}
-                skillMatrix={safeSkillMatrix}
-                onUpdateSkill={handleUpdateSkill}
+                }}
+                onAddTransaction={(transaction) => {
+                  setPartTransactions((current) => [...(current || []), transaction])
+                  const part = (parts || []).find(p => p.part_id === transaction.part_id)
+                  if (part) {
+                    let newQuantity = part.quantity_on_hand
+                    switch (transaction.transaction_type) {
+                      case 'Purchase':
+                      case 'Return':
+                        newQuantity += transaction.quantity
+                        break
+                      case 'Use':
+                      case 'Transfer':
+                        newQuantity -= transaction.quantity
+                        break
+                      case 'Adjustment':
+                        newQuantity = transaction.quantity
+                        break
+                    }
+                    const status = newQuantity === 0 ? 'Out of Stock' :
+                                  newQuantity <= part.minimum_stock_level ? 'Low Stock' : 'In Stock'
+                    setParts((current) =>
+                      (current || []).map(p =>
+                        p.part_id === transaction.part_id
+                          ? { ...p, quantity_on_hand: Math.max(0, newQuantity), status, updated_at: transaction.created_at }
+                          : p
+                      )
+                    )
+                  }
+                }}
               />
-            )}
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="analytics" className="space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold">Analytics & Reporting</h2>
-                <p className="text-muted-foreground">
-                  Visualize maintenance metrics and trends
-                </p>
-              </div>
-            </div>
+            <TabsContent value="forms" className="space-y-6 animate-fade-in">
+              <FormsInspections
+                templates={formTemplates || []}
+                submissions={formSubmissions || []}
+                onCreateTemplate={(template) => {
+                  setFormTemplates((current) => [...(current || []), template])
+                }}
+                onUpdateTemplate={(templateId, updates) => {
+                  setFormTemplates((current) =>
+                    (current || []).map(t => t.template_id === templateId ? { ...t, ...updates } : t)
+                  )
+                }}
+                onDeleteTemplate={(templateId) => {
+                  setFormTemplates((current) =>
+                    (current || []).filter(t => t.template_id !== templateId)
+                  )
+                }}
+                onCreateSubmission={(submission) => {
+                  setFormSubmissions((current) => [...(current || []), submission])
+                }}
+                onUpdateSubmission={(submissionId, updates) => {
+                  setFormSubmissions((current) =>
+                    (current || []).map(s => s.submission_id === submissionId ? { ...s, ...updates } : s)
+                  )
+                }}
+              />
+            </TabsContent>
 
-            {safeWorkOrders.length === 0 ? (
-              <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
-                  <ChartBar size={32} className="text-primary" weight="duotone" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">No Data to Analyze</h3>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Import work orders via Excel/CSV or create sample data to view analytics
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <Button className="gap-2" onClick={() => setImportOpen(true)}>
-                    <UploadSimple size={16} />
-                    Import Excel/CSV
-                  </Button>
-                  <Button variant="outline" onClick={handleLoadSampleData}>
+            <TabsContent value="certifications" className="space-y-6 animate-fade-in">
+              {safeEmployees.length === 0 ? (
+                <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                    <Certificate size={32} className="text-primary" weight="duotone" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">No Certification Data</h3>
+                  <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                    Load sample employee data to get started with certification tracking
+                  </p>
+                  <Button onClick={handleLoadSampleData}>
                     Load Sample Data
                   </Button>
                 </div>
+              ) : (
+                <CertificationReminders
+                  employees={safeEmployees}
+                  skillMatrix={safeSkillMatrix}
+                  onUpdateSkill={handleUpdateSkill}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold">Analytics & Reporting</h2>
+                  <p className="text-muted-foreground">
+                    Visualize maintenance metrics and trends
+                  </p>
+                </div>
               </div>
-            ) : (
-              <AnalyticsDashboard workOrders={safeWorkOrders} />
-            )}
-          </TabsContent>
 
-          <TabsContent value="predictive" className="space-y-6 animate-fade-in">
-            <PredictiveMaintenanceDashboard
-              workOrders={safeWorkOrders}
-              employees={safeEmployees}
-              parts={parts || []}
-              partTransactions={partTransactions || []}
-              onCreateWorkOrder={(equipment, date, priority) => {
-                setCloneWorkOrder({
-                  work_order_id: `WO-${Date.now()}`,
-                  equipment_area: equipment,
-                  priority_level: priority as any,
-                  status: 'Scheduled (Not Started)',
-                  type: 'Maintenance',
-                  task: `Predictive maintenance for ${equipment}`,
-                  comments_description: 'Auto-generated from ML prediction',
-                  scheduled_date: date,
-                  estimated_downtime_hours: 2,
-                  assigned_technician: null,
-                  entered_by: null,
-                  terminal: 'Hanceville Terminal',
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                  completed_at: null,
-                  is_overdue: false,
-                  auto_generated: true
-                })
-                setNewWorkOrderOpen(true)
-              }}
-            />
-          </TabsContent>
+              {safeWorkOrders.length === 0 ? (
+                <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+                    <ChartBar size={32} className="text-primary" weight="duotone" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">No Data to Analyze</h3>
+                  <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                    Import work orders via Excel/CSV or create sample data to view analytics
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button className="gap-2" onClick={() => setImportOpen(true)}>
+                      <UploadSimple size={16} />
+                      Import Excel/CSV
+                    </Button>
+                    <Button variant="outline" onClick={handleLoadSampleData}>
+                      Load Sample Data
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <AnalyticsDashboard workOrders={safeWorkOrders} />
+              )}
+            </TabsContent>
 
-          <TabsContent value="database" className="space-y-6 animate-fade-in">
-            <DatabaseManagement />
-          </TabsContent>
+            <TabsContent value="predictive" className="space-y-6 animate-fade-in">
+              <PredictiveMaintenanceDashboard
+                workOrders={safeWorkOrders}
+                employees={safeEmployees}
+                parts={parts || []}
+                partTransactions={partTransactions || []}
+                onCreateWorkOrder={(equipment, date, priority) => {
+                  setCloneWorkOrder({
+                    work_order_id: `WO-${Date.now()}`,
+                    equipment_area: equipment,
+                    priority_level: priority as any,
+                    status: 'Scheduled (Not Started)',
+                    type: 'Maintenance',
+                    task: `Predictive maintenance for ${equipment}`,
+                    comments_description: 'Auto-generated from ML prediction',
+                    scheduled_date: date,
+                    estimated_downtime_hours: 2,
+                    assigned_technician: null,
+                    entered_by: null,
+                    terminal: 'Hanceville Terminal',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    completed_at: null,
+                    is_overdue: false,
+                    auto_generated: true
+                  })
+                  setNewWorkOrderOpen(true)
+                }}
+              />
+            </TabsContent>
 
-          <TabsContent value="pm-schedules" className="space-y-6 animate-fade-in">
-            <PMScheduleManagement />
-          </TabsContent>
+            <TabsContent value="database" className="space-y-6 animate-fade-in">
+              <DatabaseManagement />
+            </TabsContent>
 
-          <TabsContent value="templates" className="space-y-6 animate-fade-in">
-            <WorkOrderTemplates />
-          </TabsContent>
-        </Tabs>
-      </main>
+            <TabsContent value="pm-schedules" className="space-y-6 animate-fade-in">
+              <PMScheduleManagement />
+            </TabsContent>
+
+            <TabsContent value="templates" className="space-y-6 animate-fade-in">
+              <WorkOrderTemplates />
+            </TabsContent>
+          </Tabs>
+        </main>
+      </div>
 
       <WorkOrderDetail
         workOrder={selectedWorkOrder}
