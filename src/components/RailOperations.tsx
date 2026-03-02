@@ -148,13 +148,13 @@ export function RailOperations() {
         const vol = parseFloat(form.actual_volume_gallons)
         const tankId = form.unload_to_tank_id
         if (!isNaN(vol) && vol > 0 && tankId) {
-          const now2 = new Date().toISOString()
+          const tankUpdateTime = new Date().toISOString()
           setTanks(cur => {
             if (!cur) return cur
             return cur.map(t => {
               if (t.tank_id !== tankId) return t
               const newVol = Math.min(t.capacity_gallons, t.current_volume_gallons + vol)
-              return { ...t, current_volume_gallons: newVol, last_updated: now2 }
+              return { ...t, current_volume_gallons: newVol, last_updated: tankUpdateTime }
             })
           })
           toast.info('Tank level updated automatically with received volume')

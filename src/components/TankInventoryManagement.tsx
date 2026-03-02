@@ -23,9 +23,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Drop, Plus, Pencil, Warning, Thermometer, ArrowsClockwise } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-
-const ASPHALT_DENSITY_LBS_GAL = 8.7
-const TONS_TO_LBS = 2000
+import { ASPHALT_DENSITY_LBS_GAL, TONS_TO_LBS } from '@/lib/asphalt-constants'
 
 const PRODUCTS: AsphaltProduct[] = ['PG 58-28', 'PG 64-22', 'PG 70-22', 'PG 76-22', 'PG 82-22', 'AC-20', 'AC-30', 'Emulsion', 'Other']
 const STATUSES: TankStatus[] = ['Active', 'Inactive', 'Maintenance']

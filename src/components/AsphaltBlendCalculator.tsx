@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dialog'
 import { Calculator, Flask, BookOpen, Trash, CheckCircle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
+import { ASPHALT_DENSITY_LBS_GAL, TONS_TO_LBS } from '@/lib/asphalt-constants'
 
 // Industry-standard polymer dosage guidelines
 const POLYMER_DOSAGE_GUIDE: Record<string, Record<PolymerType, { min: number; typical: number; max: number }>> = {
@@ -67,8 +68,6 @@ const POLYMER_DOSAGE_GUIDE: Record<string, Record<PolymerType, { min: number; ty
   },
 }
 
-const ASPHALT_DENSITY_LBS_GAL = 8.7
-const TONS_TO_LBS = 2000
 
 function getPolymerGuide(baseGrade: AsphaltProduct, targetGrade: AsphaltProduct, polymerType: PolymerType) {
   const key = `${baseGrade}_${targetGrade}`

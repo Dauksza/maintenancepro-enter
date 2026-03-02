@@ -31,6 +31,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Truck, Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
+import { ASPHALT_DENSITY_LBS_GAL } from '@/lib/asphalt-constants'
 
 const PRODUCTS: AsphaltProduct[] = ['PG 58-28', 'PG 64-22', 'PG 70-22', 'PG 76-22', 'PG 82-22', 'AC-20', 'AC-30', 'Emulsion', 'Other']
 const LOAD_STATUSES: TankerLoadingStatus[] = ['Pending', 'Loading', 'Complete', 'Cancelled']
@@ -42,7 +43,7 @@ const STATUS_COLORS: Record<TankerLoadingStatus, string> = {
   'Cancelled': 'bg-red-100 text-red-700 border-red-200',
 }
 
-const ASPHALT_LBS_PER_GAL = 8.7
+const ASPHALT_LBS_PER_GAL = ASPHALT_DENSITY_LBS_GAL
 
 interface TicketForm {
   ticket_number: string
