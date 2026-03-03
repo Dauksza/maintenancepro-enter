@@ -475,7 +475,7 @@ export function ProductionTracking() {
                         <span className="text-muted-foreground">{p.value.toLocaleString()} t</span>
                       </div>
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${totalActual > 0 ? Math.round((p.value / totalActual) * 100) : 0}%`, background: p.fill }} />
+                        <div className="h-full rounded-full" role="progressbar" aria-valuenow={totalActual > 0 ? Math.round((p.value / totalActual) * 100) : 0} aria-valuemin={0} aria-valuemax={100} style={{ width: `${totalActual > 0 ? Math.round((p.value / totalActual) * 100) : 0}%`, background: p.fill }} />
                       </div>
                     </div>
                   ))}

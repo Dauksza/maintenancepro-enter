@@ -266,15 +266,15 @@ function BudgetDialog({ open, onClose, existing, onSave }: BudgetDialogProps) {
 
   const handleSave = () => {
     const newEntries: BudgetEntry[] = COST_CATEGORIES.map(cat => {
-      const existing_entry = existing.find(b => b.year === year && b.month === month && b.category === cat)
+      const existingEntry = existing.find(b => b.year === year && b.month === month && b.category === cat)
       const amt = parseFloat(amounts[cat]) || 0
       return {
-        budget_id: existing_entry?.budget_id ?? uuidv4(),
+        budget_id: existingEntry?.budget_id ?? uuidv4(),
         year,
         month,
         category: cat,
         budgeted_amount: amt,
-        created_at: existing_entry?.created_at ?? new Date().toISOString(),
+        created_at: existingEntry?.created_at ?? new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
     })
@@ -608,7 +608,7 @@ export function FinancialDashboard() {
                         </div>
                         {budget > 0 && (
                           <div className="h-2 rounded-full bg-muted overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: CATEGORY_COLORS[cat] }} />
+                            <div className="h-full rounded-full transition-all" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${cat} ${pct}% of budget`} style={{ width: `${pct}%`, background: CATEGORY_COLORS[cat] }} />
                           </div>
                         )}
                       </div>

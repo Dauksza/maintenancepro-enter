@@ -398,7 +398,7 @@ export function SalesOrders() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-1"><CurrencyDollar size={14} />Avg Order Value</CardDescription>
-            <CardTitle className="text-2xl">{yearOrders.length > 0 ? fmt(totalRevenue / yearOrders.filter(o => o.status !== 'Cancelled').length) : '$0'}</CardTitle>
+            <CardTitle className="text-2xl">{(() => { const active = yearOrders.filter(o => o.status !== 'Cancelled'); return active.length > 0 ? fmt(totalRevenue / active.length) : '$0' })()}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">{yearOrders.length} orders total</p>
