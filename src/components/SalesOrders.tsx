@@ -1,0 +1,494 @@
+import { useState, useMemo } from 'react'
+import { useKV } from '@github/spark/hooks'
+import type { SalesOrder, SalesOrderStatus, AsphaltProduct } from '@/lib/types'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+} from 'recharts'
+import {
+  ShoppingCart,
+  Plus,
+  Trash,
+  Pencil,
+  TrendUp,
+  CurrencyDollar,
+  CheckCircle,
+  Clock,
+} from '@phosphor-icons/react'
+import { toast } from 'sonner'
+import { v4 as uuidv4 } from 'uuid'
+
+const ASPHALT_PRODUCTS: AsphaltProduct[] = [
+  'PG 58-28', 'PG 64-22', 'PG 70-22', 'PG 76-22', 'PG 82-22', 'AC-20', 'AC-30', 'Emulsion', 'Other'
+]
+const SALES_STATUSES: SalesOrderStatus[] = ['Quote', 'Confirmed', 'In Production', 'Ready', 'Delivered', 'Invoiced', 'Paid', 'Cancelled']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const CURRENT_YEAR = new Date().getFullYear()
+
+function fmt(n: number) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
+}
+
+const STATUS_STYLES: Record<SalesOrderStatus, string> = {
+  Quote: 'bg-slate-100 text-slate-700 border-slate-200',
+  Confirmed: 'bg-blue-100 text-blue-700 border-blue-200',
+  'In Production': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  Ready: 'bg-purple-100 text-purple-700 border-purple-200',
+  Delivered: 'bg-green-100 text-green-700 border-green-200',
+  Invoiced: 'bg-orange-100 text-orange-700 border-orange-200',
+  Paid: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  Cancelled: 'bg-gray-100 text-gray-500 border-gray-200',
+}
+
+function statusBadge(status: SalesOrderStatus) {
+  return <Badge className={`text-xs ${STATUS_STYLES[status]}`}>{status}</Badge>
+}
+
+// ─── Sample data generator ─────────────────────────────────────────────────────
+
+function generateSampleSalesOrders(): SalesOrder[] {
+  const customers = ['City of Birmingham', 'ALDOT District 3', 'JB&A Paving', 'Gulf States Paving', 'Highway 31 Contractors', 'Southern Asphalt Inc.']
+  const products: AsphaltProduct[] = ['PG 64-22', 'PG 70-22', 'PG 76-22', 'AC-20', 'Emulsion']
+  const statuses: SalesOrderStatus[] = ['Quote', 'Confirmed', 'In Production', 'Ready', 'Delivered', 'Invoiced', 'Paid', 'Paid', 'Paid']
+  const orders: SalesOrder[] = []
+  let orderNum = 1
+  for (let month = 1; month <= 12; month++) {
+    const count = 3 + Math.floor(Math.random() * 4)
+    for (let i = 0; i < count; i++) {
+      const product = products[Math.floor(Math.random() * products.length)]
+      const tons = 50 + Math.floor(Math.random() * 500)
+      const unitPrice = product.startsWith('PG 76') || product.startsWith('PG 82') ? 750 + Math.random() * 100 : product === 'Emulsion' ? 550 + Math.random() * 80 : 620 + Math.random() * 80
+      const price = Math.round(tons * unitPrice * 100) / 100
+      const orderDate = `${CURRENT_YEAR}-${String(month).padStart(2, '0')}-${String(1 + Math.floor(Math.random() * 20)).padStart(2, '0')}`
+      const delivDate = `${CURRENT_YEAR}-${String(Math.min(12, month + 1)).padStart(2, '0')}-${String(1 + Math.floor(Math.random() * 28)).padStart(2, '0')}`
+      const status = month < new Date().getMonth() + 1 ? (Math.random() > 0.15 ? 'Paid' : 'Invoiced') : statuses[Math.floor(Math.random() * statuses.length)]
+      orders.push({
+        order_id: uuidv4(),
+        order_number: `SO-${CURRENT_YEAR}-${String(orderNum++).padStart(4, '0')}`,
+        customer_name: customers[Math.floor(Math.random() * customers.length)],
+        customer_contact: null,
+        order_date: orderDate,
+        delivery_date: delivDate,
+        product,
+        quantity_tons: tons,
+        unit_price_per_ton: Math.round(unitPrice * 100) / 100,
+        total_price: price,
+        status,
+        invoice_number: status === 'Invoiced' || status === 'Paid' ? `INV-${CURRENT_YEAR}-${String(orderNum).padStart(5, '0')}` : null,
+        notes: '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+    }
+  }
+  return orders
+}
+
+// ─── Order Dialog ─────────────────────────────────────────────────────────────
+
+interface OrderDialogProps {
+  open: boolean
+  onClose: () => void
+  onSave: (order: SalesOrder) => void
+  existing?: SalesOrder | null
+}
+
+function OrderDialog({ open, onClose, onSave, existing }: OrderDialogProps) {
+  const [form, setForm] = useState(() => ({
+    order_number: existing?.order_number ?? '',
+    customer_name: existing?.customer_name ?? '',
+    customer_contact: existing?.customer_contact ?? '',
+    order_date: existing?.order_date ?? new Date().toISOString().split('T')[0],
+    delivery_date: existing?.delivery_date ?? '',
+    product: existing?.product ?? 'PG 64-22' as AsphaltProduct,
+    quantity_tons: existing?.quantity_tons?.toString() ?? '',
+    unit_price: existing?.unit_price_per_ton?.toString() ?? '',
+    status: existing?.status ?? 'Quote' as SalesOrderStatus,
+    invoice_number: existing?.invoice_number ?? '',
+    notes: existing?.notes ?? '',
+  }))
+
+  const totalPrice = useMemo(() => {
+    const qty = parseFloat(form.quantity_tons) || 0
+    const price = parseFloat(form.unit_price) || 0
+    return qty * price
+  }, [form.quantity_tons, form.unit_price])
+
+  const handleSave = () => {
+    if (!form.customer_name.trim()) { toast.error('Customer name is required'); return }
+    if (!form.order_number.trim()) { toast.error('Order number is required'); return }
+    const qty = parseFloat(form.quantity_tons)
+    const price = parseFloat(form.unit_price)
+    if (isNaN(qty) || qty <= 0) { toast.error('Enter a valid quantity'); return }
+    if (isNaN(price) || price <= 0) { toast.error('Enter a valid unit price'); return }
+    onSave({
+      order_id: existing?.order_id ?? uuidv4(),
+      order_number: form.order_number.trim(),
+      customer_name: form.customer_name.trim(),
+      customer_contact: form.customer_contact.trim() || null,
+      order_date: form.order_date,
+      delivery_date: form.delivery_date || form.order_date,
+      product: form.product,
+      quantity_tons: qty,
+      unit_price_per_ton: price,
+      total_price: qty * price,
+      status: form.status,
+      invoice_number: form.invoice_number.trim() || null,
+      notes: form.notes.trim(),
+      created_at: existing?.created_at ?? new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    onClose()
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{existing ? 'Edit' : 'New'} Sales Order</DialogTitle>
+          <DialogDescription>Record a customer sales order</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Order Number</Label>
+              <Input placeholder="SO-2025-0001" value={form.order_number} onChange={e => setForm(p => ({ ...p, order_number: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v as SalesOrderStatus }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SALES_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Customer Name</Label>
+            <Input placeholder="Customer or organization" value={form.customer_name} onChange={e => setForm(p => ({ ...p, customer_name: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Order Date</Label>
+              <Input type="date" value={form.order_date} onChange={e => setForm(p => ({ ...p, order_date: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Delivery Date</Label>
+              <Input type="date" value={form.delivery_date} onChange={e => setForm(p => ({ ...p, delivery_date: e.target.value }))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Product</Label>
+              <Select value={form.product} onValueChange={v => setForm(p => ({ ...p, product: v as AsphaltProduct }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ASPHALT_PRODUCTS.map(pr => <SelectItem key={pr} value={pr}>{pr}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Quantity (tons)</Label>
+              <Input type="number" min="0" step="1" placeholder="100" value={form.quantity_tons} onChange={e => setForm(p => ({ ...p, quantity_tons: e.target.value }))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Unit Price ($/ton)</Label>
+              <Input type="number" min="0" step="0.01" placeholder="650.00" value={form.unit_price} onChange={e => setForm(p => ({ ...p, unit_price: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Total Price</Label>
+              <Input disabled value={fmt(totalPrice)} className="bg-muted" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Invoice # (optional)</Label>
+            <Input placeholder="INV-2025-00001" value={form.invoice_number} onChange={e => setForm(p => ({ ...p, invoice_number: e.target.value }))} />
+          </div>
+          <div className="space-y-1">
+            <Label>Notes</Label>
+            <Textarea placeholder="Optional notes..." rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={handleSave}>Save Order</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function SalesOrders() {
+  const [orders, setOrders] = useKV<SalesOrder[]>('sales-orders', [])
+  const [addOpen, setAddOpen] = useState(false)
+  const [editOrder, setEditOrder] = useState<SalesOrder | null>(null)
+  const [filterStatus, setFilterStatus] = useState<SalesOrderStatus | 'All'>('All')
+  const [filterYear, setFilterYear] = useState(CURRENT_YEAR)
+
+  const safeOrders = orders || []
+
+  const handleSave = (order: SalesOrder) => {
+    setOrders(current => {
+      const existing = (current || []).find(o => o.order_id === order.order_id)
+      if (existing) return (current || []).map(o => o.order_id === order.order_id ? order : o)
+      return [...(current || []), order]
+    })
+    toast.success(editOrder ? 'Order updated' : 'Order created')
+    setEditOrder(null)
+  }
+
+  const handleDelete = (id: string) => {
+    setOrders(c => (c || []).filter(o => o.order_id !== id))
+    toast.success('Order deleted')
+  }
+
+  const handleLoadSample = () => {
+    setOrders(generateSampleSalesOrders())
+    toast.success('Sample sales data loaded')
+  }
+
+  const yearOrders = useMemo(() =>
+    safeOrders.filter(o => new Date(o.order_date).getFullYear() === filterYear),
+    [safeOrders, filterYear])
+
+  const totalRevenue = useMemo(() =>
+    yearOrders.filter(o => o.status !== 'Cancelled').reduce((s, o) => s + o.total_price, 0),
+    [yearOrders])
+
+  const totalPaid = useMemo(() =>
+    yearOrders.filter(o => o.status === 'Paid').reduce((s, o) => s + o.total_price, 0),
+    [yearOrders])
+
+  const totalPending = useMemo(() =>
+    yearOrders.filter(o => ['Confirmed', 'In Production', 'Ready', 'Delivered', 'Invoiced'].includes(o.status)).reduce((s, o) => s + o.total_price, 0),
+    [yearOrders])
+
+  const openOrders = useMemo(() =>
+    yearOrders.filter(o => !['Paid', 'Cancelled'].includes(o.status)).length,
+    [yearOrders])
+
+  const monthlyRevenue = useMemo(() => MONTHS.map((m, i) => {
+    const month = i + 1
+    const mOrders = yearOrders.filter(o => new Date(o.order_date).getMonth() + 1 === month && o.status !== 'Cancelled')
+    return {
+      month: m,
+      revenue: Math.round(mOrders.reduce((s, o) => s + o.total_price, 0)),
+      paid: Math.round(mOrders.filter(o => o.status === 'Paid').reduce((s, o) => s + o.total_price, 0)),
+    }
+  }), [yearOrders])
+
+  const filteredOrders = useMemo(() =>
+    yearOrders
+      .filter(o => filterStatus === 'All' || o.status === filterStatus)
+      .sort((a, b) => b.order_date.localeCompare(a.order_date)),
+    [yearOrders, filterStatus])
+
+  if (safeOrders.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-semibold">Sales Orders</h2>
+          <p className="text-muted-foreground">Track customer orders, invoices, and revenue</p>
+        </div>
+        <div className="bg-card border rounded-xl p-16 text-center animate-scale-in">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
+            <ShoppingCart size={32} className="text-primary" weight="duotone" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">No Sales Data</h3>
+          <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+            Load sample data or create your first sales order
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={handleLoadSample}>Load Sample Data</Button>
+            <Button variant="outline" onClick={() => setAddOpen(true)}>
+              <Plus size={16} className="mr-2" />New Order
+            </Button>
+          </div>
+        </div>
+        <OrderDialog open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSave} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-semibold">Sales Orders</h2>
+          <p className="text-muted-foreground">Customer orders, invoicing, and revenue tracking</p>
+        </div>
+        <div className="flex gap-2">
+          <Select value={String(filterYear)} onValueChange={v => setFilterYear(parseInt(v))}>
+            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1].map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={() => setAddOpen(true)}>
+            <Plus size={16} className="mr-2" />New Order
+          </Button>
+        </div>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-1"><TrendUp size={14} />Total Revenue</CardDescription>
+            <CardTitle className="text-2xl">{fmt(totalRevenue)}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{yearOrders.filter(o => o.status !== 'Cancelled').length} active orders</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-1"><CheckCircle size={14} />Collected</CardDescription>
+            <CardTitle className="text-2xl">{fmt(totalPaid)}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{totalRevenue > 0 ? Math.round((totalPaid / totalRevenue) * 100) : 0}% of revenue</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-1"><Clock size={14} />Pending Collection</CardDescription>
+            <CardTitle className="text-2xl">{fmt(totalPending)}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{openOrders} open orders</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-1"><CurrencyDollar size={14} />Avg Order Value</CardDescription>
+            <CardTitle className="text-2xl">{yearOrders.length > 0 ? fmt(totalRevenue / yearOrders.filter(o => o.status !== 'Cancelled').length) : '$0'}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{yearOrders.length} orders total</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="chart">
+        <TabsList>
+          <TabsTrigger value="chart">Revenue Chart</TabsTrigger>
+          <TabsTrigger value="orders">Order List</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="chart" className="space-y-4 pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Revenue – {filterYear}</CardTitle>
+              <CardDescription>Total invoiced vs collected by month</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={monthlyRevenue} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: number) => fmt(v)} />
+                  <Legend />
+                  <Bar dataKey="revenue" name="Invoiced" fill="oklch(0.60 0.15 240)" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="paid" name="Paid" fill="oklch(0.62 0.17 145)" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="orders" className="space-y-4 pt-4">
+          <div className="flex items-center gap-3">
+            <Select value={filterStatus} onValueChange={v => setFilterStatus(v as SalesOrderStatus | 'All')}>
+              <SelectTrigger className="w-40"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Statuses</SelectItem>
+                {SALES_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">{filteredOrders.length} orders</span>
+          </div>
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y max-h-[480px] overflow-y-auto">
+                {filteredOrders.length === 0 && (
+                  <p className="text-muted-foreground text-sm py-8 text-center">No orders found</p>
+                )}
+                {filteredOrders.map(order => (
+                  <div key={order.order_id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium">{order.order_number}</span>
+                        <span className="text-sm text-muted-foreground truncate">{order.customer_name}</span>
+                        <Badge variant="outline" className="text-xs shrink-0">{order.product}</Badge>
+                        {statusBadge(order.status)}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {order.order_date} → {order.delivery_date}
+                        {' · '}{order.quantity_tons.toLocaleString()} tons @ {fmt(order.unit_price_per_ton)}/t
+                        {order.invoice_number && ` · ${order.invoice_number}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 ml-4">
+                      <span className="font-semibold text-sm">{fmt(order.total_price)}</span>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditOrder(order); setAddOpen(true) }}>
+                        <Pencil size={13} />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDelete(order.order_id)}>
+                        <Trash size={13} />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <OrderDialog
+        open={addOpen}
+        onClose={() => { setAddOpen(false); setEditOrder(null) }}
+        onSave={handleSave}
+        existing={editOrder}
+      />
+    </div>
+  )
+}

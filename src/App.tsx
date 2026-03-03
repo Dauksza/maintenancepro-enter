@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { useTheme } from 'next-themes'
 import type { 
@@ -23,44 +23,52 @@ import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { WorkOrderGrid } from '@/components/WorkOrderGrid'
-import { WorkOrderDetail } from '@/components/WorkOrderDetail'
-import { SOPLibrary } from '@/components/SOPLibrary'
-import { AnalyticsDashboard } from '@/components/AnalyticsDashboard'
-import { ExcelImport } from '@/components/ExcelImport'
-import { CalendarView } from '@/components/CalendarView'
-import { TimelineView } from '@/components/TimelineView'
-import { ResourceAllocationView } from '@/components/ResourceAllocationView'
-import { CapacityPlanning } from '@/components/CapacityPlanning'
-import { EmployeeManagement } from '@/components/EmployeeManagement'
-import { CertificationReminders } from '@/components/CertificationReminders'
-import { AssetsAreasManagement } from '@/components/AssetsAreasManagement'
-import { EnhancedAutoSchedulerDialog } from '@/components/EnhancedAutoSchedulerDialog'
-import { NewWorkOrderDialog } from '@/components/NewWorkOrderDialog'
-import { NotificationCenter } from '@/components/NotificationCenter'
 import { NotificationBell } from '@/components/NotificationBell'
-import { NotificationToastManager } from '@/components/NotificationToastManager'
-import { NotificationPreferencesDialog, type NotificationPreferences } from '@/components/NotificationPreferences'
-import { PartsInventory } from '@/components/PartsInventory'
-import { FormsInspections } from '@/components/FormsInspections'
-import { GlobalSearch } from '@/components/GlobalSearch'
-import { CustomizableDashboard } from '@/components/CustomizableDashboard'
 import { UserProfileMenu } from '@/components/UserProfileMenu'
-import { DatabaseManagement } from '@/components/DatabaseManagement'
-import { PredictiveMaintenanceDashboard } from '@/components/PredictiveMaintenanceDashboard'
-import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog'
-import { PMScheduleManagement } from '@/components/PMScheduleManagement'
-import { WorkOrderTemplates } from '@/components/WorkOrderTemplates'
-import { WelcomeDialog } from '@/components/WelcomeDialog'
-import { PWAInstallBanner } from '@/components/PWAInstallBanner'
 import { SystemStatus, LiveActivityIndicator } from '@/components/SystemStatus'
-import { InteractiveTour, type TourStep } from '@/components/InteractiveTour'
-import { PMEquipmentManagement } from '@/components/PMEquipmentManagement'
-import { AsphaltBlendCalculator } from '@/components/AsphaltBlendCalculator'
-import { TankInventoryManagement } from '@/components/TankInventoryManagement'
-import { RailOperations } from '@/components/RailOperations'
-import { TankerLoading } from '@/components/TankerLoading'
-import { AsphaltFlowDiagram } from '@/components/AsphaltFlowDiagram'
+import { PWAInstallBanner } from '@/components/PWAInstallBanner'
+import type { NotificationPreferences } from '@/components/NotificationPreferences'
+import type { TourStep } from '@/components/InteractiveTour'
+
+// Code-split heavy components – only load when the relevant tab/dialog is first opened
+const WorkOrderGrid = lazy(() => import('@/components/WorkOrderGrid').then(m => ({ default: m.WorkOrderGrid })))
+const WorkOrderDetail = lazy(() => import('@/components/WorkOrderDetail').then(m => ({ default: m.WorkOrderDetail })))
+const SOPLibrary = lazy(() => import('@/components/SOPLibrary').then(m => ({ default: m.SOPLibrary })))
+const AnalyticsDashboard = lazy(() => import('@/components/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })))
+const ExcelImport = lazy(() => import('@/components/ExcelImport').then(m => ({ default: m.ExcelImport })))
+const CalendarView = lazy(() => import('@/components/CalendarView').then(m => ({ default: m.CalendarView })))
+const TimelineView = lazy(() => import('@/components/TimelineView').then(m => ({ default: m.TimelineView })))
+const ResourceAllocationView = lazy(() => import('@/components/ResourceAllocationView').then(m => ({ default: m.ResourceAllocationView })))
+const CapacityPlanning = lazy(() => import('@/components/CapacityPlanning').then(m => ({ default: m.CapacityPlanning })))
+const EmployeeManagement = lazy(() => import('@/components/EmployeeManagement').then(m => ({ default: m.EmployeeManagement })))
+const CertificationReminders = lazy(() => import('@/components/CertificationReminders').then(m => ({ default: m.CertificationReminders })))
+const AssetsAreasManagement = lazy(() => import('@/components/AssetsAreasManagement').then(m => ({ default: m.AssetsAreasManagement })))
+const EnhancedAutoSchedulerDialog = lazy(() => import('@/components/EnhancedAutoSchedulerDialog').then(m => ({ default: m.EnhancedAutoSchedulerDialog })))
+const NewWorkOrderDialog = lazy(() => import('@/components/NewWorkOrderDialog').then(m => ({ default: m.NewWorkOrderDialog })))
+const NotificationCenter = lazy(() => import('@/components/NotificationCenter').then(m => ({ default: m.NotificationCenter })))
+const NotificationToastManager = lazy(() => import('@/components/NotificationToastManager').then(m => ({ default: m.NotificationToastManager })))
+const NotificationPreferencesDialog = lazy(() => import('@/components/NotificationPreferences').then(m => ({ default: m.NotificationPreferencesDialog })))
+const PartsInventory = lazy(() => import('@/components/PartsInventory').then(m => ({ default: m.PartsInventory })))
+const FormsInspections = lazy(() => import('@/components/FormsInspections').then(m => ({ default: m.FormsInspections })))
+const GlobalSearch = lazy(() => import('@/components/GlobalSearch').then(m => ({ default: m.GlobalSearch })))
+const CustomizableDashboard = lazy(() => import('@/components/CustomizableDashboard').then(m => ({ default: m.CustomizableDashboard })))
+const DatabaseManagement = lazy(() => import('@/components/DatabaseManagement').then(m => ({ default: m.DatabaseManagement })))
+const PredictiveMaintenanceDashboard = lazy(() => import('@/components/PredictiveMaintenanceDashboard').then(m => ({ default: m.PredictiveMaintenanceDashboard })))
+const KeyboardShortcutsDialog = lazy(() => import('@/components/KeyboardShortcutsDialog').then(m => ({ default: m.KeyboardShortcutsDialog })))
+const PMScheduleManagement = lazy(() => import('@/components/PMScheduleManagement').then(m => ({ default: m.PMScheduleManagement })))
+const WorkOrderTemplates = lazy(() => import('@/components/WorkOrderTemplates').then(m => ({ default: m.WorkOrderTemplates })))
+const WelcomeDialog = lazy(() => import('@/components/WelcomeDialog').then(m => ({ default: m.WelcomeDialog })))
+const InteractiveTour = lazy(() => import('@/components/InteractiveTour').then(m => ({ default: m.InteractiveTour })))
+const PMEquipmentManagement = lazy(() => import('@/components/PMEquipmentManagement').then(m => ({ default: m.PMEquipmentManagement })))
+const AsphaltBlendCalculator = lazy(() => import('@/components/AsphaltBlendCalculator').then(m => ({ default: m.AsphaltBlendCalculator })))
+const TankInventoryManagement = lazy(() => import('@/components/TankInventoryManagement').then(m => ({ default: m.TankInventoryManagement })))
+const RailOperations = lazy(() => import('@/components/RailOperations').then(m => ({ default: m.RailOperations })))
+const TankerLoading = lazy(() => import('@/components/TankerLoading').then(m => ({ default: m.TankerLoading })))
+const AsphaltFlowDiagram = lazy(() => import('@/components/AsphaltFlowDiagram').then(m => ({ default: m.AsphaltFlowDiagram })))
+// Business modules
+const FinancialDashboard = lazy(() => import('@/components/FinancialDashboard').then(m => ({ default: m.FinancialDashboard })))
+const ProductionTracking = lazy(() => import('@/components/ProductionTracking').then(m => ({ default: m.ProductionTracking })))
+const SalesOrders = lazy(() => import('@/components/SalesOrders').then(m => ({ default: m.SalesOrders })))
 import { 
   Wrench, 
   ClipboardText, 
@@ -95,7 +103,10 @@ import {
   List,
   X,
   ArrowUp,
-  SidebarSimple
+  SidebarSimple,
+  CurrencyDollar,
+  Factory,
+  ShoppingCart
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -231,7 +242,10 @@ function App() {
     'tanks',
     'rail-ops',
     'tanker-loading',
-    'flow-diagram'
+    'flow-diagram',
+    'financial',
+    'production',
+    'sales'
   ]
   const safeActiveTab = activeTab && validTabs.includes(activeTab) ? activeTab : 'dashboard'
 
@@ -260,6 +274,9 @@ function App() {
     'rail-ops': 'Rail Operations',
     'tanker-loading': 'Tanker Loading',
     'flow-diagram': 'Flow Diagram',
+    financial: 'Financial Overview',
+    production: 'Production Tracking',
+    sales: 'Sales Orders',
   }
   const currentSectionLabel = TAB_LABELS[safeActiveTab] ?? 'Dashboard'
 
@@ -941,6 +958,35 @@ function App() {
               })}
             </div>
           </div>
+
+          {/* Business */}
+          <div>
+            {!sidebarCollapsed && <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Business</p>}
+            <div className="space-y-0.5">
+              {[
+                { tab: 'financial', label: 'Financial', icon: CurrencyDollar },
+                { tab: 'production', label: 'Production', icon: Factory },
+                { tab: 'sales', label: 'Sales Orders', icon: ShoppingCart },
+              ].map(({ tab, label, icon: Icon }) => {
+                const isActive = safeActiveTab === tab
+                const btn = (
+                  <button
+                    key={tab}
+                    onClick={() => { setActiveTab(tab); setMobileSidebarOpen(false) }}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-2'} rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+                  >
+                    <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
+                    {!sidebarCollapsed && <span className="truncate">{label}</span>}
+                  </button>
+                )
+                if (sidebarCollapsed) return (
+                  <Tooltip key={tab}><TooltipTrigger asChild>{btn}</TooltipTrigger><TooltipContent side="right">{label}</TooltipContent></Tooltip>
+                )
+                return btn
+              })}
+            </div>
+          </div>
         </nav>
 
         {/* Enhancement 7: Sidebar Footer with version strip */}
@@ -1110,6 +1156,7 @@ function App() {
             <ArrowUp size={16} weight="bold" />
           </button>
 
+          <Suspense fallback={<div className="flex items-center justify-center h-48 text-muted-foreground text-sm">Loading…</div>}>
           <Tabs value={safeActiveTab} onValueChange={setActiveTab}>
 
             <TabsContent value="dashboard" className="space-y-6 animate-fade-in">
@@ -1560,10 +1607,24 @@ function App() {
             <TabsContent value="flow-diagram" className="space-y-6 animate-fade-in">
               <AsphaltFlowDiagram />
             </TabsContent>
+
+            <TabsContent value="financial" className="space-y-6 animate-fade-in">
+              <FinancialDashboard />
+            </TabsContent>
+
+            <TabsContent value="production" className="space-y-6 animate-fade-in">
+              <ProductionTracking />
+            </TabsContent>
+
+            <TabsContent value="sales" className="space-y-6 animate-fade-in">
+              <SalesOrders />
+            </TabsContent>
           </Tabs>
+          </Suspense>
         </main>
       </div>
 
+      <Suspense fallback={null}>
       <WorkOrderDetail
         workOrder={selectedWorkOrder}
         open={detailOpen}
@@ -1644,6 +1705,7 @@ function App() {
         onClose={closeTour}
         onComplete={completeTour}
       />
+      </Suspense>
 
       <PWAInstallBanner />
     </div>

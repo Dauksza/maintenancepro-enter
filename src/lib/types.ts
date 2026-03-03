@@ -1334,3 +1334,78 @@ export interface BlendFormulation {
   created_at: string
   is_active: boolean
 }
+
+// ─── Financial / Sales / Production ─────────────────────────────────────────
+
+export type SalesOrderStatus =
+  | 'Quote'
+  | 'Confirmed'
+  | 'In Production'
+  | 'Ready'
+  | 'Delivered'
+  | 'Invoiced'
+  | 'Paid'
+  | 'Cancelled'
+
+export interface SalesOrder {
+  order_id: string
+  order_number: string
+  customer_name: string
+  customer_contact?: string | null
+  order_date: string
+  delivery_date: string
+  product: AsphaltProduct
+  quantity_tons: number
+  unit_price_per_ton: number
+  total_price: number
+  status: SalesOrderStatus
+  invoice_number?: string | null
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export type ProductionBatchStatus = 'Planned' | 'In Progress' | 'Complete' | 'Cancelled'
+
+export interface ProductionBatch {
+  batch_id: string
+  batch_number: string
+  date: string
+  product: AsphaltProduct
+  target_tons: number
+  actual_tons: number
+  start_time: string | null
+  end_time: string | null
+  status: ProductionBatchStatus
+  operator: string
+  equipment_id?: string | null
+  linked_order_id?: string | null
+  downtime_minutes: number
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export type CostCategory = 'Labor' | 'Parts' | 'Contractor' | 'Equipment Rental' | 'Other'
+
+export interface MaintenanceCostEntry {
+  cost_id: string
+  work_order_id: string | null
+  date: string
+  category: CostCategory
+  description: string
+  amount: number
+  vendor?: string | null
+  invoice_number?: string | null
+  created_at: string
+}
+
+export interface BudgetEntry {
+  budget_id: string
+  year: number
+  month: number
+  category: CostCategory
+  budgeted_amount: number
+  created_at: string
+  updated_at: string
+}
