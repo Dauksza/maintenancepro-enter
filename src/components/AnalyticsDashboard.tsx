@@ -2,12 +2,14 @@ import { useMemo } from 'react'
 import type { WorkOrder } from '@/lib/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   ChartBar, 
   CheckCircle, 
   Warning, 
   Clock,
-  Wrench
+  Wrench,
+  Factory
 } from '@phosphor-icons/react'
 import { 
   BarChart, 
@@ -24,6 +26,7 @@ import {
   LineChart,
   Line
 } from 'recharts'
+import { ProductionSalesAnalytics } from '@/components/ProductionSalesAnalytics'
 
 interface AnalyticsDashboardProps {
   workOrders: WorkOrder[]
@@ -122,6 +125,23 @@ export function AnalyticsDashboard({ workOrders }: AnalyticsDashboardProps) {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="maintenance">
+        <TabsList>
+          <TabsTrigger value="maintenance" className="flex items-center gap-2">
+            <Wrench size={15} />
+            Maintenance
+          </TabsTrigger>
+          <TabsTrigger value="production-sales" className="flex items-center gap-2">
+            <Factory size={15} />
+            Production & Sales
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="production-sales" className="pt-4">
+          <ProductionSalesAnalytics />
+        </TabsContent>
+
+        <TabsContent value="maintenance" className="pt-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
@@ -301,6 +321,8 @@ export function AnalyticsDashboard({ workOrders }: AnalyticsDashboardProps) {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
