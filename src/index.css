@@ -37,6 +37,45 @@
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
+/* ── Enhancement 1: Dark Mode Variables ─────────────────────────────────────── */
+.dark {
+  --background: oklch(0.13 0.02 255);
+  --foreground: oklch(0.95 0.01 255);
+
+  --card: oklch(0.17 0.02 255);
+  --card-foreground: oklch(0.95 0.01 255);
+  --popover: oklch(0.17 0.02 255);
+  --popover-foreground: oklch(0.95 0.01 255);
+
+  --primary: oklch(0.60 0.15 255);
+  --primary-foreground: oklch(0.1 0.01 255);
+  --secondary: oklch(0.22 0.04 255);
+  --secondary-foreground: oklch(0.9 0.01 255);
+  --muted: oklch(0.22 0.02 255);
+  --muted-foreground: oklch(0.62 0.04 255);
+  --accent: oklch(0.72 0.18 55);
+  --accent-foreground: oklch(0.15 0 0);
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.28 0.02 255);
+  --input: oklch(0.28 0.02 255);
+  --ring: oklch(0.60 0.15 255);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: oklch(0.17 0.02 255);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(0.40 0.06 255 / 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.60 0.15 255 / 0.6);
+}
+
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -552,3 +591,127 @@ button:active:not(:disabled) {
     transform: scale(1.1);
   }
 }
+
+/* ── Enhancement 5: Print-Friendly Styles ───────────────────────────────────── */
+@media print {
+  /* Hide chrome that doesn't belong on paper */
+  aside,
+  header,
+  .no-print,
+  [data-tour],
+  [role="dialog"],
+  .sonner-toast-bar,
+  nav {
+    display: none !important;
+  }
+
+  /* Full-width content area */
+  body,
+  #root,
+  .flex {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Force white background for readability */
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border-color: #ccc !important;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+}
+
+/* ── Enhancement 6: Back-to-Top Button ──────────────────────────────────────── */
+.back-to-top {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 50;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px oklch(0 0 0 / 0.15);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.back-to-top.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+}
+
+.back-to-top:not(.hidden) {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Enhancement 9: Improved Focus Ring ─────────────────────────────────────── */
+:focus-visible {
+  outline: 2.5px solid var(--ring);
+  outline-offset: 3px;
+  border-radius: var(--radius);
+}
+
+/* Skip navigation link – visible on keyboard focus */
+.skip-link:focus {
+  position: fixed !important;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+  font-size: 0.875rem;
+  box-shadow: 0 0 0 3px var(--ring);
+  text-decoration: none;
+}
+
+/* ── Enhancement 10: Animated KPI Counter Fade-In ───────────────────────────── */
+.count-up-animate {
+  animation: count-up-fade 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes count-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Staggered animation for multiple KPI cards */
+.count-up-animate:nth-child(1) { animation-delay: 0ms; }
+.count-up-animate:nth-child(2) { animation-delay: 80ms; }
+.count-up-animate:nth-child(3) { animation-delay: 160ms; }
+.count-up-animate:nth-child(4) { animation-delay: 240ms; }
+.count-up-animate:nth-child(5) { animation-delay: 320ms; }
+.count-up-animate:nth-child(6) { animation-delay: 400ms; }
