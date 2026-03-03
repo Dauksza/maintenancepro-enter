@@ -1051,6 +1051,8 @@ export type PIDSymbolType =
   | 'Instrument'
   | 'Pipe'
   | 'Fitting'
+  | 'Manifold'
+  | 'Header'
   | 'Equipment'
   | 'Custom'
   | 'Electrical'
