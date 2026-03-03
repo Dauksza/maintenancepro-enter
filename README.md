@@ -129,7 +129,7 @@ MaintenancePro is an enterprise-level maintenance management application that he
 - **Frontend**: React 19, TypeScript 5.7
 - **Styling**: Tailwind CSS v4, shadcn/ui v4 components
 - **State Management**: React hooks with Spark KV persistence (spark.kv API)
-- **Data Visualization**: Recharts, D3.js
+- **Data Visualization**: Recharts (charts and graphs)
 - **Forms**: React Hook Form with Zod validation
 - **Icons**: Phosphor Icons v2
 - **Animations**: Framer Motion
@@ -155,11 +155,18 @@ src/
 │   ├── ValveHierarchyView.tsx       # Hierarchical valve view
 │   ├── PMEquipmentDetailDialog.tsx  # Equipment details
 │   ├── PIDDrawingEditor.tsx         # P&ID drawing editor
-│   └── NotificationCenter.tsx
+│   ├── NotificationCenter.tsx       # Notification panel
+│   ├── NotificationBell.tsx         # Header notification badge
+│   ├── AsphaltBlendCalculator.tsx   # Asphalt blend tool
+│   ├── TankInventoryManagement.tsx  # Tank inventory tracking
+│   ├── RailOperations.tsx           # Rail car management
+│   ├── TankerLoading.tsx            # Tanker loading workflow
+│   └── AsphaltFlowDiagram.tsx       # Process flow diagram
 ├── lib/                # Utilities and business logic
 │   ├── types.ts        # TypeScript type definitions
 │   ├── excel-parser.ts # Import/export engine
 │   ├── auto-scheduler.ts
+│   ├── enhanced-auto-scheduler.ts
 │   ├── skill-matcher.ts
 │   ├── certification-utils.ts
 │   ├── notification-utils.ts
@@ -167,10 +174,18 @@ src/
 │   ├── root-cause-analysis.ts # RCA pattern detection
 │   ├── pm-equipment-utils.ts   # PM equipment generators
 │   ├── pid-utils.ts            # P&ID drawing utilities
+│   ├── inventory-utils.ts      # Parts inventory helpers
+│   ├── form-utils.ts           # Forms & inspection helpers
+│   ├── permissions.ts          # Role-based access control
 │   └── maintenance-utils.ts
 ├── hooks/              # Custom React hooks
+│   ├── use-mobile.ts
+│   ├── useKeyboardNavigation.ts
+│   └── usePersistentState.ts
+├── styles/             # Additional stylesheets
+│   └── theme.css
 ├── App.tsx             # Main application component
-├── index.css           # Global styles and theme
+├── index.css           # Global styles and theme (light + dark)
 └── main.tsx            # Application entry point
 ```
 
@@ -294,6 +309,23 @@ The system supports importing three Excel sheets:
 2. **SOP Library**: Procedures with title, revision, purpose, scope, LOTO/PPE, PM frequencies, and procedure summary
 3. **Spares & Labor**: Equipment classes with common spare parts and labor hours by frequency
 
+## ✨ Recent Enhancements (v2.0)
+
+The following ten enhancements were implemented to improve visual polish, functionality, and user experience:
+
+1. **🌙 Dark Mode Support** – Full light/dark theme with CSS variables under the `.dark` class; theme toggle button in the application header lets users switch instantly or follow the OS preference.
+2. **◀ Collapsible Sidebar** – Sidebar can collapse to an icon-only strip, reclaiming screen space on laptops. State is persisted in `localStorage` across sessions.
+3. **🗺️ Section Breadcrumb in Header** – The current active section name is shown in the header next to the search bar, providing constant navigation context.
+4. **📱 Mobile Sidebar Overlay** – On narrow viewports a hamburger icon reveals the sidebar as a full-height overlay with a backdrop; tapping outside dismisses it.
+5. **🖨️ Print-Friendly CSS** – A `@media print` stylesheet hides the sidebar, header, and action buttons so that printed or PDF-exported pages show only content.
+6. **⬆ "Back to Top" Scroll Button** – A floating action button appears after scrolling 400 px and smoothly scrolls the user back to the top of the content area.
+7. **ℹ️ Sidebar Version Strip** – The sidebar footer now shows the application version number and a "Help" link, giving users a quick reference.
+8. **📄 Consistent Page Section Headers** – Every tab now renders a uniform section header (title + description) so the navigation context is always clear.
+9. **♿ Improved Focus Ring & Skip Link** – Enhanced `focus-visible` ring styling ensures keyboard users can see the focused element; the existing skip-link is styled to be visually prominent when focused.
+10. **🔢 Animated KPI Counter Fade-In** – Dashboard KPI numbers animate with a smooth count-up / fade-in effect via the `.count-up-animate` CSS class, adding polish to the metrics display.
+
+---
+
 ## 🎯 Roadmap & Vision
 
 ### ✅ Recently Completed
@@ -307,6 +339,10 @@ The system supports importing three Excel sheets:
 - ✅ Global search across all entities
 - ✅ **PM Equipment Management** with hierarchical valve tracking
 - ✅ **P&ID Drawing Editor** for piping and instrumentation diagrams
+- ✅ **Dark mode** with persistent theme preference
+- ✅ **Collapsible sidebar** for better screen real estate
+- ✅ **Mobile sidebar overlay** for small-screen usability
+- ✅ **Print-friendly styles** for work order and report printing
 
 ### 🚀 Future Enhancements
 - **Enhanced Mobile Experience**: Native iOS and Android apps
