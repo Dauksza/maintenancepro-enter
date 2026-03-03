@@ -51,13 +51,28 @@ interface HistoryEntry {
 // ──────────────────────────────────────────────────────────────────────────────
 
 const STAGE_COLORS: Record<string, string> = {
-  railcar:  '#6366f1',
-  pump:     '#f59e0b',
-  tank:     '#3b82f6',
-  hotmix:   '#ef4444',
-  ptank:    '#10b981',
-  manifold: '#8b5cf6',
-  tanker:   '#0ea5e9',
+  railcar:       '#6366f1',
+  pump:          '#f59e0b',
+  tank:          '#3b82f6',
+  hotmix:        '#ef4444',
+  ptank:         '#10b981',
+  manifold:      '#8b5cf6',
+  tanker:        '#0ea5e9',
+  heat_exchanger: '#f97316',
+  pipe:          '#64748b',
+  header:        '#0891b2',
+  generic:       '#6366f1',
+}
+
+// Node type presets for the Add Node tool
+const NODE_TYPE_PRESETS: Record<string, Omit<FlowNode, 'id' | 'x' | 'y'>> = {
+  'Generic':        { label: 'New Node',       sublabel: 'Equipment',    w: 92,  h: 56, color: STAGE_COLORS.generic,        icon: '📦' },
+  'Heat Exchanger': { label: 'Heat Exchanger', sublabel: 'HEX',          w: 100, h: 60, color: STAGE_COLORS.heat_exchanger, icon: '🔄' },
+  'Pipe':           { label: 'Pipe',           sublabel: 'Segment',      w: 80,  h: 30, color: STAGE_COLORS.pipe,           icon: '━' },
+  'Manifold':       { label: 'Manifold',       sublabel: 'Distribution', w: 92,  h: 50, color: STAGE_COLORS.manifold,       icon: '⊞' },
+  'Header':         { label: 'Header',         sublabel: 'Process',      w: 120, h: 30, color: STAGE_COLORS.header,         icon: '═' },
+  'Pump':           { label: 'Pump',           sublabel: 'Transfer',     w: 56,  h: 38, color: STAGE_COLORS.pump,           icon: '⚙', iconSize: 15 },
+  'Tank':           { label: 'Tank',           sublabel: 'Storage',      w: 92,  h: 72, color: STAGE_COLORS.tank,           icon: '🛢' },
 }
 
 const DEFAULT_NODES: FlowNode[] = [
@@ -159,6 +174,7 @@ export function AsphaltFlowDiagram() {
   const [selectedType, setSelectedType] = useState<'node' | 'connection' | null>(null)
   const [connectStart, setConnectStart] = useState<string | null>(null)
   const [running, setRunning] = useState(true)
+  const [newNodeType, setNewNodeType] = useState<string>('Generic')
 
   // Viewport
   const [zoom, setZoom] = useState(1)
@@ -328,16 +344,12 @@ export function AsphaltFlowDiagram() {
 
     if (mode === 'addNode') {
       const svgPt = clientToSvg(e.clientX, e.clientY)
+      const preset = NODE_TYPE_PRESETS[newNodeType] ?? NODE_TYPE_PRESETS['Generic']
       const newNode: FlowNode = {
         id: uuidv4(),
-        label: 'New Node',
-        sublabel: 'Equipment',
-        x: svgPt.x - 46,
-        y: svgPt.y - 28,
-        w: 92,
-        h: 56,
-        color: '#6366f1',
-        icon: '📦',
+        ...preset,
+        x: svgPt.x - preset.w / 2,
+        y: svgPt.y - preset.h / 2,
       }
       const newNodes = [...nodes, newNode]
       setNodes(newNodes)
@@ -352,7 +364,7 @@ export function AsphaltFlowDiagram() {
       panRef.current = { startClientX: e.clientX, startClientY: e.clientY, origPan: { ...pan } }
       setSelectedId(null)
     }
-  }, [mode, clientToSvg, nodes, connections, pan, pushHistory])
+  }, [mode, newNodeType, clientToSvg, nodes, connections, pan, pushHistory])
 
   const handleConnectionClick = useCallback((e: React.MouseEvent, connId: string) => {
     e.stopPropagation()
@@ -560,8 +572,22 @@ export function AsphaltFlowDiagram() {
             </span>
           )}
           {mode === 'addNode' && (
-            <span className="text-xs text-indigo-500 font-medium ml-2 px-1.5">
-              Click anywhere on canvas to place node
+            <span className="flex items-center gap-2 ml-2">
+              <span className="text-xs text-indigo-500 font-medium px-1.5">
+                Type:
+              </span>
+              <select
+                value={newNodeType}
+                onChange={e => setNewNodeType(e.target.value)}
+                className="text-xs border rounded px-1.5 py-0.5 bg-background h-7"
+              >
+                {Object.keys(NODE_TYPE_PRESETS).map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              <span className="text-xs text-indigo-500 font-medium px-1.5">
+                — click canvas to place
+              </span>
             </span>
           )}
         </div>

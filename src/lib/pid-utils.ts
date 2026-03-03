@@ -432,6 +432,342 @@ export const standardSymbolLibrary: SymbolLibraryItem[] = [
     is_standard: true
   },
 
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Air Cooler (Fin Fan)',
+    symbol_type: 'Heat Exchanger',
+    category: 'Heat Exchangers',
+    // Rectangle bundle with an X fan blade motif inside
+    svg_path: 'M 5,5 L 75,5 L 75,55 L 5,55 Z M 40,30 m -18,0 a 18,18 0 1,0 36,0 a 18,18 0 1,0 -36,0 M 22,30 L 58,30 M 40,12 L 40,48 M 27,17 L 53,43 M 53,17 L 27,43 M 0,25 L 5,25 M 75,25 L 80,25 M 0,35 L 5,35 M 75,35 L 80,35',
+    default_width: 80,
+    default_height: 60,
+    connection_points: [
+      { x_offset: 0, y_offset: 25, direction: 'left' },
+      { x_offset: 0, y_offset: 35, direction: 'left' },
+      { x_offset: 80, y_offset: 25, direction: 'right' },
+      { x_offset: 80, y_offset: 35, direction: 'right' }
+    ],
+    default_properties: { duty: '2 MMBTU/hr', fans: '2', material: 'CS' },
+    description: 'Air-cooled heat exchanger / fin-fan cooler',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Condenser',
+    symbol_type: 'Heat Exchanger',
+    category: 'Heat Exchangers',
+    // Shell with tubes + vapor inlet top, condensate outlet bottom
+    svg_path: 'M 15,10 L 65,10 L 65,50 L 15,50 Z M 15,10 Q 5,10 5,30 Q 5,50 15,50 M 65,10 Q 75,10 75,30 Q 75,50 65,50 M 20,20 L 60,20 M 20,30 L 60,30 M 20,40 L 60,40 M 30,0 L 30,10 M 50,50 L 50,60',
+    default_width: 80,
+    default_height: 60,
+    connection_points: [
+      { x_offset: 0, y_offset: 30, direction: 'left' },
+      { x_offset: 80, y_offset: 30, direction: 'right' },
+      { x_offset: 30, y_offset: 0, direction: 'top' },
+      { x_offset: 50, y_offset: 60, direction: 'bottom' }
+    ],
+    default_properties: { duty: '1.5 MMBTU/hr', area: '150 sqft', coolant: 'CW' },
+    description: 'Condenser – vapor-to-liquid heat exchanger',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Reboiler',
+    symbol_type: 'Heat Exchanger',
+    category: 'Heat Exchangers',
+    // Shell with U-tube bundle — kettle/thermosiphon style
+    svg_path: 'M 10,5 L 70,5 L 70,55 L 10,55 Z M 10,5 Q 0,5 0,30 Q 0,55 10,55 M 70,5 Q 80,5 80,30 Q 80,55 70,55 M 25,5 L 25,35 Q 25,48 37,48 Q 50,48 50,35 L 50,5 M 37,5 L 37,35 Q 37,43 43,43 M 60,55 L 60,65 M 20,0 L 20,5',
+    default_width: 80,
+    default_height: 65,
+    connection_points: [
+      { x_offset: 0, y_offset: 30, direction: 'left' },
+      { x_offset: 80, y_offset: 30, direction: 'right' },
+      { x_offset: 20, y_offset: 0, direction: 'top' },
+      { x_offset: 60, y_offset: 65, direction: 'bottom' }
+    ],
+    default_properties: { duty: '3 MMBTU/hr', area: '200 sqft', heating_medium: 'Steam' },
+    description: 'Reboiler – bottom heat input for distillation',
+    is_standard: true
+  },
+
+  // ── Pipes & Fittings ──────────────────────────────────────────────────────
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Pipe Segment',
+    symbol_type: 'Pipe',
+    category: 'Pipes & Fittings',
+    // Two parallel horizontal lines representing a pipe with its bore
+    svg_path: 'M 0,13 L 80,13 M 0,27 L 80,27 M 0,13 L 0,27 M 80,13 L 80,27',
+    default_width: 80,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 80, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { size: '4"', schedule: '40', material: 'CS', length: '10 ft' },
+    description: 'Generic pipe segment',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Concentric Reducer',
+    symbol_type: 'Fitting',
+    category: 'Pipes & Fittings',
+    // Tapered solid shape transitioning from large bore to small bore
+    svg_path: 'M 0,8 L 0,32 L 60,27 L 60,13 Z',
+    default_width: 60,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 20, direction: 'left' },
+      { x_offset: 60, y_offset: 20, direction: 'right' }
+    ],
+    default_properties: { inlet_size: '6"', outlet_size: '4"', material: 'CS' },
+    description: 'Concentric reducer fitting',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Equal Tee',
+    symbol_type: 'Fitting',
+    category: 'Pipes & Fittings',
+    // T-shape: horizontal run with a vertical branch upward
+    svg_path: 'M 0,22 L 60,22 M 0,32 L 60,32 M 25,0 L 25,22 M 35,0 L 35,22',
+    default_width: 60,
+    default_height: 50,
+    connection_points: [
+      { x_offset: 0, y_offset: 27, direction: 'left' },
+      { x_offset: 60, y_offset: 27, direction: 'right' },
+      { x_offset: 30, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { size: '4"', material: 'CS' },
+    description: 'Equal tee – three-way fitting',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Cross Fitting',
+    symbol_type: 'Fitting',
+    category: 'Pipes & Fittings',
+    // Plus-sign: horizontal run with branches both up and down
+    svg_path: 'M 0,22 L 60,22 M 0,32 L 60,32 M 25,0 L 25,22 M 35,0 L 35,22 M 25,32 L 25,55 M 35,32 L 35,55',
+    default_width: 60,
+    default_height: 55,
+    connection_points: [
+      { x_offset: 0, y_offset: 27, direction: 'left' },
+      { x_offset: 60, y_offset: 27, direction: 'right' },
+      { x_offset: 30, y_offset: 0, direction: 'top' },
+      { x_offset: 30, y_offset: 55, direction: 'bottom' }
+    ],
+    default_properties: { size: '4"', material: 'CS' },
+    description: 'Cross fitting – four-way junction',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Elbow 90°',
+    symbol_type: 'Fitting',
+    category: 'Pipes & Fittings',
+    // Curved elbow: horizontal inlet transitioning to vertical outlet
+    svg_path: 'M 0,22 L 18,22 Q 35,22 35,5 L 35,0 M 0,32 L 22,32 Q 45,32 45,5 L 45,0',
+    default_width: 50,
+    default_height: 40,
+    connection_points: [
+      { x_offset: 0, y_offset: 27, direction: 'left' },
+      { x_offset: 40, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { size: '4"', radius: 'LR', material: 'CS' },
+    description: '90° long-radius elbow',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Elbow 45°',
+    symbol_type: 'Fitting',
+    category: 'Pipes & Fittings',
+    // Diagonal line representing 45° change of direction
+    svg_path: 'M 0,40 L 28,40 L 28,12 M 0,50 L 38,50 L 38,12',
+    default_width: 50,
+    default_height: 55,
+    connection_points: [
+      { x_offset: 0, y_offset: 45, direction: 'left' },
+      { x_offset: 33, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { size: '4"', material: 'CS' },
+    description: '45° elbow fitting',
+    is_standard: true
+  },
+
+  // ── Manifolds ─────────────────────────────────────────────────────────────
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Distribution Manifold',
+    symbol_type: 'Manifold',
+    category: 'Manifolds',
+    // Large header pipe (double line) with four branch outlets going down
+    svg_path: 'M 0,12 L 100,12 M 0,22 L 100,22 M 0,12 Q -5,12 -5,17 Q -5,22 0,22 M 100,12 Q 105,12 105,17 Q 105,22 100,22 M 20,22 L 20,45 M 40,22 L 40,45 M 60,22 L 60,45 M 80,22 L 80,45',
+    default_width: 100,
+    default_height: 45,
+    connection_points: [
+      { x_offset: 0, y_offset: 17, direction: 'left' },
+      { x_offset: 100, y_offset: 17, direction: 'right' },
+      { x_offset: 20, y_offset: 45, direction: 'bottom' },
+      { x_offset: 40, y_offset: 45, direction: 'bottom' },
+      { x_offset: 60, y_offset: 45, direction: 'bottom' },
+      { x_offset: 80, y_offset: 45, direction: 'bottom' }
+    ],
+    default_properties: { size: '8"', outlets: '4', material: 'CS', service: 'Process' },
+    description: 'Distribution manifold – one inlet, multiple outlets',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Collection Manifold',
+    symbol_type: 'Manifold',
+    category: 'Manifolds',
+    // Large header pipe (double line) with four branch inlets coming from above
+    svg_path: 'M 0,32 L 100,32 M 0,42 L 100,42 M 0,32 Q -5,32 -5,37 Q -5,42 0,42 M 100,32 Q 105,32 105,37 Q 105,42 100,42 M 20,0 L 20,32 M 40,0 L 40,32 M 60,0 L 60,32 M 80,0 L 80,32',
+    default_width: 100,
+    default_height: 42,
+    connection_points: [
+      { x_offset: 0, y_offset: 37, direction: 'left' },
+      { x_offset: 100, y_offset: 37, direction: 'right' },
+      { x_offset: 20, y_offset: 0, direction: 'top' },
+      { x_offset: 40, y_offset: 0, direction: 'top' },
+      { x_offset: 60, y_offset: 0, direction: 'top' },
+      { x_offset: 80, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { size: '8"', inlets: '4', material: 'CS', service: 'Process' },
+    description: 'Collection manifold – multiple inlets, one outlet',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Suction Manifold',
+    symbol_type: 'Manifold',
+    category: 'Manifolds',
+    // Rounded-end header (capsule) with branch connections on top
+    svg_path: 'M 15,15 L 85,15 M 15,25 L 85,25 M 15,15 Q 5,15 5,20 Q 5,25 15,25 M 85,15 Q 95,15 95,20 Q 95,25 85,25 M 30,0 L 30,15 M 50,0 L 50,15 M 70,0 L 70,15',
+    default_width: 100,
+    default_height: 25,
+    connection_points: [
+      { x_offset: 5, y_offset: 20, direction: 'left' },
+      { x_offset: 95, y_offset: 20, direction: 'right' },
+      { x_offset: 30, y_offset: 0, direction: 'top' },
+      { x_offset: 50, y_offset: 0, direction: 'top' },
+      { x_offset: 70, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { size: '6"', connections: '3', material: 'CS', service: 'Suction' },
+    description: 'Suction manifold – common suction header for multiple pumps',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Discharge Manifold',
+    symbol_type: 'Manifold',
+    category: 'Manifolds',
+    // Rounded-end header (capsule) with branch connections on bottom
+    svg_path: 'M 15,0 L 85,0 M 15,10 L 85,10 M 15,0 Q 5,0 5,5 Q 5,10 15,10 M 85,0 Q 95,0 95,5 Q 95,10 85,10 M 30,10 L 30,25 M 50,10 L 50,25 M 70,10 L 70,25',
+    default_width: 100,
+    default_height: 25,
+    connection_points: [
+      { x_offset: 5, y_offset: 5, direction: 'left' },
+      { x_offset: 95, y_offset: 5, direction: 'right' },
+      { x_offset: 30, y_offset: 25, direction: 'bottom' },
+      { x_offset: 50, y_offset: 25, direction: 'bottom' },
+      { x_offset: 70, y_offset: 25, direction: 'bottom' }
+    ],
+    default_properties: { size: '6"', connections: '3', material: 'CS', service: 'Discharge' },
+    description: 'Discharge manifold – common discharge header for multiple pumps',
+    is_standard: true
+  },
+
+  // ── Headers ───────────────────────────────────────────────────────────────
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Supply Header',
+    symbol_type: 'Header',
+    category: 'Headers',
+    // Long double-line pipe with multiple branch take-offs pointing down
+    svg_path: 'M 0,10 L 120,10 M 0,20 L 120,20 M 0,10 Q -4,10 -4,15 Q -4,20 0,20 M 120,10 Q 124,10 124,15 Q 124,20 120,20 M 24,10 L 24,0 M 48,10 L 48,0 M 72,10 L 72,0 M 96,10 L 96,0',
+    default_width: 120,
+    default_height: 20,
+    connection_points: [
+      { x_offset: 0, y_offset: 15, direction: 'left' },
+      { x_offset: 120, y_offset: 15, direction: 'right' },
+      { x_offset: 24, y_offset: 0, direction: 'top' },
+      { x_offset: 48, y_offset: 0, direction: 'top' },
+      { x_offset: 72, y_offset: 0, direction: 'top' },
+      { x_offset: 96, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { size: '10"', material: 'CS', service: 'Supply', design_pressure: '150 PSI' },
+    description: 'Supply header – main distribution pipe with branch take-offs',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Return Header',
+    symbol_type: 'Header',
+    category: 'Headers',
+    // Long double-line pipe with multiple branch connections pointing up from bottom
+    svg_path: 'M 0,0 L 120,0 M 0,10 L 120,10 M 0,0 Q -4,0 -4,5 Q -4,10 0,10 M 120,0 Q 124,0 124,5 Q 124,10 120,10 M 24,10 L 24,20 M 48,10 L 48,20 M 72,10 L 72,20 M 96,10 L 96,20',
+    default_width: 120,
+    default_height: 20,
+    connection_points: [
+      { x_offset: 0, y_offset: 5, direction: 'left' },
+      { x_offset: 120, y_offset: 5, direction: 'right' },
+      { x_offset: 24, y_offset: 20, direction: 'bottom' },
+      { x_offset: 48, y_offset: 20, direction: 'bottom' },
+      { x_offset: 72, y_offset: 20, direction: 'bottom' },
+      { x_offset: 96, y_offset: 20, direction: 'bottom' }
+    ],
+    default_properties: { size: '10"', material: 'CS', service: 'Return', design_pressure: '150 PSI' },
+    description: 'Return header – main collection pipe receiving branch returns',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Steam Header',
+    symbol_type: 'Header',
+    category: 'Headers',
+    // Long double-line pipe with steam service indicator (diagonal hatching inside)
+    svg_path: 'M 0,10 L 120,10 M 0,22 L 120,22 M 0,10 Q -4,10 -4,16 Q -4,22 0,22 M 120,10 Q 124,10 124,16 Q 124,22 120,22 M 20,10 L 30,22 M 40,10 L 50,22 M 60,10 L 70,22 M 80,10 L 90,22 M 100,10 L 110,22 M 24,0 L 24,10 M 64,0 L 64,10 M 104,0 L 104,10',
+    default_width: 120,
+    default_height: 22,
+    connection_points: [
+      { x_offset: 0, y_offset: 16, direction: 'left' },
+      { x_offset: 120, y_offset: 16, direction: 'right' },
+      { x_offset: 24, y_offset: 0, direction: 'top' },
+      { x_offset: 64, y_offset: 0, direction: 'top' },
+      { x_offset: 104, y_offset: 0, direction: 'top' }
+    ],
+    default_properties: { size: '8"', material: 'CS', service: 'Steam', design_pressure: '300 PSI', temperature: '350°F' },
+    description: 'Steam header – main steam distribution pipe',
+    is_standard: true
+  },
+  {
+    library_id: uuidv4(),
+    symbol_name: 'Process Header',
+    symbol_type: 'Header',
+    category: 'Headers',
+    // Long double-line pipe representing a generic process main
+    svg_path: 'M 0,10 L 120,10 M 0,20 L 120,20 M 0,10 Q -4,10 -4,15 Q -4,20 0,20 M 120,10 Q 124,10 124,15 Q 124,20 120,20 M 20,0 L 20,10 M 40,0 L 40,10 M 60,0 L 60,10 M 80,0 L 80,10 M 100,0 L 100,10 M 20,20 L 20,30 M 60,20 L 60,30 M 100,20 L 100,30',
+    default_width: 120,
+    default_height: 30,
+    connection_points: [
+      { x_offset: 0, y_offset: 15, direction: 'left' },
+      { x_offset: 120, y_offset: 15, direction: 'right' },
+      { x_offset: 20, y_offset: 0, direction: 'top' },
+      { x_offset: 60, y_offset: 0, direction: 'top' },
+      { x_offset: 100, y_offset: 0, direction: 'top' },
+      { x_offset: 20, y_offset: 30, direction: 'bottom' },
+      { x_offset: 60, y_offset: 30, direction: 'bottom' },
+      { x_offset: 100, y_offset: 30, direction: 'bottom' }
+    ],
+    default_properties: { size: '10"', material: 'CS', service: 'Process', design_pressure: '150 PSI' },
+    description: 'Process header – main process piping header',
+    is_standard: true
+  },
+
   // ── Electrical ────────────────────────────────────────────────────────────
   {
     library_id: uuidv4(),
@@ -1050,6 +1386,8 @@ function generateTagNumber(symbolType: PIDSymbolType, index: number): string {
     'Instrument': 'I',
     'Pipe': 'L',
     'Fitting': 'F',
+    'Manifold': 'MF',
+    'Header': 'HD',
     'Equipment': 'EQ',
     'Custom': 'X',
     'Electrical': 'EL',
