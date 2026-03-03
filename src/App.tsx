@@ -59,6 +59,7 @@ import { AsphaltBlendCalculator } from '@/components/AsphaltBlendCalculator'
 import { TankInventoryManagement } from '@/components/TankInventoryManagement'
 import { RailOperations } from '@/components/RailOperations'
 import { TankerLoading } from '@/components/TankerLoading'
+import { AsphaltFlowDiagram } from '@/components/AsphaltFlowDiagram'
 import { 
   Wrench, 
   ClipboardText, 
@@ -86,7 +87,8 @@ import {
   Flask,
   Drop,
   Train,
-  Truck
+  Truck,
+  GitBranch
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -183,7 +185,8 @@ function App() {
     'blend-calculator',
     'tanks',
     'rail-ops',
-    'tanker-loading'
+    'tanker-loading',
+    'flow-diagram'
   ]
   const safeActiveTab = activeTab && validTabs.includes(activeTab) ? activeTab : 'dashboard'
 
@@ -802,6 +805,13 @@ function App() {
                 <Truck size={16} weight={safeActiveTab === 'tanker-loading' ? 'fill' : 'regular'} />
                 Tanker Loading
               </button>
+              <button
+                onClick={() => setActiveTab('flow-diagram')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${safeActiveTab === 'flow-diagram' ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+              >
+                <GitBranch size={16} weight={safeActiveTab === 'flow-diagram' ? 'fill' : 'regular'} />
+                Flow Diagram
+              </button>
             </div>
           </div>
         </nav>
@@ -1373,6 +1383,10 @@ function App() {
 
             <TabsContent value="tanker-loading" className="space-y-6 animate-fade-in">
               <TankerLoading />
+            </TabsContent>
+
+            <TabsContent value="flow-diagram" className="space-y-6 animate-fade-in">
+              <AsphaltFlowDiagram />
             </TabsContent>
           </Tabs>
         </main>
