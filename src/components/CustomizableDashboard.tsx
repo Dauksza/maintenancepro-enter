@@ -224,30 +224,35 @@ export function CustomizableDashboard({
                   label="Total Work Orders"
                   value={stats.total}
                   color="text-blue-600"
+                  index={0}
                 />
                 <StatCard
                   icon={Clock}
                   label="In Progress"
                   value={stats.inProgress}
                   color="text-yellow-600"
+                  index={1}
                 />
                 <StatCard
                   icon={CheckCircle}
                   label="Completed"
                   value={stats.completed}
                   color="text-green-600"
+                  index={2}
                 />
                 <StatCard
                   icon={WarningCircle}
                   label="Overdue"
                   value={stats.overdue}
                   color="text-red-600"
+                  index={3}
                 />
                 <StatCard
                   icon={Wrench}
                   label="My Tasks"
                   value={stats.myTasks}
                   color="text-purple-600"
+                  index={4}
                 />
               </div>
             )}
@@ -490,15 +495,20 @@ function StatCard({
   icon: Icon,
   label,
   value,
-  color
+  color,
+  index = 0
 }: {
   icon: any
   label: string
   value: number
   color: string
+  index?: number
 }) {
   return (
-    <Card className="hover-lift transition-all duration-200 cursor-default shadow-sm hover:shadow-md border-border/50 bg-gradient-to-br from-card to-card/80">
+    <Card
+      className="hover-lift transition-all duration-200 cursor-default shadow-sm hover:shadow-md border-border/50 bg-gradient-to-br from-card to-card/80 count-up-animate"
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
       <CardContent className="pt-6 pb-6">
         <div className="flex items-center justify-between mb-3">
           <div className={cn("p-2.5 rounded-xl bg-gradient-to-br", color.includes('blue') && 'from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900', color.includes('yellow') && 'from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900', color.includes('green') && 'from-green-50 to-green-100 dark:from-green-950 dark:to-green-900', color.includes('red') && 'from-red-50 to-red-100 dark:from-red-950 dark:to-red-900', color.includes('purple') && 'from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900')}>

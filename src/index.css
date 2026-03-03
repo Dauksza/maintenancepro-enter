@@ -708,7 +708,8 @@ button:active:not(:disabled) {
   }
 }
 
-/* Staggered animation for multiple KPI cards */
+/* Staggered animation for multiple KPI cards – supports up to 6 cards.
+   Add more :nth-child selectors if the dashboard exceeds 6 stat cards. */
 .count-up-animate:nth-child(1) { animation-delay: 0ms; }
 .count-up-animate:nth-child(2) { animation-delay: 80ms; }
 .count-up-animate:nth-child(3) { animation-delay: 160ms; }

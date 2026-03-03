@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { useTheme } from 'next-themes'
 import type { 
@@ -172,7 +172,10 @@ function App() {
 
   // Enhancement 2: Collapsible sidebar
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
-    try { return localStorage.getItem('sidebar-collapsed') === 'true' } catch { return false }
+    try { return localStorage.getItem('sidebar-collapsed') === 'true' } catch (e) {
+      console.warn('[MaintenancePro] localStorage unavailable, sidebar state will not persist.', e)
+      return false
+    }
   })
   // Enhancement 4: Mobile sidebar overlay
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
@@ -185,7 +188,9 @@ function App() {
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed(prev => {
       const next = !prev
-      try { localStorage.setItem('sidebar-collapsed', String(next)) } catch { /* ignore */ }
+      try { localStorage.setItem('sidebar-collapsed', String(next)) } catch (e) {
+        console.warn('[MaintenancePro] Could not persist sidebar state to localStorage.', e)
+      }
       return next
     })
   }, [])
@@ -824,7 +829,7 @@ function App() {
                 { tab: 'forms', label: 'Forms & Inspections', icon: CheckSquare },
                 { tab: 'sops', label: 'SOPs', icon: ClipboardText },
                 { tab: 'certifications', label: 'Certifications', icon: Certificate, badge: certificationCounts.critical > 0 ? certificationCounts.critical : null },
-              ].map(({ tab, label, icon: Icon, badge }: { tab: string; label: string; icon: React.ElementType; badge?: number | null }) => {
+              ].map(({ tab, label, icon: Icon, badge }) => {
                 const isActive = safeActiveTab === tab
                 const btn = (
                   <button
