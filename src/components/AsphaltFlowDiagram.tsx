@@ -27,6 +27,7 @@ interface FlowNode {
   h: number
   color: string
   icon: string
+  iconSize?: number
 }
 
 interface Connection {
@@ -61,14 +62,14 @@ const STAGE_COLORS: Record<string, string> = {
 
 const DEFAULT_NODES: FlowNode[] = [
   { id: 'railcar',  label: 'Rail Car',      sublabel: 'AC Receipt',   x: 20,  y: 55,  w: 90, h: 56, color: STAGE_COLORS.railcar,  icon: '🚃' },
-  { id: 'pump1',    label: 'Pump',          sublabel: 'Unload',       x: 155, y: 67,  w: 56, h: 38, color: STAGE_COLORS.pump,    icon: '⚙' },
+  { id: 'pump1',    label: 'Pump',          sublabel: 'Unload',       x: 155, y: 67,  w: 56, h: 38, color: STAGE_COLORS.pump,    icon: '⚙', iconSize: 15 },
   { id: 'tank1',    label: 'Storage Tank',  sublabel: 'AC Supply',    x: 262, y: 48,  w: 92, h: 72, color: STAGE_COLORS.tank,    icon: '🛢' },
-  { id: 'pump2',    label: 'Pump',          sublabel: 'Transfer',     x: 408, y: 67,  w: 56, h: 38, color: STAGE_COLORS.pump,    icon: '⚙' },
+  { id: 'pump2',    label: 'Pump',          sublabel: 'Transfer',     x: 408, y: 67,  w: 56, h: 38, color: STAGE_COLORS.pump,    icon: '⚙', iconSize: 15 },
   { id: 'hotmix',   label: 'Hot Mix',       sublabel: 'Chamber',      x: 520, y: 50,  w: 96, h: 68, color: STAGE_COLORS.hotmix,  icon: '🔥' },
   { id: 'ptank',    label: 'Product Tank',  sublabel: 'Mixed AC',     x: 520, y: 210, w: 96, h: 72, color: STAGE_COLORS.ptank,   icon: '🛢' },
-  { id: 'pump3',    label: 'Pump',          sublabel: 'Load',         x: 408, y: 228, w: 56, h: 38, color: STAGE_COLORS.pump,    icon: '⚙' },
+  { id: 'pump3',    label: 'Pump',          sublabel: 'Load',         x: 408, y: 228, w: 56, h: 38, color: STAGE_COLORS.pump,    icon: '⚙', iconSize: 15 },
   { id: 'manifold', label: 'Manifold',      sublabel: 'Distribution', x: 262, y: 213, w: 92, h: 62, color: STAGE_COLORS.manifold, icon: '⊞' },
-  { id: 'pump4',    label: 'Pump',          sublabel: 'Transfer',     x: 155, y: 228, w: 56, h: 38, color: STAGE_COLORS.pump,    icon: '⚙' },
+  { id: 'pump4',    label: 'Pump',          sublabel: 'Transfer',     x: 155, y: 228, w: 56, h: 38, color: STAGE_COLORS.pump,    icon: '⚙', iconSize: 15 },
   { id: 'tanker',   label: 'Tanker',        sublabel: 'Loading',      x: 20,  y: 208, w: 90, h: 68, color: STAGE_COLORS.tanker,  icon: '🚛' },
 ]
 
@@ -200,9 +201,11 @@ export function AsphaltFlowDiagram() {
     }
     setHistory(h => {
       const trimmed = h.slice(0, histIdx + 1)
-      return [...trimmed, entry].slice(-50)
+      const next = [...trimmed, entry].slice(-50)
+      // Sync index to the actual last position in the new array
+      setHistIdx(next.length - 1)
+      return next
     })
-    setHistIdx(i => Math.min(i + 1, 49))
   }, [histIdx])
 
   const undo = useCallback(() => {
@@ -307,8 +310,10 @@ export function AsphaltFlowDiagram() {
     }
   }, [clientToSvg])
 
-  const handlePointerUp = useCallback((_e: React.PointerEvent) => {
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (dragRef.current) {
+      // Explicitly release pointer capture
+      ;(e.target as Element).releasePointerCapture(e.pointerId)
       pushHistory(nodes, connections)
       dragRef.current = null
     }
@@ -441,6 +446,8 @@ export function AsphaltFlowDiagram() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return
+      if (e.target instanceof HTMLTextAreaElement) return
+      if ((e.target as HTMLElement).isContentEditable) return
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo() }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
         e.preventDefault(); redo()
@@ -763,7 +770,7 @@ export function AsphaltFlowDiagram() {
                     <text
                       x={ncx(n)} y={n.y + 27}
                       textAnchor="middle"
-                      fontSize={n.label.toLowerCase().includes('pump') ? '15' : '20'}
+                      fontSize={n.iconSize ?? 20}
                       pointerEvents="none"
                     >
                       {n.icon}
