@@ -56,20 +56,26 @@ interface EnhancedAutoSchedulerDialogProps {
   onClose: () => void
   workOrders: WorkOrder[]
   onScheduleComplete: (scheduledOrders: WorkOrder[]) => void
+  employees?: Employee[]
+  skillMatrix?: SkillMatrixEntry[]
+  schedules?: EmployeeSchedule[]
 }
 
 export function EnhancedAutoSchedulerDialog({
   open,
   onClose,
   workOrders,
-  onScheduleComplete
+  onScheduleComplete,
+  employees: employeesProp,
+  skillMatrix: skillMatrixProp,
+  schedules: schedulesProp
 }: EnhancedAutoSchedulerDialogProps) {
-  const [employees] = useKV<Employee[]>('employees', [])
+  const [employeesKV] = useKV<Employee[]>('employees', [])
   const [skills] = useKV<Skill[]>('skills', [])
-  const [skillMatrix] = useKV<SkillMatrixEntry[]>('skill-matrix', [])
+  const [skillMatrixKV] = useKV<SkillMatrixEntry[]>('skill-matrix', [])
   const [assets] = useKV<Asset[]>('assets', [])
   const [areas] = useKV<Area[]>('areas', [])
-  const [schedules] = useKV<EmployeeSchedule[]>('employee-schedules', [])
+  const [schedulesKV] = useKV<EmployeeSchedule[]>('employee-schedules', [])
   const [capacities] = useKV<TechnicianCapacity[]>('technician-capacities', [])
 
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -84,12 +90,13 @@ export function EnhancedAutoSchedulerDialog({
   const [isScheduling, setIsScheduling] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
-  const safeEmployees = employees || []
+  // Prefer props passed from parent (always current) over local KV reads
+  const safeEmployees = employeesProp ?? employeesKV ?? []
   const safeSkills = skills || []
-  const safeSkillMatrix = skillMatrix || []
+  const safeSkillMatrix = skillMatrixProp ?? skillMatrixKV ?? []
   const safeAssets = assets || []
   const safeAreas = areas || []
-  const safeSchedules = schedules || []
+  const safeSchedules = schedulesProp ?? schedulesKV ?? []
   const safeCapacities = capacities || []
 
   const targetOrders = workOrders.filter(wo => 

@@ -89,7 +89,7 @@ function nextTicketNumber(tickets: TankerLoadingTicket[]): string {
 
 export function TankerLoading() {
   const [tickets, setTickets] = useKV<TankerLoadingTicket[]>('tanker-loading-tickets', [])
-  const [tanks] = useKV<AsphaltTank[]>('asphalt-tanks', [])
+  const [tanks, setTanks] = useKV<AsphaltTank[]>('asphalt-tanks', [])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editTicket, setEditTicket] = useState<TankerLoadingTicket | null>(null)
   const [form, setForm] = useState<TicketForm>(DEFAULT_FORM)
@@ -143,6 +143,18 @@ export function TankerLoading() {
     setDialogOpen(true)
   }
 
+  function deductTankVolume(tankId: string, volumeGallons: number, timestamp: string) {
+    if (!tankId || !(volumeGallons > 0)) return
+    setTanks(cur => {
+      if (!cur) return cur
+      return cur.map(t => {
+        if (t.tank_id !== tankId) return t
+        const newVol = Math.max(0, t.current_volume_gallons - volumeGallons)
+        return { ...t, current_volume_gallons: newVol, last_updated: timestamp }
+      })
+    })
+  }
+
   function handleSave() {
     if (!form.customer.trim()) { toast.error('Customer is required'); return }
     if (!form.truck_id.trim()) { toast.error('Truck ID is required'); return }
@@ -175,6 +187,13 @@ export function TankerLoading() {
     }
 
     if (editTicket) {
+      // Deduct from tank when transitioning to Complete with volume and source tank
+      const wasComplete = editTicket.status === 'Complete'
+      const nowComplete = form.status === 'Complete'
+      if (!wasComplete && nowComplete && form.load_from_tank_id && volume != null && volume > 0) {
+        deductTankVolume(form.load_from_tank_id, volume, now)
+        toast.info('Tank level updated with loaded volume')
+      }
       setTickets(cur => (cur || []).map(t => t.ticket_id === editTicket.ticket_id
         ? {
             ...t, ...base,
@@ -206,7 +225,19 @@ export function TankerLoading() {
         }
       : x
     ))
-    toast.success(`Ticket ${t.ticket_number} marked as ${status}`)
+
+    // Deduct from source tank when marking ticket Complete
+    if (status === 'Complete' && t.load_from_tank_id) {
+      const vol = t.volume_gallons
+      if (vol != null && vol > 0) {
+        deductTankVolume(t.load_from_tank_id, vol, now)
+        toast.success(`Ticket ${t.ticket_number} completed — tank level updated`)
+      } else {
+        toast.success(`Ticket ${t.ticket_number} completed — enter gross weight to update tank level`)
+      }
+    } else {
+      toast.success(`Ticket ${t.ticket_number} marked as ${status}`)
+    }
   }
 
   function getTankName(id: string) {

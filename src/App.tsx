@@ -1653,6 +1653,9 @@ function App() {
         onClose={() => setAutoSchedulerOpen(false)}
         workOrders={safeWorkOrders}
         onScheduleComplete={handleAutoScheduleComplete}
+        employees={safeEmployees}
+        skillMatrix={safeSkillMatrix}
+        schedules={safeSchedules}
       />
 
       <NewWorkOrderDialog
