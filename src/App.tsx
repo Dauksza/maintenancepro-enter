@@ -400,11 +400,14 @@ function App() {
       return
     }
 
-    exportToExcel({
-      workOrders: safeWorkOrders,
-      sops: safeSOPs,
-      sparesLabor: safeSparesLabor
-    })
+    exportToExcel(
+      {
+        workOrders: safeWorkOrders,
+        sops: safeSOPs,
+        sparesLabor: safeSparesLabor
+      },
+      { requestedBy: userProfile?.display_name || userProfile?.username || undefined }
+    )
       .then(() => toast.success('Data exported successfully'))
       .catch((error) => {
         toast.error('Failed to export data')

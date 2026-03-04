@@ -497,7 +497,10 @@ export function generateSampleSparesLabor(): SparesLabor[] {
   ]
 }
 
-export async function exportToExcel(data: ExcelImportData): Promise<void> {
+export async function exportToExcel(
+  data: ExcelImportData,
+  options: { requestedBy?: string } = {}
+): Promise<void> {
   const wb = new ExcelJS.Workbook()
 
   const woSheet = wb.addWorksheet('Maintenance Tracking')
@@ -540,9 +543,18 @@ export async function exportToExcel(data: ExcelImportData): Promise<void> {
     sparesSheet.addRow([sl.class, sl.common_spares.join(', '), laborText])
   })
 
-  const timestamp = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const datePart = now.toISOString().split('T')[0]
+  const timePart = now.toISOString().split('T')[1]?.replace(/[:.]/g, '').slice(0, 6) || '000000'
+  const userSlug = options.requestedBy
+    ? options.requestedBy.trim().replace(/\s+/g, '_').replace(/[^\w-]/g, '')
+    : 'MaintenancePro'
+
   const buffer = await wb.xlsx.writeBuffer()
-  downloadBuffer(buffer as ArrayBuffer, `MaintenancePro_Export_${timestamp}.xlsx`)
+  downloadBuffer(
+    buffer as ArrayBuffer,
+    `MaintenancePro_Export_${datePart}_${timePart}_${userSlug}.xlsx`
+  )
 }
 
 export async function downloadExcelTemplate(): Promise<void> {
