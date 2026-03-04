@@ -53,6 +53,17 @@ function downloadBuffer(buffer: ArrayBuffer, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+function sanitizeSlug(value?: string): string {
+  if (!value) return ''
+  return value
+    .trim()
+    .replace(/[\\/]+/g, '_')          // block path separators
+    .replace(/[^\p{L}\p{N}-]+/gu, '_') // coerce non-word characters (Unicode aware)
+    .replace(/_+/g, '_')              // collapse repeats
+    .replace(/^_+|_+$/g, '')          // trim underscores
+    .toLocaleLowerCase()
+}
+
 export async function parseExcelFile(file: File): Promise<{
   data: ExcelImportData | null
   errors: ImportValidationError[]
@@ -545,15 +556,17 @@ export async function exportToExcel(
 
   const now = new Date()
   const datePart = now.toISOString().split('T')[0]
-  const timePart = now.toISOString().split('T')[1]?.replace(/[:.]/g, '').slice(0, 6) || '000000'
-  const userSlug = options.requestedBy
-    ? options.requestedBy.trim().replace(/\s+/g, '_').replace(/[^\w-]/g, '')
-    : 'MaintenancePro'
+  const timePart = [
+    now.getUTCHours().toString().padStart(2, '0'),
+    now.getUTCMinutes().toString().padStart(2, '0'),
+    now.getUTCSeconds().toString().padStart(2, '0')
+  ].join('_') // UTC HH_MM_SS
+  const userSlug = sanitizeSlug(options.requestedBy) || 'unknown_user'
 
   const buffer = await wb.xlsx.writeBuffer()
   downloadBuffer(
     buffer as ArrayBuffer,
-    `MaintenancePro_Export_${datePart}_${timePart}_${userSlug}.xlsx`
+    `MaintenancePro_Export_${datePart}T${timePart}_${userSlug}.xlsx`
   )
 }
 
