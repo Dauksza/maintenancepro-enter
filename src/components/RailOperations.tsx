@@ -34,6 +34,7 @@ import { toast } from 'sonner'
 
 const PRODUCTS: AsphaltProduct[] = ['PG 58-28', 'PG 64-22', 'PG 70-22', 'PG 76-22', 'PG 82-22', 'AC-20', 'AC-30', 'Emulsion', 'Other']
 const STATUSES: RailCarStatus[] = ['En Route', 'Arrived', 'Unloading', 'Unloaded', 'Returned', 'Cancelled']
+const NONE_SELECT_VALUE = '__none__'
 
 const STATUS_COLORS: Record<RailCarStatus, string> = {
   'En Route': 'bg-blue-100 text-blue-700 border-blue-200',
@@ -403,10 +404,10 @@ export function RailOperations() {
             </div>
             <div className="space-y-1">
               <Label>Unload To Tank</Label>
-              <Select value={form.unload_to_tank_id || '__none__'} onValueChange={v => setForm(f => ({...f, unload_to_tank_id: v === '__none__' ? '' : v}))}>
+              <Select value={form.unload_to_tank_id || NONE_SELECT_VALUE} onValueChange={v => setForm(f => ({...f, unload_to_tank_id: v === NONE_SELECT_VALUE ? '' : v}))}>
                 <SelectTrigger><SelectValue placeholder="Select tank" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">None</SelectItem>
+                  <SelectItem value={NONE_SELECT_VALUE}>None</SelectItem>
                   {activeTanks.map(t => <SelectItem key={t.tank_id} value={t.tank_id}>{t.tank_name} ({t.product})</SelectItem>)}
                 </SelectContent>
               </Select>
