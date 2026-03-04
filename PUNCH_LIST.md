@@ -6,6 +6,27 @@
 
 This punch list documents open issues, missing features, and improvement opportunities identified through a full repository review. Items are grouped by area and prioritized (🔴 Critical · 🟡 High · 🟢 Medium · ⚪ Low).
 
+## Production Readiness Review Protocol
+
+To keep quality gates explicit as we approach production, each review pass should follow this sequence and be recorded in this file:
+
+1. **Tab-by-tab validation**  
+   Verify each primary tab and its dialogs/components for happy-path flow, invalid input handling, and data persistence behavior.
+2. **Integration validation**  
+   Confirm cross-module flows (Work Orders ↔ Employees ↔ Parts ↔ Scheduling) still function end-to-end without regression.
+3. **Performance + reliability spot checks**  
+   Confirm critical screens remain responsive and no new console/runtime errors are introduced.
+4. **Issue and fix logging**  
+   Record every discovered issue, fix status, and follow-up owner in the sections below so no gap is lost between design/dev/QA handoffs.
+5. **Verification evidence**  
+   For each resolved item, include the validation method used (manual scenario, lint/build check, targeted test).
+
+Use this tracking format for new findings:
+
+| ID | Area | Finding | Fix | Validation | Status |
+|---|---|---|---|---|---|
+| Q-### | Tab/Feature | Clear problem statement | PR/commit reference | Manual + lint/build/test evidence | Open / In Progress / Resolved |
+
 ---
 
 ## 1. UX / Visual Design
