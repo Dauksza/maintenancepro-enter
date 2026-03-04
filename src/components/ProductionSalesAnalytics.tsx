@@ -402,7 +402,7 @@ export function ProductionSalesAnalytics() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 110]} tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: number | null) => v !== null ? `${v}%` : 'N/A'} />
+                  <Tooltip formatter={(v) => v !== null && v !== undefined ? `${v}%` : 'N/A'} />
                   <Line
                     type="monotone"
                     dataKey="efficiency"

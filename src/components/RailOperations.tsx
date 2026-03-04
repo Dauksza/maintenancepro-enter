@@ -150,7 +150,7 @@ export function RailOperations() {
         if (!isNaN(vol) && vol > 0 && tankId) {
           const tankUpdateTime = new Date().toISOString()
           setTanks(cur => {
-            if (!cur) return cur
+            if (!cur) return []
             return cur.map(t => {
               if (t.tank_id !== tankId) return t
               const newVol = Math.min(t.capacity_gallons, t.current_volume_gallons + vol)
@@ -196,16 +196,35 @@ export function RailOperations() {
     ))
 
     // Auto-update tank level when marked Unloaded with known volume and target tank
-    if (status === 'Unloaded' && d.unload_to_tank_id && d.actual_volume_gallons != null) {
-      setTanks(cur => {
-        if (!cur) return cur
-        return cur.map(t => {
-          if (t.tank_id !== d.unload_to_tank_id) return t
-          const newVol = Math.min(t.capacity_gallons, t.current_volume_gallons + d.actual_volume_gallons!)
-          return { ...t, current_volume_gallons: newVol, last_updated: now }
+    // Use actual volume if available, otherwise fall back to estimated volume
+    if (status === 'Unloaded' && d.unload_to_tank_id) {
+      const vol = d.actual_volume_gallons ?? d.estimated_volume_gallons
+      if (vol > 0) {
+        const usedEstimate = d.actual_volume_gallons == null
+        setTanks(cur => {
+          if (!cur) return []
+          return cur.map(t => {
+            if (t.tank_id !== d.unload_to_tank_id) return t
+            const newVol = Math.min(t.capacity_gallons, t.current_volume_gallons + vol)
+            return { ...t, current_volume_gallons: newVol, last_updated: now }
+          })
         })
-      })
-      toast.success(`Car ${d.car_number} unloaded — tank level updated`)
+        // Also record actual_volume on the delivery if we used the estimate
+        if (usedEstimate) {
+          setDeliveries(cur => (cur || []).map(r =>
+            r.delivery_id === d.delivery_id
+              ? { ...r, actual_volume_gallons: vol }
+              : r
+          ))
+          toast.success(`Car ${d.car_number} unloaded — tank updated with estimated volume (${vol.toLocaleString()} gal)`)
+        } else {
+          toast.success(`Car ${d.car_number} unloaded — tank level updated`)
+        }
+      } else {
+        toast.success(`Car ${d.car_number} marked as ${status}`)
+      }
+    } else if (status === 'Unloaded' && !d.unload_to_tank_id) {
+      toast.success(`Car ${d.car_number} marked as Unloaded — no target tank selected`)
     } else {
       toast.success(`Car ${d.car_number} marked as ${status}`)
     }

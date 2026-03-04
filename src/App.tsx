@@ -17,7 +17,8 @@ import type {
   FormTemplate,
   FormSubmission,
   UserRole,
-  UserProfile
+  UserProfile,
+  PriorityLevel
 } from '@/lib/types'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -399,17 +400,16 @@ function App() {
       return
     }
 
-    try {
-      exportToExcel({
-        workOrders: safeWorkOrders,
-        sops: safeSOPs,
-        sparesLabor: safeSparesLabor
+    exportToExcel({
+      workOrders: safeWorkOrders,
+      sops: safeSOPs,
+      sparesLabor: safeSparesLabor
+    })
+      .then(() => toast.success('Data exported successfully'))
+      .catch((error) => {
+        toast.error('Failed to export data')
+        console.error(error)
       })
-      toast.success('Data exported successfully')
-    } catch (error) {
-      toast.error('Failed to export data')
-      console.error(error)
-    }
   }
 
   const handleAutoScheduleComplete = (scheduledOrders: WorkOrder[]) => {
@@ -1555,7 +1555,7 @@ function App() {
                   setCloneWorkOrder({
                     work_order_id: `WO-${Date.now()}`,
                     equipment_area: equipment,
-                    priority_level: priority as any,
+                    priority_level: priority as PriorityLevel,
                     status: 'Scheduled (Not Started)',
                     type: 'Maintenance',
                     task: `Predictive maintenance for ${equipment}`,
@@ -1652,6 +1652,9 @@ function App() {
         onClose={() => setAutoSchedulerOpen(false)}
         workOrders={safeWorkOrders}
         onScheduleComplete={handleAutoScheduleComplete}
+        employees={safeEmployees}
+        skillMatrix={safeSkillMatrix}
+        schedules={safeSchedules}
       />
 
       <NewWorkOrderDialog

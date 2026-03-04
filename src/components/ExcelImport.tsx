@@ -122,7 +122,8 @@ export function ExcelImport({ open, onClose, onImportComplete }: ExcelImportProp
               size="sm" 
               onClick={() => {
                 downloadExcelTemplate()
-                toast.success('Template downloaded')
+                  .then(() => toast.success('Template downloaded'))
+                  .catch(() => toast.error('Failed to download template'))
               }}
               className="ml-2 whitespace-nowrap"
             >

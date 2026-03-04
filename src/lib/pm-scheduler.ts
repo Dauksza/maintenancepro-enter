@@ -284,7 +284,8 @@ export class PMScheduler {
     schedule.meter_trigger.last_reading_value = newReading.reading_value
 
     // Check if trigger condition is met
-    return this.checkMeterTrigger(schedule.meter_trigger)
+    const result = this.checkMeterTrigger(schedule.meter_trigger)
+    return { shouldGenerate: result.generate, reason: result.reason }
   }
 
   /**
