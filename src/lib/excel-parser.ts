@@ -560,8 +560,8 @@ export async function exportToExcel(
     now.getUTCHours().toString().padStart(2, '0'),
     now.getUTCMinutes().toString().padStart(2, '0'),
     now.getUTCSeconds().toString().padStart(2, '0')
-  ].join('_') // UTC HH_MM_SS
-  const userSlug = sanitizeSlug(options.requestedBy) || 'unknown_user'
+  ].join('_') // UTC HH_MM_SS (underscored)
+  const userSlug = sanitizeSlug(options.requestedBy) || 'unknown-user'
 
   const buffer = await wb.xlsx.writeBuffer()
   downloadBuffer(
