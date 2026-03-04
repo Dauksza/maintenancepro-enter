@@ -271,7 +271,7 @@ export function FormSubmissionDialog({
           </div>
         )
 
-      case 'hazard-level':
+      case 'hazard-level': {
         const hazardLevels: HazardLevel[] = ['Low', 'Medium', 'High', 'Extreme']
         return (
           <Select
@@ -289,6 +289,7 @@ export function FormSubmissionDialog({
             </SelectContent>
           </Select>
         )
+      }
 
       default:
         return (

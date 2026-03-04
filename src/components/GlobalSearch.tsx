@@ -123,34 +123,41 @@ export function GlobalSearch({
 
   const handleSelectResult = (result: SearchResult) => {
     switch (result.type) {
-      case 'work-order':
+      case 'work-order': {
         const wo = workOrders.find(w => w.work_order_id === result.id)
         if (wo && onSelectWorkOrder) onSelectWorkOrder(wo)
         break
-      case 'employee':
+      }
+      case 'employee': {
         const emp = employees.find(e => e.employee_id === result.id)
         if (emp && onSelectEmployee) onSelectEmployee(emp)
         break
-      case 'asset':
+      }
+      case 'asset': {
         const asset = assets.find(a => a.asset_id === result.id)
         if (asset && onSelectAsset) onSelectAsset(asset)
         break
-      case 'part':
+      }
+      case 'part': {
         const part = parts.find(p => p.part_id === result.id)
         if (part && onSelectPart) onSelectPart(part)
         break
-      case 'sop':
+      }
+      case 'sop': {
         const sop = sops.find(s => s.sop_id === result.id)
         if (sop && onSelectSOP) onSelectSOP(sop)
         break
-      case 'form-template':
+      }
+      case 'form-template': {
         const template = formTemplates.find(t => t.template_id === result.id)
         if (template && onSelectFormTemplate) onSelectFormTemplate(template)
         break
-      case 'form-submission':
+      }
+      case 'form-submission': {
         const submission = formSubmissions.find(s => s.submission_id === result.id)
         if (submission && onSelectFormSubmission) onSelectFormSubmission(submission)
         break
+      }
     }
     onClose()
   }
