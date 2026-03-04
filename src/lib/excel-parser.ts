@@ -53,6 +53,17 @@ function downloadBuffer(buffer: ArrayBuffer, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+function sanitizeSlug(value?: string): string {
+  if (!value) return ''
+  return value
+    .trim()
+    .replace(/[\\/]+/g, '_')          // block path separators
+    .replace(/[^\p{L}\p{N}-]+/gu, '_') // coerce non-word characters (Unicode aware)
+    .replace(/_+/g, '_')              // collapse repeats
+    .replace(/^_+|_+$/g, '')          // trim underscores
+    .toLocaleLowerCase()
+}
+
 export async function parseExcelFile(file: File): Promise<{
   data: ExcelImportData | null
   errors: ImportValidationError[]
@@ -497,7 +508,10 @@ export function generateSampleSparesLabor(): SparesLabor[] {
   ]
 }
 
-export async function exportToExcel(data: ExcelImportData): Promise<void> {
+export async function exportToExcel(
+  data: ExcelImportData,
+  options: { requestedBy?: string } = {}
+): Promise<void> {
   const wb = new ExcelJS.Workbook()
 
   const woSheet = wb.addWorksheet('Maintenance Tracking')
@@ -540,9 +554,20 @@ export async function exportToExcel(data: ExcelImportData): Promise<void> {
     sparesSheet.addRow([sl.class, sl.common_spares.join(', '), laborText])
   })
 
-  const timestamp = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const datePart = now.toISOString().split('T')[0]
+  const timePart = [
+    now.getUTCHours().toString().padStart(2, '0'),
+    now.getUTCMinutes().toString().padStart(2, '0'),
+    now.getUTCSeconds().toString().padStart(2, '0')
+  ].join('_') // UTC HH_MM_SS (underscored)
+  const userSlug = sanitizeSlug(options.requestedBy) || 'unknown-user'
+
   const buffer = await wb.xlsx.writeBuffer()
-  downloadBuffer(buffer as ArrayBuffer, `MaintenancePro_Export_${timestamp}.xlsx`)
+  downloadBuffer(
+    buffer as ArrayBuffer,
+    `MaintenancePro_Export_${datePart}T${timePart}_${userSlug}.xlsx`
+  )
 }
 
 export async function downloadExcelTemplate(): Promise<void> {
