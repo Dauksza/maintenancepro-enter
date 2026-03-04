@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import type {
   WorkOrder,
   SOP,
@@ -12,6 +12,47 @@ import type {
 } from './types'
 import { parseLaborTypical, extractFrequencyFromTask, isOverdue } from './maintenance-utils'
 
+/** Coerce any ExcelJS cell value to a plain string. */
+function cellStr(v: ExcelJS.CellValue): string {
+  if (v == null) return ''
+  if (typeof v === 'string') return v
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  if (v instanceof Date) return v.toISOString().split('T')[0]
+  if (typeof v === 'object' && 'richText' in v)
+    return (v as ExcelJS.CellRichTextValue).richText.map(rt => rt.text).join('')
+  if (typeof v === 'object' && 'result' in v)
+    return cellStr((v as ExcelJS.CellFormulaValue).result as ExcelJS.CellValue)
+  if (typeof v === 'object' && 'error' in v) return ''
+  return String(v)
+}
+
+/** Get all non-empty rows from a worksheet as a 2-D string array. */
+function sheetToRows(ws: ExcelJS.Worksheet): string[][] {
+  const rows: string[][] = []
+  ws.eachRow({ includeEmpty: false }, (row) => {
+    // row.values is 1-indexed; slice(1) drops the leading undefined
+    const cells = (row.values as ExcelJS.CellValue[]).slice(1).map(cellStr)
+    // skip fully-blank rows
+    if (cells.some(c => c !== '')) rows.push(cells)
+  })
+  return rows
+}
+
+/** Trigger a browser file download from an ArrayBuffer. */
+function downloadBuffer(buffer: ArrayBuffer, filename: string) {
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 export async function parseExcelFile(file: File): Promise<{
   data: ExcelImportData | null
   errors: ImportValidationError[]
@@ -20,31 +61,21 @@ export async function parseExcelFile(file: File): Promise<{
 
   try {
     const arrayBuffer = await file.arrayBuffer()
-    const workbook = XLSX.read(arrayBuffer, { 
-      type: 'array',
-      cellDates: true,
-      cellText: false
-    })
-    
+    const wb = new ExcelJS.Workbook()
+    await wb.xlsx.load(arrayBuffer)
+
     const workOrders: WorkOrder[] = []
     const sops: SOP[] = []
     const sparesLabor: SparesLabor[] = []
 
-    const maintenanceSheet = workbook.Sheets['Maintenance Tracking']
+    const maintenanceSheet = wb.getWorksheet('Maintenance Tracking')
     if (maintenanceSheet) {
-      const data = XLSX.utils.sheet_to_json(maintenanceSheet, { 
-        header: 1,
-        defval: '',
-        blankrows: false
-      }) as unknown[][]
-      
+      const data = sheetToRows(maintenanceSheet)
       if (data.length > 1) {
-        const headers = data[0].map(h => String(h).trim())
-        
+        const headers = data[0].map(h => h.trim())
         for (let i = 1; i < data.length; i++) {
-          const row = data[i].map(v => String(v ?? ''))
           try {
-            const wo = parseWorkOrderRow(headers, row, i + 1)
+            const wo = parseWorkOrderRow(headers, data[i], i + 1)
             if (wo) workOrders.push(wo)
           } catch (error) {
             errors.push({
@@ -58,21 +89,14 @@ export async function parseExcelFile(file: File): Promise<{
       }
     }
 
-    const sopSheet = workbook.Sheets['SOP Library']
+    const sopSheet = wb.getWorksheet('SOP Library')
     if (sopSheet) {
-      const data = XLSX.utils.sheet_to_json(sopSheet, { 
-        header: 1,
-        defval: '',
-        blankrows: false
-      }) as unknown[][]
-      
+      const data = sheetToRows(sopSheet)
       if (data.length > 1) {
-        const headers = data[0].map(h => String(h).trim())
-        
+        const headers = data[0].map(h => h.trim())
         for (let i = 1; i < data.length; i++) {
-          const row = data[i].map(v => String(v ?? ''))
           try {
-            const sop = parseSOPRow(headers, row, i + 1)
+            const sop = parseSOPRow(headers, data[i], i + 1)
             if (sop) sops.push(sop)
           } catch (error) {
             errors.push({
@@ -86,21 +110,14 @@ export async function parseExcelFile(file: File): Promise<{
       }
     }
 
-    const sparesSheet = workbook.Sheets['Spares & Labor'] || workbook.Sheets['Spares and Labor']
+    const sparesSheet = wb.getWorksheet('Spares & Labor') ?? wb.getWorksheet('Spares and Labor')
     if (sparesSheet) {
-      const data = XLSX.utils.sheet_to_json(sparesSheet, { 
-        header: 1,
-        defval: '',
-        blankrows: false
-      }) as unknown[][]
-      
+      const data = sheetToRows(sparesSheet)
       if (data.length > 1) {
-        const headers = data[0].map(h => String(h).trim())
-        
+        const headers = data[0].map(h => h.trim())
         for (let i = 1; i < data.length; i++) {
-          const row = data[i].map(v => String(v ?? ''))
           try {
-            const sl = parseSparesLaborRow(headers, row, i + 1)
+            const sl = parseSparesLaborRow(headers, data[i], i + 1)
             if (sl) sparesLabor.push(sl)
           } catch (error) {
             errors.push({
@@ -480,238 +497,103 @@ export function generateSampleSparesLabor(): SparesLabor[] {
   ]
 }
 
-export function exportToExcel(data: ExcelImportData): void {
-  const workbook = XLSX.utils.book_new()
+export async function exportToExcel(data: ExcelImportData): Promise<void> {
+  const wb = new ExcelJS.Workbook()
 
-  const workOrdersData: unknown[][] = [
-    [
-      'Work Order ID',
-      'Equipment/Area',
-      'Priority Level',
-      'Status',
-      'Type',
-      'Task',
-      'Comments/Description',
-      'Scheduled Date',
-      'Estimated Downtime Hours',
-      'Assigned Technician',
-      'Entered By',
-      'Terminal',
-      'Created At',
-      'Updated At',
-      'Completed At',
-      'Is Overdue',
-      'Auto Generated'
-    ]
-  ]
-
+  const woSheet = wb.addWorksheet('Maintenance Tracking')
+  woSheet.addRow([
+    'Work Order ID', 'Equipment/Area', 'Priority Level', 'Status', 'Type',
+    'Task', 'Comments/Description', 'Scheduled Date', 'Estimated Downtime Hours',
+    'Assigned Technician', 'Entered By', 'Terminal', 'Created At', 'Updated At',
+    'Completed At', 'Is Overdue', 'Auto Generated'
+  ])
   data.workOrders.forEach(wo => {
-    workOrdersData.push([
-      wo.work_order_id,
-      wo.equipment_area,
-      wo.priority_level,
-      wo.status,
-      wo.type,
-      wo.task,
-      wo.comments_description,
-      wo.scheduled_date,
-      wo.estimated_downtime_hours,
-      wo.assigned_technician || '',
-      wo.entered_by || '',
-      wo.terminal,
-      wo.created_at,
-      wo.updated_at,
-      wo.completed_at || '',
-      wo.is_overdue ? 'Yes' : 'No',
-      wo.auto_generated ? 'Yes' : 'No'
+    woSheet.addRow([
+      wo.work_order_id, wo.equipment_area, wo.priority_level, wo.status, wo.type,
+      wo.task, wo.comments_description, wo.scheduled_date, wo.estimated_downtime_hours,
+      wo.assigned_technician || '', wo.entered_by || '', wo.terminal,
+      wo.created_at, wo.updated_at, wo.completed_at || '',
+      wo.is_overdue ? 'Yes' : 'No', wo.auto_generated ? 'Yes' : 'No'
     ])
   })
 
-  const maintenanceSheet = XLSX.utils.aoa_to_sheet(workOrdersData)
-  XLSX.utils.book_append_sheet(workbook, maintenanceSheet, 'Maintenance Tracking')
-
-  const sopsData: unknown[][] = [
-    [
-      'SOP ID',
-      'Title',
-      'Revision',
-      'Effective Date',
-      'Purpose',
-      'Scope',
-      'LOTO/PPE/Hazards',
-      'PM Frequencies Included',
-      'Procedure Summary',
-      'Records Required',
-      'Created At',
-      'Updated At'
-    ]
-  ]
-
+  const sopSheet = wb.addWorksheet('SOP Library')
+  sopSheet.addRow([
+    'SOP ID', 'Title', 'Revision', 'Effective Date', 'Purpose', 'Scope',
+    'LOTO/PPE/Hazards', 'PM Frequencies Included', 'Procedure Summary',
+    'Records Required', 'Created At', 'Updated At'
+  ])
   data.sops.forEach(sop => {
-    sopsData.push([
-      sop.sop_id,
-      sop.title,
-      sop.revision,
-      sop.effective_date,
-      sop.purpose,
-      sop.scope,
-      sop.loto_ppe_hazards,
-      sop.pm_frequencies_included.join(', '),
-      sop.procedure_summary,
-      sop.records_required,
-      sop.created_at,
-      sop.updated_at
+    sopSheet.addRow([
+      sop.sop_id, sop.title, sop.revision, sop.effective_date, sop.purpose,
+      sop.scope, sop.loto_ppe_hazards, sop.pm_frequencies_included.join(', '),
+      sop.procedure_summary, sop.records_required, sop.created_at, sop.updated_at
     ])
   })
 
-  const sopSheet = XLSX.utils.aoa_to_sheet(sopsData)
-  XLSX.utils.book_append_sheet(workbook, sopSheet, 'SOP Library')
-
-  const sparesData: unknown[][] = [
-    [
-      'Class',
-      'Common Spares',
-      'Labor Typical'
-    ]
-  ]
-
+  const sparesSheet = wb.addWorksheet('Spares & Labor')
+  sparesSheet.addRow(['Class', 'Common Spares', 'Labor Typical'])
   data.sparesLabor.forEach(sl => {
     const laborText = Object.entries(sl.labor_typical)
       .map(([freq, hours]) => `${freq} ${hours}h`)
       .join('; ')
-    
-    sparesData.push([
-      sl.class,
-      sl.common_spares.join(', '),
-      laborText
-    ])
+    sparesSheet.addRow([sl.class, sl.common_spares.join(', '), laborText])
   })
 
-  const sparesSheet = XLSX.utils.aoa_to_sheet(sparesData)
-  XLSX.utils.book_append_sheet(workbook, sparesSheet, 'Spares & Labor')
-
   const timestamp = new Date().toISOString().split('T')[0]
-  XLSX.writeFile(workbook, `MaintenancePro_Export_${timestamp}.xlsx`)
+  const buffer = await wb.xlsx.writeBuffer()
+  downloadBuffer(buffer as ArrayBuffer, `MaintenancePro_Export_${timestamp}.xlsx`)
 }
 
-export function downloadExcelTemplate(): void {
-  const workbook = XLSX.utils.book_new()
+export async function downloadExcelTemplate(): Promise<void> {
+  const wb = new ExcelJS.Workbook()
 
-  const workOrdersData: unknown[][] = [
-    [
-      'Work Order ID',
-      'Equipment/Area',
-      'Priority Level',
-      'Status',
-      'Type',
-      'Task',
-      'Comments/Description',
-      'Scheduled Date',
-      'Estimated Downtime Hours',
-      'Assigned Technician',
-      'Entered By',
-      'Terminal'
-    ],
-    [
-      'WO-202401-0001',
-      'Compressor Station 1',
-      'High',
-      'Scheduled (Not Started)',
-      'Maintenance',
-      'Monthly compressor inspection',
-      'Check oil levels and pressure',
-      '2024-02-01',
-      2.5,
-      'John Smith',
-      'Admin',
-      'Hanceville Terminal'
-    ],
-    [
-      'WO-202401-0002',
-      'Valve Actuator Array A',
-      'Medium',
-      'In Progress',
-      'Inspection',
-      'Quarterly actuator inspection',
-      'Test stroke time and verify operation',
-      '2024-02-05',
-      1.0,
-      'Jane Doe',
-      'Admin',
-      'Hanceville Terminal'
-    ]
-  ]
+  const woSheet = wb.addWorksheet('Maintenance Tracking')
+  woSheet.addRow([
+    'Work Order ID', 'Equipment/Area', 'Priority Level', 'Status', 'Type',
+    'Task', 'Comments/Description', 'Scheduled Date', 'Estimated Downtime Hours',
+    'Assigned Technician', 'Entered By', 'Terminal'
+  ])
+  woSheet.addRow([
+    'WO-202401-0001', 'Compressor Station 1', 'High', 'Scheduled (Not Started)',
+    'Maintenance', 'Monthly compressor inspection', 'Check oil levels and pressure',
+    '2024-02-01', 2.5, 'John Smith', 'Admin', 'Hanceville Terminal'
+  ])
+  woSheet.addRow([
+    'WO-202401-0002', 'Valve Actuator Array A', 'Medium', 'In Progress',
+    'Inspection', 'Quarterly actuator inspection', 'Test stroke time and verify operation',
+    '2024-02-05', 1.0, 'Jane Doe', 'Admin', 'Hanceville Terminal'
+  ])
 
-  const maintenanceSheet = XLSX.utils.aoa_to_sheet(workOrdersData)
-  XLSX.utils.book_append_sheet(workbook, maintenanceSheet, 'Maintenance Tracking')
+  const sopSheet = wb.addWorksheet('SOP Library')
+  sopSheet.addRow([
+    'SOP ID', 'Title', 'Revision', 'Effective Date', 'Purpose', 'Scope',
+    'LOTO/PPE/Hazards', 'PM Frequencies Included', 'Procedure Summary', 'Records Required'
+  ])
+  sopSheet.addRow([
+    'SOP-001', 'Compressor Maintenance Procedure', 3, '2024-01-01',
+    'Ensure compressor reliability', 'All reciprocating compressors',
+    'LOTO required. PPE: Safety glasses, gloves, hearing protection',
+    'Daily, Monthly, Quarterly', '1. Isolate compressor\n2. Check oil levels\n3. Inspect components',
+    'Maintenance log, oil analysis'
+  ])
+  sopSheet.addRow([
+    'SOP-002', 'Valve Actuator Inspection', 2, '2024-01-15',
+    'Maintain actuator reliability', 'All pneumatic and electric actuators',
+    'Verify air/power isolation. PPE: Safety glasses, gloves',
+    'Weekly, Monthly', '1. Visual inspection\n2. Test stroke time\n3. Lubricate parts',
+    'Stroke time log, inspection checklist'
+  ])
 
-  const sopsData: unknown[][] = [
-    [
-      'SOP ID',
-      'Title',
-      'Revision',
-      'Effective Date',
-      'Purpose',
-      'Scope',
-      'LOTO/PPE/Hazards',
-      'PM Frequencies Included',
-      'Procedure Summary',
-      'Records Required'
-    ],
-    [
-      'SOP-001',
-      'Compressor Maintenance Procedure',
-      3,
-      '2024-01-01',
-      'Ensure compressor reliability',
-      'All reciprocating compressors',
-      'LOTO required. PPE: Safety glasses, gloves, hearing protection',
-      'Daily, Monthly, Quarterly',
-      '1. Isolate compressor\n2. Check oil levels\n3. Inspect components',
-      'Maintenance log, oil analysis'
-    ],
-    [
-      'SOP-002',
-      'Valve Actuator Inspection',
-      2,
-      '2024-01-15',
-      'Maintain actuator reliability',
-      'All pneumatic and electric actuators',
-      'Verify air/power isolation. PPE: Safety glasses, gloves',
-      'Weekly, Monthly',
-      '1. Visual inspection\n2. Test stroke time\n3. Lubricate parts',
-      'Stroke time log, inspection checklist'
-    ]
-  ]
+  const sparesSheet = wb.addWorksheet('Spares & Labor')
+  sparesSheet.addRow(['Class', 'Common Spares', 'Labor Typical'])
+  sparesSheet.addRow(['Compressor', 'Oil filters, Air filters, V-belts, Gasket sets',
+    'Daily 0.25h; Weekly 1h; Monthly 2.5h; Quarterly 4h; Bi-Yearly 8h; Yearly 16h'])
+  sparesSheet.addRow(['Actuator', 'O-rings, Solenoid valves, Position switches',
+    'Daily 0.1h; Weekly 0.5h; Monthly 1h; Quarterly 2h; Bi-Yearly 3h; Yearly 6h'])
+  sparesSheet.addRow(['Pump', 'Mechanical seals, Impellers, Bearings, Couplings',
+    'Daily 0.15h; Weekly 0.75h; Monthly 2h; Quarterly 4h; Bi-Yearly 8h; Yearly 16h'])
 
-  const sopSheet = XLSX.utils.aoa_to_sheet(sopsData)
-  XLSX.utils.book_append_sheet(workbook, sopSheet, 'SOP Library')
-
-  const sparesData: unknown[][] = [
-    [
-      'Class',
-      'Common Spares',
-      'Labor Typical'
-    ],
-    [
-      'Compressor',
-      'Oil filters, Air filters, V-belts, Gasket sets',
-      'Daily 0.25h; Weekly 1h; Monthly 2.5h; Quarterly 4h; Bi-Yearly 8h; Yearly 16h'
-    ],
-    [
-      'Actuator',
-      'O-rings, Solenoid valves, Position switches',
-      'Daily 0.1h; Weekly 0.5h; Monthly 1h; Quarterly 2h; Bi-Yearly 3h; Yearly 6h'
-    ],
-    [
-      'Pump',
-      'Mechanical seals, Impellers, Bearings, Couplings',
-      'Daily 0.15h; Weekly 0.75h; Monthly 2h; Quarterly 4h; Bi-Yearly 8h; Yearly 16h'
-    ]
-  ]
-
-  const sparesSheet = XLSX.utils.aoa_to_sheet(sparesData)
-  XLSX.utils.book_append_sheet(workbook, sparesSheet, 'Spares & Labor')
-
-  XLSX.writeFile(workbook, 'MaintenancePro_Template.xlsx')
+  const buffer = await wb.xlsx.writeBuffer()
+  downloadBuffer(buffer as ArrayBuffer, 'MaintenancePro_Template.xlsx')
 }

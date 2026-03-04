@@ -273,7 +273,7 @@ export class VersionHistoryManager {
       remote_version_id: remoteVersionId,
       local_changes: localChanges,
       remote_changes: remoteChanges,
-      conflicting_fields,
+      conflicting_fields: conflictingFields,
       resolution_strategy: 'manual',
       resolved_snapshot: null,
       resolved_by: null,

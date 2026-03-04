@@ -143,10 +143,11 @@ export function TankerLoading() {
     setDialogOpen(true)
   }
 
+  /** Deducts loaded volume from the source tank, clamping to 0. No-op if tankId is empty or volume is zero. */
   function deductTankVolume(tankId: string, volumeGallons: number, timestamp: string) {
     if (!tankId || !(volumeGallons > 0)) return
     setTanks(cur => {
-      if (!cur) return cur
+      if (!cur) return []
       return cur.map(t => {
         if (t.tank_id !== tankId) return t
         const newVol = Math.max(0, t.current_volume_gallons - volumeGallons)

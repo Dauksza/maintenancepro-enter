@@ -400,17 +400,16 @@ function App() {
       return
     }
 
-    try {
-      exportToExcel({
-        workOrders: safeWorkOrders,
-        sops: safeSOPs,
-        sparesLabor: safeSparesLabor
+    exportToExcel({
+      workOrders: safeWorkOrders,
+      sops: safeSOPs,
+      sparesLabor: safeSparesLabor
+    })
+      .then(() => toast.success('Data exported successfully'))
+      .catch((error) => {
+        toast.error('Failed to export data')
+        console.error(error)
       })
-      toast.success('Data exported successfully')
-    } catch (error) {
-      toast.error('Failed to export data')
-      console.error(error)
-    }
   }
 
   const handleAutoScheduleComplete = (scheduledOrders: WorkOrder[]) => {

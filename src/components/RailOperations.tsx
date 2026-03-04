@@ -150,7 +150,7 @@ export function RailOperations() {
         if (!isNaN(vol) && vol > 0 && tankId) {
           const tankUpdateTime = new Date().toISOString()
           setTanks(cur => {
-            if (!cur) return cur
+            if (!cur) return []
             return cur.map(t => {
               if (t.tank_id !== tankId) return t
               const newVol = Math.min(t.capacity_gallons, t.current_volume_gallons + vol)
@@ -202,7 +202,7 @@ export function RailOperations() {
       if (vol > 0) {
         const usedEstimate = d.actual_volume_gallons == null
         setTanks(cur => {
-          if (!cur) return cur
+          if (!cur) return []
           return cur.map(t => {
             if (t.tank_id !== d.unload_to_tank_id) return t
             const newVol = Math.min(t.capacity_gallons, t.current_volume_gallons + vol)
