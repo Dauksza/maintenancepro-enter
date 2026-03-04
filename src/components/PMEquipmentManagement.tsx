@@ -77,6 +77,7 @@ export function PMEquipmentManagement() {
   const [selectedEquipment, setSelectedEquipment] = useState<PMEquipment | null>(null)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [showPIDEditor, setShowPIDEditor] = useState(false)
+  const [editingDrawing, setEditingDrawing] = useState<PIDDrawing | undefined>(undefined)
   
   // Load PM equipment from KV store
   const [pumps = [], setPumps] = useKV<Pump[]>('pm-equipment-pumps', [])
@@ -427,7 +428,7 @@ export function PMEquipmentManagement() {
                       key={drawing.drawing_id}
                       className="cursor-pointer hover:shadow-lg transition-shadow"
                       onClick={() => {
-                        // TODO: Open drawing in editor
+                        setEditingDrawing(drawing)
                         setShowPIDEditor(true)
                       }}
                     >
@@ -481,8 +482,12 @@ export function PMEquipmentManagement() {
       {showPIDEditor && (
         <PIDDrawingEditor
           open={showPIDEditor}
-          onOpenChange={setShowPIDEditor}
+          onOpenChange={(open) => {
+            setShowPIDEditor(open)
+            if (!open) setEditingDrawing(undefined)
+          }}
           drawings={drawings}
+          initialDrawing={editingDrawing}
           onSave={(drawing) => {
             const existing = drawings.findIndex(d => d.drawing_id === drawing.drawing_id)
             if (existing >= 0) {

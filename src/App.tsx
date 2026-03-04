@@ -17,7 +17,8 @@ import type {
   FormTemplate,
   FormSubmission,
   UserRole,
-  UserProfile
+  UserProfile,
+  PriorityLevel
 } from '@/lib/types'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -1555,7 +1556,7 @@ function App() {
                   setCloneWorkOrder({
                     work_order_id: `WO-${Date.now()}`,
                     equipment_area: equipment,
-                    priority_level: priority as any,
+                    priority_level: priority as PriorityLevel,
                     status: 'Scheduled (Not Started)',
                     type: 'Maintenance',
                     task: `Predictive maintenance for ${equipment}`,

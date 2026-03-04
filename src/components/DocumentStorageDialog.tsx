@@ -63,6 +63,7 @@ interface DocumentStorageDialogProps {
   documents: EquipmentDocument[]
   onSaveDocument: (document: EquipmentDocument) => void
   onDeleteDocument: (documentId: string) => void
+  currentUser?: string
 }
 
 export function DocumentStorageDialog({
@@ -72,7 +73,8 @@ export function DocumentStorageDialog({
   equipmentName,
   documents,
   onSaveDocument,
-  onDeleteDocument
+  onDeleteDocument,
+  currentUser = 'System User'
 }: DocumentStorageDialogProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -120,7 +122,7 @@ export function DocumentStorageDialog({
           file_type: selectedFile.type,
           file_size: selectedFile.size,
           file_data: base64Data,
-          uploaded_by: 'System User', // TODO: Replace with actual auth context
+          uploaded_by: currentUser,
           uploaded_at: new Date().toISOString(),
           tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : undefined
         }

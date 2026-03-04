@@ -49,6 +49,7 @@ interface PhotoUploadDialogProps {
   photos: EquipmentPhoto[]
   onSavePhoto: (photo: EquipmentPhoto) => void
   onDeletePhoto: (photoId: string) => void
+  currentUser?: string
 }
 
 export function PhotoUploadDialog({
@@ -58,7 +59,8 @@ export function PhotoUploadDialog({
   equipmentName,
   photos,
   onSavePhoto,
-  onDeletePhoto
+  onDeletePhoto,
+  currentUser = 'System User'
 }: PhotoUploadDialogProps) {
   const [activeTab, setActiveTab] = useState<'capture' | 'upload' | 'gallery'>('gallery')
   const [isCameraActive, setIsCameraActive] = useState(false)
@@ -202,7 +204,7 @@ export function PhotoUploadDialog({
       description: description.trim() || undefined,
       category,
       image_data: capturedImage,
-      captured_by: 'System User', // TODO: Replace with actual auth context
+      captured_by: currentUser,
       captured_at: new Date().toISOString(),
       tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : undefined
     }
