@@ -676,10 +676,10 @@ function App() {
           {!sidebarCollapsed && (
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-primary leading-tight truncate">MaintenancePro</p>
-              <p className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
+              <div className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
                 <LiveActivityIndicator />
                 <span>Enterprise CMMS</span>
-              </p>
+              </div>
             </div>
           )}
           {/* Enhancement 2: Sidebar collapse toggle */}

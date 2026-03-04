@@ -176,7 +176,7 @@ export function enhancedAutoSchedule(
         scores.push(result.preview.score)
       }
       
-      workOrder.area_id && usedAreas.add(workOrder.area_id)
+      if (workOrder.area_id) usedAreas.add(workOrder.area_id)
     } else {
       failed.push({
         workOrder,

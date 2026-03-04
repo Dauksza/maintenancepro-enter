@@ -309,7 +309,7 @@ export function AddAreaWizard({
           </div>
         )
 
-      case 'review':
+      case 'review': {
         const assignedEmployees = employees.filter(e => assignedEmployeeIds.includes(e.employee_id))
         const finalDepartment = department === '__custom__' ? customDepartment : department
         const finalZone = zone === '__custom__' ? customZone : zone
@@ -358,6 +358,7 @@ export function AddAreaWizard({
             )}
           </div>
         )
+      }
 
       default:
         return null

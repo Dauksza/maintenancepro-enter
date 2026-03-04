@@ -58,11 +58,13 @@ export function initializeSparkRuntime() {
   const globalRef = globalThis as typeof globalThis & {
     spark?: {
       kv: SparkKV
+      user: () => Promise<null>
     }
   }
 
   globalRef.spark = {
-    kv: createLocalKV()
+    kv: createLocalKV(),
+    user: async () => null
   }
 }
 
