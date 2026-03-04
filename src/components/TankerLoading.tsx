@@ -395,10 +395,10 @@ export function TankerLoading() {
             </div>
             <div className="space-y-1">
               <Label>Load From Tank</Label>
-              <Select value={form.load_from_tank_id} onValueChange={v => setForm(f => ({...f, load_from_tank_id: v}))}>
+              <Select value={form.load_from_tank_id || '__none__'} onValueChange={v => setForm(f => ({...f, load_from_tank_id: v === '__none__' ? '' : v}))}>
                 <SelectTrigger><SelectValue placeholder="Select tank" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {activeTanks.map(t => <SelectItem key={t.tank_id} value={t.tank_id}>{t.tank_name} ({t.product})</SelectItem>)}
                 </SelectContent>
               </Select>

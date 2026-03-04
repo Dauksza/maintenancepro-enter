@@ -403,10 +403,10 @@ export function RailOperations() {
             </div>
             <div className="space-y-1">
               <Label>Unload To Tank</Label>
-              <Select value={form.unload_to_tank_id} onValueChange={v => setForm(f => ({...f, unload_to_tank_id: v}))}>
+              <Select value={form.unload_to_tank_id || '__none__'} onValueChange={v => setForm(f => ({...f, unload_to_tank_id: v === '__none__' ? '' : v}))}>
                 <SelectTrigger><SelectValue placeholder="Select tank" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {activeTanks.map(t => <SelectItem key={t.tank_id} value={t.tank_id}>{t.tank_name} ({t.product})</SelectItem>)}
                 </SelectContent>
               </Select>
