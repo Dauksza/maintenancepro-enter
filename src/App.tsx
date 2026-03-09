@@ -22,6 +22,7 @@ import type {
 } from '@/lib/types'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Toaster } from '@/components/ui/sonner'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { NotificationBell } from '@/components/NotificationBell'
@@ -137,6 +138,41 @@ import { canViewTab, hasPermission } from '@/lib/permissions'
 import { toast } from 'sonner'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardNavigation'
 
+type ModuleKey = 'salesFinance' | 'production' | 'maintenance'
+
+const MODULE_DETAILS = {
+  salesFinance: {
+    label: 'Sales & Finance',
+    shortLabel: 'Sales/Finance',
+    description: 'Revenue, customer orders, and financial visibility for business teams.',
+    audience: 'Ideal for sales coordinators, customer service, and finance leaders.',
+    defaultTab: 'financial',
+    accent: 'from-emerald-500 via-green-500 to-teal-500',
+    icon: CurrencyDollar,
+    highlights: ['Financial dashboard', 'Sales order visibility', 'Business analytics']
+  },
+  production: {
+    label: 'Production & Operators',
+    shortLabel: 'Production',
+    description: 'Plant-floor execution, inventory flow, and operator-facing asphalt operations.',
+    audience: 'Ideal for dispatchers, operators, and production supervisors.',
+    defaultTab: 'production',
+    accent: 'from-amber-500 via-orange-500 to-red-500',
+    icon: Factory,
+    highlights: ['Production tracking', 'Blend calculator', 'Rail and tanker operations']
+  },
+  maintenance: {
+    label: 'Maintenance',
+    shortLabel: 'Maintenance',
+    description: 'Work orders, planning, assets, and technician support in one maintenance workspace.',
+    audience: 'Ideal for maintenance planners, supervisors, and technicians.',
+    defaultTab: 'dashboard',
+    accent: 'from-primary via-primary to-sky-500',
+    icon: Wrench,
+    highlights: ['Maintenance dashboard', 'Scheduling and PM', 'Assets, parts, and compliance']
+  }
+} as const
+
 function App() {
   const [workOrders, setWorkOrders] = useKV<WorkOrder[]>('maintenance-work-orders', [])
   const [sops, setSOPs] = useKV<SOP[]>('sop-library', [])
@@ -177,6 +213,7 @@ function App() {
   const [newWorkOrderOpen, setNewWorkOrderOpen] = useState(false)
   const [cloneWorkOrder, setCloneWorkOrder] = useState<WorkOrder | null>(null)
   const [activeTab, setActiveTab] = useKV<string>('active-tab', 'dashboard')
+  const [selectedModule, setSelectedModule] = useState<ModuleKey | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Technician')
@@ -185,7 +222,7 @@ function App() {
   // Enhancement 2: Collapsible sidebar
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem('sidebar-collapsed') === 'true' } catch (e) {
-      console.warn('[MaintenancePro] localStorage unavailable, sidebar state will not persist.', e)
+      console.warn('[RoadPro] localStorage unavailable, sidebar state will not persist.', e)
       return false
     }
   })
@@ -201,7 +238,7 @@ function App() {
     setSidebarCollapsed(prev => {
       const next = !prev
       try { localStorage.setItem('sidebar-collapsed', String(next)) } catch (e) {
-        console.warn('[MaintenancePro] Could not persist sidebar state to localStorage.', e)
+        console.warn('[RoadPro] Could not persist sidebar state to localStorage.', e)
       }
       return next
     })
@@ -585,6 +622,104 @@ function App() {
     return getReminderCounts(currentReminders)
   }, [safeSkillMatrix, safeEmployees, reminders])
 
+  const moduleNavigation = useMemo(() => ({
+    salesFinance: [
+      {
+        title: 'Business Overview',
+        items: [
+          { tab: 'financial', label: 'Financial Overview', icon: CurrencyDollar },
+          { tab: 'sales', label: 'Sales Orders', icon: ShoppingCart },
+          { tab: 'analytics', label: 'Analytics', icon: ChartBar },
+        ]
+      }
+    ],
+    production: [
+      {
+        title: 'Production Control',
+        items: [
+          { tab: 'production', label: 'Production Tracking', icon: Factory },
+          { tab: 'blend-calculator', label: 'Blend Calculator', icon: Flask },
+          { tab: 'tanks', label: 'Tank Inventory', icon: Drop },
+        ]
+      },
+      {
+        title: 'Operator Workflow',
+        items: [
+          { tab: 'rail-ops', label: 'Rail Operations', icon: Train },
+          { tab: 'tanker-loading', label: 'Tanker Loading', icon: Truck },
+          { tab: 'flow-diagram', label: 'Flow Diagram', icon: GitBranch },
+          { tab: 'forms', label: 'Forms & Inspections', icon: CheckSquare },
+        ]
+      }
+    ],
+    maintenance: [
+      {
+        title: 'My Work',
+        items: [
+          { tab: 'dashboard', label: 'Dashboard', icon: House },
+          { tab: 'tracking', label: 'Work Orders', icon: Wrench, dataTour: 'tracking-tab', badge: overdueCount > 0 ? overdueCount : null },
+          { tab: 'calendar', label: 'Calendar', icon: CalendarBlank },
+        ]
+      },
+      {
+        title: 'Schedule',
+        items: [
+          { tab: 'timeline', label: 'Timeline', icon: ChartLineUp },
+          { tab: 'resources', label: 'Resources', icon: Users },
+          { tab: 'capacity', label: 'Capacity', icon: Gauge },
+          { tab: 'pm-schedules', label: 'PM Schedules', icon: Clock },
+        ]
+      },
+      {
+        title: 'Equipment & Parts',
+        items: [
+          { tab: 'assets', label: 'Assets', icon: Package, dataTour: 'assets-tab' },
+          { tab: 'pm-equipment', label: 'PM Equipment', icon: Gear },
+          { tab: 'parts', label: 'Parts', icon: Toolbox },
+        ]
+      },
+      {
+        title: 'Documentation',
+        items: [
+          { tab: 'forms', label: 'Forms & Inspections', icon: CheckSquare },
+          { tab: 'sops', label: 'SOPs', icon: ClipboardText },
+          { tab: 'certifications', label: 'Certifications', icon: Certificate, badge: certificationCounts.critical > 0 ? certificationCounts.critical : null },
+        ]
+      },
+      {
+        title: 'Insights',
+        items: [
+          { tab: 'analytics', label: 'Analytics', icon: ChartBar },
+          { tab: 'predictive', label: 'Predictive', icon: Brain },
+        ]
+      },
+      {
+        title: 'Team & Admin',
+        items: [
+          { tab: 'employees', label: 'Employees', icon: UserGear, dataTour: 'employees-tab' },
+          { tab: 'templates', label: 'Templates', icon: FileText },
+          { tab: 'database', label: 'Database', icon: Database },
+        ]
+      }
+    ]
+  }), [certificationCounts.critical, overdueCount])
+
+  const currentModuleDetails = selectedModule ? MODULE_DETAILS[selectedModule] : null
+  const currentModuleSections = selectedModule ? moduleNavigation[selectedModule] : []
+  const currentModuleTabs = useMemo(
+    () => currentModuleSections.flatMap(section => section.items.map(item => item.tab)),
+    [currentModuleSections]
+  )
+
+  useEffect(() => {
+    if (!selectedModule) return
+
+    const moduleDefaultTab = MODULE_DETAILS[selectedModule].defaultTab
+    if (!currentModuleTabs.includes(safeActiveTab)) {
+      setActiveTab(moduleDefaultTab)
+    }
+  }, [currentModuleTabs, safeActiveTab, selectedModule, setActiveTab])
+
   const tourSteps: TourStep[] = useMemo(() => ([
     {
       id: 'tracking-tab',
@@ -645,32 +780,149 @@ function App() {
     '?': () => setKeyboardShortcutsOpen(true)
   })
 
+  const handleSelectModule = useCallback((module: ModuleKey) => {
+    setSelectedModule(module)
+    setMobileSidebarOpen(false)
+    setActiveTab(MODULE_DETAILS[module].defaultTab)
+  }, [setActiveTab])
+
+  const renderNavButton = useCallback((item: {
+    tab: string
+    label: string
+    icon: typeof House
+    badge?: number | null
+    dataTour?: string
+  }) => {
+    const isActive = safeActiveTab === item.tab
+    const Icon = item.icon
+
+    const button = (
+      <button
+        key={item.tab}
+        onClick={() => { setActiveTab(item.tab); setMobileSidebarOpen(false) }}
+        data-tour={item.dataTour}
+        aria-current={isActive ? 'page' : undefined}
+        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-2'} rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
+      >
+        <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
+        {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+        {!sidebarCollapsed && item.badge !== undefined && item.badge !== null && (
+          <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+            {item.badge}
+          </span>
+        )}
+      </button>
+    )
+
+    if (sidebarCollapsed) {
+      return (
+        <Tooltip key={item.tab}>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipContent side="right">
+            {item.label}
+            {item.badge ? ` (${item.badge})` : ''}
+          </TooltipContent>
+        </Tooltip>
+      )
+    }
+
+    return button
+  }, [safeActiveTab, setActiveTab, setMobileSidebarOpen, sidebarCollapsed])
+
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background">
       <Toaster position="top-right" />
       <a href="#main-content" className="skip-link sr-only focus:not-sr-only">
         Skip to main content
       </a>
 
-      {/* ── Enhancement 4: Mobile Sidebar Overlay Backdrop ── */}
-      {mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setMobileSidebarOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {!selectedModule ? (
+        <main id="main-content" className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
+          <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center">
+            <div className="w-full space-y-10">
+              <div className="max-w-3xl space-y-5">
+                <div className="inline-flex items-center gap-3 rounded-full border bg-card px-4 py-2 text-sm text-muted-foreground shadow-sm">
+                  <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm">
+                    <Wrench size={18} weight="bold" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-foreground">RoadPro</p>
+                    <p className="text-xs">Select the workspace that matches your role to continue.</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary">Step 1 of 1</p>
+                  <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Choose Your RoadPro Interface</h1>
+                  <p className="text-lg text-muted-foreground">
+                    Each workspace opens directly to the right dashboard for that team, with navigation trimmed to the tools they actually use.
+                  </p>
+                </div>
+              </div>
 
-      {/* ── Sidebar Navigation ── */}
-      <aside
-        className={[
-          'shrink-0 bg-card border-r flex flex-col sticky top-0 h-screen z-40 transition-all duration-300',
-          sidebarCollapsed ? 'w-[52px]' : 'w-60',
-          // Mobile: off-canvas by default, overlaid when open
-          'max-lg:fixed max-lg:left-0 max-lg:top-0 max-lg:h-screen max-lg:z-40',
-          mobileSidebarOpen ? 'max-lg:translate-x-0 max-lg:w-60' : 'max-lg:-translate-x-full'
-        ].join(' ')}
-      >
+              <div className="grid gap-6 xl:grid-cols-3">
+                {(Object.entries(MODULE_DETAILS) as [ModuleKey, typeof MODULE_DETAILS[ModuleKey]][]).map(([key, module]) => {
+                  const Icon = module.icon
+
+                  return (
+                    <Card key={key} className="border-border/60 bg-card/95 backdrop-blur-sm shadow-lg transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl">
+                      <CardHeader className="space-y-4">
+                        <div className={`inline-flex w-fit items-center gap-3 rounded-2xl bg-gradient-to-br ${module.accent} px-4 py-3 text-white shadow-md`}>
+                          <Icon size={24} weight="fill" />
+                          <span className="text-sm font-semibold uppercase tracking-[0.18em]">{module.shortLabel}</span>
+                        </div>
+                        <div className="space-y-2">
+                          <CardTitle className="text-2xl">{module.label}</CardTitle>
+                          <CardDescription className="text-sm leading-6">{module.description}</CardDescription>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="rounded-xl border bg-muted/30 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Best for</p>
+                          <p className="mt-2 text-sm leading-6">{module.audience}</p>
+                        </div>
+
+                        <div className="space-y-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Included tools</p>
+                          <div className="flex flex-wrap gap-2">
+                            {module.highlights.map((highlight) => (
+                              <span key={highlight} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                                {highlight}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Button onClick={() => handleSelectModule(key)} className="w-full justify-center">
+                          Open {module.label}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </main>
+      ) : (
+        <div className="min-h-screen bg-background flex">
+          {/* ── Enhancement 4: Mobile Sidebar Overlay Backdrop ── */}
+          {mobileSidebarOpen && (
+            <div
+              className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+              onClick={() => setMobileSidebarOpen(false)}
+              aria-hidden="true"
+            />
+          )}
+
+          {/* ── Sidebar Navigation ── */}
+          <aside
+            className={[
+              'shrink-0 bg-card border-r flex flex-col sticky top-0 h-screen z-40 transition-all duration-300',
+              sidebarCollapsed ? 'w-[52px]' : 'w-60',
+              'max-lg:fixed max-lg:left-0 max-lg:top-0 max-lg:h-screen max-lg:z-40',
+              mobileSidebarOpen ? 'max-lg:translate-x-0 max-lg:w-60' : 'max-lg:-translate-x-full'
+            ].join(' ')}
+          >
         {/* Logo */}
         <div className="flex items-center gap-3 px-3 h-14 border-b shrink-0 overflow-hidden">
           <div className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm">
@@ -678,10 +930,10 @@ function App() {
           </div>
           {!sidebarCollapsed && (
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-primary leading-tight truncate">MaintenancePro</p>
+              <p className="text-sm font-bold text-primary leading-tight truncate">RoadPro</p>
               <div className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
                 <LiveActivityIndicator />
-                <span>Enterprise CMMS</span>
+                <span>{currentModuleDetails?.label} Interface</span>
               </div>
             </div>
           )}
@@ -709,7 +961,7 @@ function App() {
         </div>
 
         {/* New Work Order CTA */}
-        {hasPermission(currentUserRole, 'work-orders', 'create') && (
+        {selectedModule === 'maintenance' && hasPermission(currentUserRole, 'work-orders', 'create') && (
           <div className={`border-b shrink-0 ${sidebarCollapsed ? 'px-1.5 py-3' : 'px-3 py-3'}`}>
             {sidebarCollapsed ? (
               <Tooltip>
@@ -741,255 +993,18 @@ function App() {
 
         {/* Nav Groups – Enhancement 2: icon-only when collapsed, Enhancement 9: aria-current */}
         <nav className={`flex-1 ${sidebarCollapsed ? 'px-1.5' : 'px-2'} py-3 overflow-y-auto space-y-4`} aria-label="Main navigation">
-
-          {/* Helper: nav item renders tooltip when collapsed */}
-          {/* My Work */}
-          <div>
-            {!sidebarCollapsed && <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">My Work</p>}
-            <div className="space-y-0.5">
-              {[
-                { tab: 'dashboard', label: 'Dashboard', icon: House, dataTour: undefined, badge: null },
-                { tab: 'tracking', label: 'Work Orders', icon: Wrench, dataTour: 'tracking-tab', badge: overdueCount > 0 ? overdueCount : null },
-                { tab: 'calendar', label: 'Calendar', icon: CalendarBlank, dataTour: undefined, badge: null },
-              ].map(({ tab, label, icon: Icon, dataTour, badge }) => {
-                const isActive = safeActiveTab === tab
-                const btn = (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setMobileSidebarOpen(false) }}
-                    data-tour={dataTour}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-2'} rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
-                  >
-                    <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
-                    {!sidebarCollapsed && <span className="truncate">{label}</span>}
-                    {!sidebarCollapsed && badge !== null && (
-                      <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">{badge}</span>
-                    )}
-                  </button>
-                )
-                if (sidebarCollapsed) {
-                  return (
-                    <Tooltip key={tab}>
-                      <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                      <TooltipContent side="right">{label}{badge ? ` (${badge})` : ''}</TooltipContent>
-                    </Tooltip>
-                  )
-                }
-                return btn
-              })}
+          {currentModuleSections.map((section) => (
+            <div key={section.title}>
+              {!sidebarCollapsed && (
+                <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  {section.title}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map(renderNavButton)}
+              </div>
             </div>
-          </div>
-
-          {/* Schedule */}
-          <div>
-            {!sidebarCollapsed && <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Schedule</p>}
-            <div className="space-y-0.5">
-              {[
-                { tab: 'timeline', label: 'Timeline', icon: ChartLineUp },
-                { tab: 'resources', label: 'Resources', icon: Users },
-                { tab: 'capacity', label: 'Capacity', icon: Gauge },
-                { tab: 'pm-schedules', label: 'PM Schedules', icon: Clock },
-              ].map(({ tab, label, icon: Icon }) => {
-                const isActive = safeActiveTab === tab
-                const btn = (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setMobileSidebarOpen(false) }}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-2'} rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
-                  >
-                    <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
-                    {!sidebarCollapsed && <span className="truncate">{label}</span>}
-                  </button>
-                )
-                if (sidebarCollapsed) return (
-                  <Tooltip key={tab}><TooltipTrigger asChild>{btn}</TooltipTrigger><TooltipContent side="right">{label}</TooltipContent></Tooltip>
-                )
-                return btn
-              })}
-            </div>
-          </div>
-
-          {/* Equipment & Parts */}
-          <div>
-            {!sidebarCollapsed && <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Equipment & Parts</p>}
-            <div className="space-y-0.5">
-              {[
-                { tab: 'assets', label: 'Assets', icon: Package, dataTour: 'assets-tab' },
-                { tab: 'pm-equipment', label: 'PM Equipment', icon: Gear, dataTour: undefined },
-                { tab: 'parts', label: 'Parts', icon: Toolbox, dataTour: undefined },
-              ].map(({ tab, label, icon: Icon, dataTour }) => {
-                const isActive = safeActiveTab === tab
-                const btn = (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setMobileSidebarOpen(false) }}
-                    data-tour={dataTour}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-2'} rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
-                  >
-                    <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
-                    {!sidebarCollapsed && <span className="truncate">{label}</span>}
-                  </button>
-                )
-                if (sidebarCollapsed) return (
-                  <Tooltip key={tab}><TooltipTrigger asChild>{btn}</TooltipTrigger><TooltipContent side="right">{label}</TooltipContent></Tooltip>
-                )
-                return btn
-              })}
-            </div>
-          </div>
-
-          {/* Documentation */}
-          <div>
-            {!sidebarCollapsed && <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Documentation</p>}
-            <div className="space-y-0.5">
-              {[
-                { tab: 'forms', label: 'Forms & Inspections', icon: CheckSquare },
-                { tab: 'sops', label: 'SOPs', icon: ClipboardText },
-                { tab: 'certifications', label: 'Certifications', icon: Certificate, badge: certificationCounts.critical > 0 ? certificationCounts.critical : null },
-              ].map(({ tab, label, icon: Icon, badge }) => {
-                const isActive = safeActiveTab === tab
-                const btn = (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setMobileSidebarOpen(false) }}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-2'} rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
-                  >
-                    <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
-                    {!sidebarCollapsed && <span className="truncate">{label}</span>}
-                    {!sidebarCollapsed && badge ? (
-                      <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">{badge}</span>
-                    ) : null}
-                  </button>
-                )
-                if (sidebarCollapsed) return (
-                  <Tooltip key={tab}><TooltipTrigger asChild>{btn}</TooltipTrigger><TooltipContent side="right">{label}{badge ? ` (${badge})` : ''}</TooltipContent></Tooltip>
-                )
-                return btn
-              })}
-            </div>
-          </div>
-
-          {/* Insights */}
-          <div>
-            {!sidebarCollapsed && <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Insights</p>}
-            <div className="space-y-0.5">
-              {[
-                { tab: 'analytics', label: 'Analytics', icon: ChartBar },
-                { tab: 'predictive', label: 'Predictive', icon: Brain },
-              ].map(({ tab, label, icon: Icon }) => {
-                const isActive = safeActiveTab === tab
-                const btn = (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setMobileSidebarOpen(false) }}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-2'} rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
-                  >
-                    <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
-                    {!sidebarCollapsed && <span className="truncate">{label}</span>}
-                  </button>
-                )
-                if (sidebarCollapsed) return (
-                  <Tooltip key={tab}><TooltipTrigger asChild>{btn}</TooltipTrigger><TooltipContent side="right">{label}</TooltipContent></Tooltip>
-                )
-                return btn
-              })}
-            </div>
-          </div>
-
-          {/* Team & Admin */}
-          <div>
-            {!sidebarCollapsed && <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Team & Admin</p>}
-            <div className="space-y-0.5">
-              {[
-                { tab: 'employees', label: 'Employees', icon: UserGear, dataTour: 'employees-tab' },
-                { tab: 'templates', label: 'Templates', icon: FileText, dataTour: undefined },
-                { tab: 'database', label: 'Database', icon: Database, dataTour: undefined },
-              ].map(({ tab, label, icon: Icon, dataTour }) => {
-                const isActive = safeActiveTab === tab
-                const btn = (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setMobileSidebarOpen(false) }}
-                    data-tour={dataTour}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-2'} rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
-                  >
-                    <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
-                    {!sidebarCollapsed && <span className="truncate">{label}</span>}
-                  </button>
-                )
-                if (sidebarCollapsed) return (
-                  <Tooltip key={tab}><TooltipTrigger asChild>{btn}</TooltipTrigger><TooltipContent side="right">{label}</TooltipContent></Tooltip>
-                )
-                return btn
-              })}
-            </div>
-          </div>
-
-          {/* Asphalt Operations */}
-          <div>
-            {!sidebarCollapsed && <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Asphalt Operations</p>}
-            <div className="space-y-0.5">
-              {[
-                { tab: 'blend-calculator', label: 'Blend Calculator', icon: Flask },
-                { tab: 'tanks', label: 'Tank Inventory', icon: Drop },
-                { tab: 'rail-ops', label: 'Rail Operations', icon: Train },
-                { tab: 'tanker-loading', label: 'Tanker Loading', icon: Truck },
-                { tab: 'flow-diagram', label: 'Flow Diagram', icon: GitBranch },
-              ].map(({ tab, label, icon: Icon }) => {
-                const isActive = safeActiveTab === tab
-                const btn = (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setMobileSidebarOpen(false) }}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-2'} rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
-                  >
-                    <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
-                    {!sidebarCollapsed && <span className="truncate">{label}</span>}
-                  </button>
-                )
-                if (sidebarCollapsed) return (
-                  <Tooltip key={tab}><TooltipTrigger asChild>{btn}</TooltipTrigger><TooltipContent side="right">{label}</TooltipContent></Tooltip>
-                )
-                return btn
-              })}
-            </div>
-          </div>
-
-          {/* Business */}
-          <div>
-            {!sidebarCollapsed && <p className="px-2 mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Business</p>}
-            <div className="space-y-0.5">
-              {[
-                { tab: 'financial', label: 'Financial', icon: CurrencyDollar },
-                { tab: 'production', label: 'Production', icon: Factory },
-                { tab: 'sales', label: 'Sales Orders', icon: ShoppingCart },
-              ].map(({ tab, label, icon: Icon }) => {
-                const isActive = safeActiveTab === tab
-                const btn = (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setMobileSidebarOpen(false) }}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-2'} rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:text-foreground hover:bg-muted'}`}
-                  >
-                    <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
-                    {!sidebarCollapsed && <span className="truncate">{label}</span>}
-                  </button>
-                )
-                if (sidebarCollapsed) return (
-                  <Tooltip key={tab}><TooltipTrigger asChild>{btn}</TooltipTrigger><TooltipContent side="right">{label}</TooltipContent></Tooltip>
-                )
-                return btn
-              })}
-            </div>
-          </div>
+          ))}
         </nav>
 
         {/* Enhancement 7: Sidebar Footer with version strip */}
@@ -997,7 +1012,7 @@ function App() {
           <SystemStatus />
           {!sidebarCollapsed && (
             <p className="mt-2 text-[10px] text-muted-foreground/60 text-center">
-              MaintenancePro v2.0 &nbsp;·&nbsp;
+              RoadPro v2.0 &nbsp;·&nbsp;
               <a href="https://github.com/Dauksza/maintenancepro-enter" target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">Help</a>
             </p>
           )}
@@ -1020,6 +1035,10 @@ function App() {
 
           {/* Enhancement 3: Section breadcrumb */}
           <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+              {currentModuleDetails?.shortLabel}
+            </span>
+            <span>/</span>
             <span className="font-medium text-foreground">{currentSectionLabel}</span>
           </div>
 
@@ -1035,8 +1054,17 @@ function App() {
 
           <div className="flex-1" />
 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedModule(null)}
+            className="hidden md:flex"
+          >
+            Switch Interface
+          </Button>
+
           {/* Alert banners */}
-          {overdueCount > 0 && hasPermission(currentUserRole, 'schedules', 'execute') && (
+          {selectedModule === 'maintenance' && overdueCount > 0 && hasPermission(currentUserRole, 'schedules', 'execute') && (
             <Button
               onClick={() => setAutoSchedulerOpen(true)}
               size="sm"
@@ -1046,7 +1074,7 @@ function App() {
               {overdueCount} Overdue - Auto-Schedule
             </Button>
           )}
-          {certificationCounts.critical > 0 && (
+          {selectedModule === 'maintenance' && certificationCounts.critical > 0 && (
             <Button
               onClick={() => setActiveTab('certifications')}
               variant="outline"
@@ -1699,19 +1727,25 @@ function App() {
         onSelectWorkOrder={handleSelectWorkOrder}
       />
 
-      <WelcomeDialog onComplete={() => {
-        toast.success('Welcome to MaintenancePro!', {
-          description: 'Click "Load Sample Data" to get started with example data.'
-        })
-      }} onNavigate={setActiveTab} onStartTour={startTour} />
+      {selectedModule === 'maintenance' && (
+        <>
+          <WelcomeDialog onComplete={() => {
+            toast.success('Welcome to RoadPro!', {
+              description: 'Click "Load Sample Data" to get started with example data.'
+            })
+          }} onNavigate={setActiveTab} onStartTour={startTour} />
 
-      <InteractiveTour
-        open={tourOpen}
-        steps={tourSteps}
-        onClose={closeTour}
-        onComplete={completeTour}
-      />
+          <InteractiveTour
+            open={tourOpen}
+            steps={tourSteps}
+            onClose={closeTour}
+            onComplete={completeTour}
+          />
+        </>
+      )}
       </Suspense>
+        </div>
+      )}
 
       <PWAInstallBanner />
     </div>

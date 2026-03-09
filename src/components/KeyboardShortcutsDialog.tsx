@@ -67,7 +67,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: { open?: boolean
             Keyboard Shortcuts
           </DialogTitle>
           <DialogDescription>
-            Learn keyboard shortcuts to navigate and use MaintenancePro more efficiently
+            Learn keyboard shortcuts to navigate and use RoadPro more efficiently
           </DialogDescription>
         </DialogHeader>
         

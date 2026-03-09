@@ -159,10 +159,10 @@ export function WelcomeDialog({ onComplete, onNavigate, onStartTour }: WelcomeDi
                 </div>
                 <div>
                   <DialogTitle className="text-3xl font-bold">
-                    Welcome to MaintenancePro
+                    Welcome to RoadPro
                   </DialogTitle>
                   <DialogDescription className="text-base mt-1">
-                    Your transformative CMMS platform
+                    Your connected operations workspace
                   </DialogDescription>
                 </div>
               </div>
@@ -170,11 +170,11 @@ export function WelcomeDialog({ onComplete, onNavigate, onStartTour }: WelcomeDi
 
             <div className="prose dark:prose-invert max-w-none">
               <p className="text-lg text-muted-foreground">
-                MaintenancePro represents a leap forward in maintenance management—combining 
+                RoadPro brings sales, production, and maintenance together in one connected platform—combining 
                 <strong className="text-foreground"> AI-powered predictive analytics</strong>, 
                 <strong className="text-foreground"> intelligent scheduling</strong>, and 
                 <strong className="text-foreground"> real-time collaboration</strong> in a sleek, 
-                intuitive interface designed for both production and sales environments.
+                intuitive interface designed for sales, production, and maintenance teams.
               </p>
             </div>
 
@@ -320,7 +320,7 @@ export function WelcomeDialog({ onComplete, onNavigate, onStartTour }: WelcomeDi
                 <div className="flex-1">
                   <h4 className="font-semibold mb-2">Pro Tip: Install as App</h4>
                   <p className="text-sm text-muted-foreground">
-                    MaintenancePro works offline as a Progressive Web App. Install it for faster 
+                    RoadPro works offline as a Progressive Web App. Install it for faster 
                     access and push notifications.
                   </p>
                 </div>
@@ -337,7 +337,7 @@ export function WelcomeDialog({ onComplete, onNavigate, onStartTour }: WelcomeDi
                 </Button>
                 <Button onClick={handleComplete} className="gap-2">
                   <CheckCircle className="h-4 w-4" weight="bold" />
-                  Start Using MaintenancePro
+                  Start Using RoadPro
                 </Button>
               </div>
             </div>
