@@ -852,7 +852,7 @@ function App() {
                 </div>
                 <div className="space-y-3">
                   <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary">Step 1 of 1</p>
-                  <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Choose your RoadPro interface</h1>
+                  <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Choose Your RoadPro Interface</h1>
                   <p className="text-lg text-muted-foreground">
                     Each workspace opens directly to the right dashboard for that team, with navigation trimmed to the tools they actually use.
                   </p>
@@ -933,7 +933,7 @@ function App() {
               <p className="text-sm font-bold text-primary leading-tight truncate">RoadPro</p>
               <div className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
                 <LiveActivityIndicator />
-                <span>{currentModuleDetails?.label} interface</span>
+                <span>{currentModuleDetails?.label} Interface</span>
               </div>
             </div>
           )}
