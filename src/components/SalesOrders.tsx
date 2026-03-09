@@ -301,6 +301,46 @@ export function SalesOrders() {
     yearOrders.filter(o => !['Paid', 'Cancelled'].includes(o.status)).length,
     [yearOrders])
 
+  const pipelineSummary = useMemo(() =>
+    SALES_STATUSES
+      .filter(status => !['Paid', 'Cancelled'].includes(status))
+      .map(status => {
+        const stageOrders = yearOrders.filter(order => order.status === status)
+        return {
+          status,
+          count: stageOrders.length,
+          value: stageOrders.reduce((sum, order) => sum + order.total_price, 0)
+        }
+      })
+      .filter(stage => stage.count > 0),
+    [yearOrders])
+
+  const upcomingDeliveries = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    return yearOrders
+      .filter(order => !['Paid', 'Cancelled'].includes(order.status))
+      .filter(order => new Date(order.delivery_date) >= today)
+      .sort((a, b) => a.delivery_date.localeCompare(b.delivery_date))
+      .slice(0, 6)
+  }, [yearOrders])
+
+  const topCustomers = useMemo(() => {
+    const totals = new Map<string, number>()
+
+    yearOrders
+      .filter(order => order.status !== 'Cancelled')
+      .forEach(order => {
+        totals.set(order.customer_name, (totals.get(order.customer_name) || 0) + order.total_price)
+      })
+
+    return [...totals.entries()]
+      .map(([customer, revenue]) => ({ customer, revenue }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5)
+  }, [yearOrders])
+
   const monthlyRevenue = useMemo(() => MONTHS.map((m, i) => {
     const month = i + 1
     const mOrders = yearOrders.filter(o => new Date(o.order_date).getMonth() + 1 === month && o.status !== 'Cancelled')
@@ -409,6 +449,7 @@ export function SalesOrders() {
       <Tabs defaultValue="chart">
         <TabsList>
           <TabsTrigger value="chart">Revenue Chart</TabsTrigger>
+          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
           <TabsTrigger value="orders">Order List</TabsTrigger>
         </TabsList>
 
@@ -432,6 +473,91 @@ export function SalesOrders() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="pipeline" className="space-y-4 pt-4">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pipeline Stages</CardTitle>
+                <CardDescription>Open demand from quote through invoice</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {pipelineSummary.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No active pipeline stages for {filterYear}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {pipelineSummary.map(stage => (
+                      <div key={stage.status} className="rounded-lg border p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-medium">{stage.status}</p>
+                            <p className="text-xs text-muted-foreground">{stage.count} orders</p>
+                          </div>
+                          <p className="font-semibold">{fmt(stage.value)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Customers</CardTitle>
+                <CardDescription>Accounts driving the most revenue this year</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {topCustomers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No customer mix available yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {topCustomers.map((customer, index) => (
+                      <div key={customer.customer} className="rounded-lg border p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-medium">{customer.customer}</p>
+                            <p className="text-xs text-muted-foreground">#{index + 1} revenue account</p>
+                          </div>
+                          <p className="font-semibold">{fmt(customer.revenue)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming Deliveries</CardTitle>
+                <CardDescription>Orders that still need production, loading, or final dispatch</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {upcomingDeliveries.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No upcoming deliveries on the active schedule</p>
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingDeliveries.map(order => (
+                      <div key={order.order_id} className="rounded-lg border p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-medium">{order.order_number}</p>
+                            <p className="text-xs text-muted-foreground">{order.customer_name}</p>
+                          </div>
+                          {statusBadge(order.status)}
+                        </div>
+                        <p className="text-sm mt-3">
+                          {new Date(order.delivery_date).toLocaleDateString()} · {order.quantity_tons.toLocaleString()} tons of {order.product}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="orders" className="space-y-4 pt-4">

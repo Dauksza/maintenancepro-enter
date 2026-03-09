@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useKV } from '@github/spark/hooks'
 import type { DashboardWidget, WorkOrder, Employee, PartInventoryItem, CertificationReminder, AuditLogEntry } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,6 +27,65 @@ import { getActionIcon, getResourceTypeLabel } from '@/lib/activity-log'
 // Animation constants
 const STAGGER_DELAY_MS = 50
 
+const DEFAULT_WIDGETS: DashboardWidget[] = [
+  {
+    widget_id: 'quick-stats',
+    type: 'quick-stats',
+    title: 'Quick Statistics',
+    position: { x: 0, y: 0 },
+    size: { width: 12, height: 2 },
+    visible: true
+  },
+  {
+    widget_id: 'my-assignments',
+    type: 'my-assignments',
+    title: 'My Assignments',
+    position: { x: 0, y: 2 },
+    size: { width: 6, height: 4 },
+    visible: true
+  },
+  {
+    widget_id: 'overdue-tasks',
+    type: 'overdue-tasks',
+    title: 'Overdue Tasks',
+    position: { x: 6, y: 2 },
+    size: { width: 6, height: 4 },
+    visible: true
+  },
+  {
+    widget_id: 'certifications',
+    type: 'certifications',
+    title: 'Certification Status',
+    position: { x: 0, y: 6 },
+    size: { width: 6, height: 3 },
+    visible: true
+  },
+  {
+    widget_id: 'upcoming-maintenance',
+    type: 'upcoming-maintenance',
+    title: 'Upcoming Maintenance',
+    position: { x: 6, y: 6 },
+    size: { width: 6, height: 3 },
+    visible: true
+  },
+  {
+    widget_id: 'parts-inventory',
+    type: 'parts-inventory',
+    title: 'Parts Inventory Alerts',
+    position: { x: 0, y: 9 },
+    size: { width: 6, height: 3 },
+    visible: true
+  },
+  {
+    widget_id: 'recent-activity',
+    type: 'recent-activity',
+    title: 'Recent Activity',
+    position: { x: 6, y: 9 },
+    size: { width: 6, height: 3 },
+    visible: true
+  }
+]
+
 interface CustomizableDashboardProps {
   workOrders: WorkOrder[]
   employees: Employee[]
@@ -50,63 +109,27 @@ export function CustomizableDashboard({
   onOpenImport,
   onCreateWorkOrder
 }: CustomizableDashboardProps) {
-  const [widgets, setWidgets] = useKV<DashboardWidget[]>('dashboard-widgets', [
-    {
-      widget_id: 'quick-stats',
-      type: 'quick-stats',
-      title: 'Quick Statistics',
-      position: { x: 0, y: 0 },
-      size: { width: 12, height: 2 },
-      visible: true
-    },
-    {
-      widget_id: 'my-assignments',
-      type: 'my-assignments',
-      title: 'My Assignments',
-      position: { x: 0, y: 2 },
-      size: { width: 6, height: 4 },
-      visible: true
-    },
-    {
-      widget_id: 'overdue-tasks',
-      type: 'overdue-tasks',
-      title: 'Overdue Tasks',
-      position: { x: 6, y: 2 },
-      size: { width: 6, height: 4 },
-      visible: true
-    },
-    {
-      widget_id: 'certifications',
-      type: 'certifications',
-      title: 'Certification Status',
-      position: { x: 0, y: 6 },
-      size: { width: 6, height: 3 },
-      visible: true
-    },
-    {
-      widget_id: 'parts-inventory',
-      type: 'parts-inventory',
-      title: 'Parts Inventory Alerts',
-      position: { x: 6, y: 6 },
-      size: { width: 6, height: 3 },
-      visible: true
-    },
-    {
-      widget_id: 'recent-activity',
-      type: 'recent-activity',
-      title: 'Recent Activity',
-      position: { x: 0, y: 9 },
-      size: { width: 12, height: 3 },
-      visible: true
-    }
-  ])
+  const [widgets, setWidgets] = useKV<DashboardWidget[]>('dashboard-widgets', DEFAULT_WIDGETS)
 
   const [editMode, setEditMode] = useState(false)
   const [activityLog] = useKV<AuditLogEntry[]>('activity-log', [])
 
+  useEffect(() => {
+    setWidgets(current => {
+      const currentWidgets = current || []
+      const missingWidgets = DEFAULT_WIDGETS.filter(defaultWidget =>
+        !currentWidgets.some(widget => widget.widget_id === defaultWidget.widget_id)
+      )
+
+      return missingWidgets.length > 0
+        ? [...currentWidgets, ...missingWidgets]
+        : currentWidgets
+    })
+  }, [setWidgets])
+
   const toggleWidgetVisibility = (widgetId: string) => {
     setWidgets((current) =>
-      (current || []).map(w =>
+      ((current && current.length > 0) ? current : DEFAULT_WIDGETS).map(w =>
         w.widget_id === widgetId ? { ...w, visible: !w.visible } : w
       )
     )
@@ -120,6 +143,17 @@ export function CustomizableDashboard({
   const overdueTasks = workOrders.filter(wo => wo.is_overdue)
   const lowStockParts = parts.filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock')
   const expiringCerts = certifications.filter(c => c.days_until_expiry <= 30 && !c.dismissed)
+  const upcomingMaintenance = workOrders
+    .filter(wo => {
+      if (wo.status === 'Completed' || wo.status === 'Cancelled') return false
+      const scheduledDate = new Date(wo.scheduled_date)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const nextTwoWeeks = new Date(today)
+      nextTwoWeeks.setDate(today.getDate() + 14)
+      return scheduledDate >= today && scheduledDate <= nextTwoWeeks
+    })
+    .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date))
 
   const stats = {
     total: workOrders.length,
@@ -388,6 +422,51 @@ export function CustomizableDashboard({
                           </div>
                         )
                       })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {widget.type === 'upcoming-maintenance' && (
+              <Card className="hover-lift transition-all duration-200 shadow-sm hover:shadow-md border-border/50">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2.5 text-lg">
+                    <CalendarIcon size={22} weight="duotone" className={upcomingMaintenance.length > 0 ? 'text-sky-600 dark:text-sky-400' : ''} />
+                    {widget.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {upcomingMaintenance.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground animate-fade-in">
+                      <CalendarIcon size={52} className="mx-auto mb-3 opacity-40" weight="duotone" />
+                      <p className="font-medium">No work scheduled in the next 14 days</p>
+                      <p className="text-sm mt-1">Upcoming preventive and corrective work will show here</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                      {upcomingMaintenance.slice(0, 6).map(workOrder => (
+                        <button
+                          key={workOrder.work_order_id}
+                          onClick={() => onSelectWorkOrder?.(workOrder)}
+                          className="w-full rounded-xl border border-border/60 bg-card p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:bg-accent/50 hover:shadow-md"
+                        >
+                          <div className="mb-2 flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-semibold">{workOrder.work_order_id}</p>
+                              <p className="text-xs text-muted-foreground">{workOrder.type} · {workOrder.equipment_area}</p>
+                            </div>
+                            <Badge variant={workOrder.priority_level === 'Critical' || workOrder.priority_level === 'High' ? 'destructive' : 'secondary'}>
+                              {workOrder.priority_level}
+                            </Badge>
+                          </div>
+                          <p className="mb-2 text-sm font-medium line-clamp-2">{workOrder.task}</p>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{new Date(workOrder.scheduled_date).toLocaleDateString()}</span>
+                            <span>{workOrder.assigned_technician || 'Unassigned'}</span>
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   )}
                 </CardContent>
