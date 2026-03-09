@@ -93,7 +93,7 @@ export function PWAInstallBanner() {
                 <DownloadSimple className="h-6 w-6 text-primary" weight="bold" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">Install MaintenancePro</h3>
+                <h3 className="font-semibold text-foreground">Install RoadPro</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Access offline and get a better experience
                 </p>

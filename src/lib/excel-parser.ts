@@ -566,7 +566,7 @@ export async function exportToExcel(
   const buffer = await wb.xlsx.writeBuffer()
   downloadBuffer(
     buffer as ArrayBuffer,
-    `MaintenancePro_Export_${datePart}T${timePart}_${userSlug}.xlsx`
+    `RoadPro_Export_${datePart}T${timePart}_${userSlug}.xlsx`
   )
 }
 
@@ -620,5 +620,5 @@ export async function downloadExcelTemplate(): Promise<void> {
     'Daily 0.15h; Weekly 0.75h; Monthly 2h; Quarterly 4h; Bi-Yearly 8h; Yearly 16h'])
 
   const buffer = await wb.xlsx.writeBuffer()
-  downloadBuffer(buffer as ArrayBuffer, 'MaintenancePro_Template.xlsx')
+  downloadBuffer(buffer as ArrayBuffer, 'RoadPro_Template.xlsx')
 }

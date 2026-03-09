@@ -177,7 +177,7 @@ export function CustomizableDashboard({
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 mb-6 shadow-sm">
                 <Sparkle size={36} className="text-primary" weight="duotone" />
               </div>
-              <h3 className="text-2xl font-bold mb-3">Welcome to MaintenancePro</h3>
+              <h3 className="text-2xl font-bold mb-3">Welcome to RoadPro</h3>
               <p className="text-muted-foreground mb-8 text-base leading-relaxed">
                 Get started by loading sample data to explore the full CMMS experience, or create your first work order.
               </p>

@@ -1295,7 +1295,7 @@ export function createBlankPIDDrawing(params?: {
     drawing_number: `PID-${Date.now().toString().substring(7)}`,
     drawing_title: params?.title || 'New P&ID Drawing',
     revision: 1,
-    project_name: params?.projectName || 'MaintenancePro Project',
+    project_name: params?.projectName || 'RoadPro Project',
     area_id: params?.areaId || null,
     system_id: null,
     canvas_width: 1920,
