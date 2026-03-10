@@ -390,6 +390,45 @@ export function FinancialDashboard() {
     safeBatches.filter(b => b.status === 'Complete').reduce((s, b) => s + b.actual_tons, 0),
     [safeBatches])
 
+  const outstandingReceivables = useMemo(() =>
+    safeSales
+      .filter(o => ['Delivered', 'Invoiced'].includes(o.status))
+      .reduce((sum, order) => sum + order.total_price, 0),
+    [safeSales])
+
+  const pipelineValue = useMemo(() =>
+    safeSales
+      .filter(o => ['Quote', 'Confirmed', 'In Production', 'Ready'].includes(o.status))
+      .reduce((sum, order) => sum + order.total_price, 0),
+    [safeSales])
+
+  const topCustomers = useMemo(() => {
+    const totals = new Map<string, number>()
+
+    safeSales
+      .filter(order => order.status !== 'Cancelled')
+      .forEach(order => {
+        totals.set(order.customer_name, (totals.get(order.customer_name) || 0) + order.total_price)
+      })
+
+    return [...totals.entries()]
+      .map(([customer, revenue]) => ({ customer, revenue }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5)
+  }, [safeSales])
+
+  const unitEconomics = useMemo(() => {
+    const revenuePerTon = totalProduction > 0 ? totalRevenue / totalProduction : 0
+    const costPerTon = totalProduction > 0 ? totalCostYTD / totalProduction : 0
+
+    return {
+      revenuePerTon,
+      costPerTon,
+      marginPerTon: revenuePerTon - costPerTon,
+      collectionRate: totalRevenue > 0 ? Math.round((totalCollected / totalRevenue) * 100) : 0
+    }
+  }, [totalCollected, totalCostYTD, totalProduction, totalRevenue])
+
   // Monthly cost chart
   const monthlyCostData = useMemo(() => {
     return MONTHS.map((m, i) => {
@@ -538,6 +577,7 @@ export function FinancialDashboard() {
         <TabsList>
           <TabsTrigger value="trends">Cost Trends</TabsTrigger>
           <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
+          <TabsTrigger value="business-health">Business Health</TabsTrigger>
           <TabsTrigger value="entries">Cost Entries</TabsTrigger>
         </TabsList>
 
@@ -614,6 +654,99 @@ export function FinancialDashboard() {
                       </div>
                     )
                   })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="business-health" className="space-y-4 pt-4">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cash & Pipeline Snapshot</CardTitle>
+                <CardDescription>Current cash conversion and forward revenue visibility</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border bg-muted/20 p-4">
+                  <p className="text-sm text-muted-foreground">Outstanding receivables</p>
+                  <p className="text-2xl font-semibold">{fmt(outstandingReceivables)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Delivered and invoiced orders awaiting collection</p>
+                </div>
+                <div className="rounded-lg border bg-muted/20 p-4">
+                  <p className="text-sm text-muted-foreground">Open commercial pipeline</p>
+                  <p className="text-2xl font-semibold">{fmt(pipelineValue)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Quotes, confirmed orders, and production-ready demand</p>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border bg-muted/20 p-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Collection rate</p>
+                    <p className="text-2xl font-semibold">{unitEconomics.collectionRate}%</p>
+                  </div>
+                  <Badge variant={unitEconomics.collectionRate >= 70 ? 'default' : 'secondary'}>
+                    {totalCollected > 0 ? 'On Track' : 'Monitor'}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Revenue Customers</CardTitle>
+                <CardDescription>Highest-value accounts across active and completed orders</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {topCustomers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No customer revenue available yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {topCustomers.map((customer, index) => (
+                      <div key={customer.customer} className="rounded-lg border p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-medium">{customer.customer}</p>
+                            <p className="text-xs text-muted-foreground">#{index + 1} revenue contributor</p>
+                          </div>
+                          <p className="font-semibold">{fmt(customer.revenue)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Unit Economics</CardTitle>
+                <CardDescription>How production volume is translating into financial performance</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border p-4">
+                    <p className="text-sm text-muted-foreground">Revenue per ton</p>
+                    <p className="text-xl font-semibold">{fmt(unitEconomics.revenuePerTon)}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <p className="text-sm text-muted-foreground">Cost per ton</p>
+                    <p className="text-xl font-semibold">{fmt(unitEconomics.costPerTon)}</p>
+                  </div>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Margin proxy per ton</p>
+                      <p className={`text-2xl font-semibold ${unitEconomics.marginPerTon < 0 ? 'text-destructive' : ''}`}>
+                        {fmt(unitEconomics.marginPerTon)}
+                      </p>
+                    </div>
+                    {unitEconomics.marginPerTon < 0 && (
+                      <Badge variant="destructive">Below target</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Based on total recorded revenue, completed production tons, and maintenance spend.
+                  </p>
                 </div>
               </CardContent>
             </Card>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
-import type { ProductionBatch, ProductionBatchStatus, AsphaltProduct } from '@/lib/types'
+import type { ProductionBatch, ProductionBatchStatus, AsphaltProduct, SalesOrder } from '@/lib/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -247,12 +247,14 @@ function BatchDialog({ open, onClose, onSave, existing }: BatchDialogProps) {
 
 export function ProductionTracking() {
   const [batches, setBatches] = useKV<ProductionBatch[]>('production-batches', [])
+  const [salesOrders] = useKV<SalesOrder[]>('sales-orders', [])
   const [addOpen, setAddOpen] = useState(false)
   const [editBatch, setEditBatch] = useState<ProductionBatch | null>(null)
   const [filterYear, setFilterYear] = useState(CURRENT_YEAR)
   const [filterStatus, setFilterStatus] = useState<ProductionBatchStatus | 'All'>('All')
 
   const safeBatches = batches || []
+  const safeOrders = salesOrders || []
 
   const handleSaveBatch = (batch: ProductionBatch) => {
     setBatches(current => {
@@ -289,6 +291,69 @@ export function ProductionTracking() {
     return eff.length > 0 ? eff.reduce((s, e) => s + e, 0) / eff.length : 0
   }, [completedBatches])
   const totalDowntime = useMemo(() => completedBatches.reduce((s, b) => s + b.downtime_minutes, 0), [completedBatches])
+
+  const activeRuns = useMemo(() =>
+    yearBatches
+      .filter(batch => ['Planned', 'In Progress'].includes(batch.status))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, 6),
+    [yearBatches])
+
+  const operatorScorecard = useMemo(() => {
+    const operatorMap = new Map<string, { operator: string; tons: number; batches: number; efficiency: number }>()
+
+    completedBatches.forEach(batch => {
+      const operatorName = batch.operator || 'Unassigned'
+      const current = operatorMap.get(operatorName) || { operator: operatorName, tons: 0, batches: 0, efficiency: 0 }
+      current.tons += batch.actual_tons
+      current.batches += 1
+      current.efficiency += batch.target_tons > 0 ? batch.actual_tons / batch.target_tons : 0
+      operatorMap.set(operatorName, current)
+    })
+
+    return [...operatorMap.values()]
+      .map(entry => ({
+        ...entry,
+        avgEfficiency: entry.batches > 0 ? Math.round((entry.efficiency / entry.batches) * 100) : 0
+      }))
+      .sort((a, b) => b.tons - a.tons)
+      .slice(0, 5)
+  }, [completedBatches])
+
+  const demandAlignment = useMemo(() => {
+    const openDemand = new Map<string, number>()
+    const scheduledSupply = new Map<string, number>()
+
+    safeOrders
+      .filter(order => new Date(order.order_date).getFullYear() === filterYear)
+      .filter(order => !['Paid', 'Cancelled'].includes(order.status))
+      .forEach(order => {
+        openDemand.set(order.product, (openDemand.get(order.product) || 0) + order.quantity_tons)
+      })
+
+    yearBatches
+      .filter(batch => batch.status !== 'Cancelled')
+      .forEach(batch => {
+        const supplyTons = batch.status === 'Complete' ? batch.actual_tons : batch.target_tons
+        scheduledSupply.set(batch.product, (scheduledSupply.get(batch.product) || 0) + supplyTons)
+      })
+
+    return [...new Set([...openDemand.keys(), ...scheduledSupply.keys()])]
+      .map(product => {
+        const demand = Math.round(openDemand.get(product) || 0)
+        const supply = Math.round(scheduledSupply.get(product) || 0)
+
+        return {
+          product,
+          demand,
+          supply,
+          gap: supply - demand
+        }
+      })
+      .filter(item => item.demand > 0 || item.supply > 0)
+      .sort((a, b) => b.demand - a.demand)
+      .slice(0, 6)
+  }, [filterYear, safeOrders, yearBatches])
 
   // Monthly production chart
   const monthlyData = useMemo(() => MONTHS.map((m, i) => {
@@ -414,6 +479,7 @@ export function ProductionTracking() {
         <TabsList>
           <TabsTrigger value="chart">Production Chart</TabsTrigger>
           <TabsTrigger value="mix">Product Mix</TabsTrigger>
+          <TabsTrigger value="operations">Operations</TabsTrigger>
           <TabsTrigger value="batches">Batch Log</TabsTrigger>
         </TabsList>
 
@@ -480,6 +546,102 @@ export function ProductionTracking() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="operations" className="space-y-4 pt-4">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming Runs</CardTitle>
+                <CardDescription>Planned and in-progress batches scheduled next</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {activeRuns.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No planned or active batches for {filterYear}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {activeRuns.map(batch => (
+                      <div key={batch.batch_id} className="rounded-lg border p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-medium">{batch.batch_number}</p>
+                            <p className="text-xs text-muted-foreground">{batch.product} · {batch.operator || 'No operator assigned'}</p>
+                          </div>
+                          {statusBadge(batch.status)}
+                        </div>
+                        <p className="text-sm mt-3">
+                          {new Date(batch.date).toLocaleDateString()} · Target {batch.target_tons.toLocaleString()} tons
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Operator Scorecard</CardTitle>
+                <CardDescription>Top completed production contributors this year</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {operatorScorecard.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">Complete batches to unlock operator rankings</p>
+                ) : (
+                  <div className="space-y-3">
+                    {operatorScorecard.map(operator => (
+                      <div key={operator.operator} className="rounded-lg border p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-medium">{operator.operator}</p>
+                            <p className="text-xs text-muted-foreground">{operator.batches} completed batches</p>
+                          </div>
+                          <Badge variant={operator.avgEfficiency >= 90 ? 'default' : 'secondary'}>
+                            {operator.avgEfficiency}% eff.
+                          </Badge>
+                        </div>
+                        <p className="text-sm mt-3">{operator.tons.toLocaleString()} tons produced</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Demand Alignment</CardTitle>
+                <CardDescription>Open sales demand compared with scheduled production supply</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {demandAlignment.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No production or sales demand to compare yet</p>
+                ) : (
+                  <div className="space-y-4">
+                    {demandAlignment.map(item => {
+                      const coverage = item.demand > 0 ? Math.min(100, Math.round((item.supply / item.demand) * 100)) : 100
+                      return (
+                        <div key={item.product}>
+                          <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+                            <span className="font-medium">{item.product}</span>
+                            <span className={item.gap < 0 ? 'text-destructive' : 'text-muted-foreground'}>
+                              Demand {item.demand.toLocaleString()} t · Supply {item.supply.toLocaleString()} t
+                            </span>
+                          </div>
+                          <div className="h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${item.gap < 0 ? 'bg-destructive' : 'bg-primary'}`}
+                              style={{ width: `${coverage}%` }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
