@@ -1409,3 +1409,257 @@ export interface BudgetEntry {
   created_at: string
   updated_at: string
 }
+
+// ─── Supply Chain & Procurement ──────────────────────────────────────────────
+
+export type POStatus = 'Draft' | 'Pending Approval' | 'Approved' | 'Ordered' | 'Partially Received' | 'Received' | 'Cancelled'
+export type VendorStatus = 'Active' | 'Inactive' | 'Preferred' | 'Blacklisted'
+export type VendorCategory = 'Raw Materials' | 'Equipment' | 'Services' | 'Chemicals' | 'Safety' | 'Other'
+
+export interface Vendor {
+  vendor_id: string
+  name: string
+  category: VendorCategory
+  status: VendorStatus
+  contact_name: string
+  contact_email: string
+  contact_phone: string
+  address: string
+  city: string
+  state: string
+  zip: string
+  payment_terms: string
+  lead_time_days: number
+  performance_score: number
+  on_time_delivery_rate: number
+  quality_rating: number
+  total_spend_ytd: number
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export interface PurchaseOrderLine {
+  line_id: string
+  part_number: string
+  description: string
+  quantity_ordered: number
+  quantity_received: number
+  unit_cost: number
+  total_cost: number
+  unit_of_measure: string
+  notes: string
+}
+
+export interface PurchaseOrder {
+  po_id: string
+  po_number: string
+  vendor_id: string
+  vendor_name: string
+  status: POStatus
+  order_date: string
+  expected_delivery_date: string
+  actual_delivery_date: string | null
+  lines: PurchaseOrderLine[]
+  subtotal: number
+  tax: number
+  shipping: number
+  total: number
+  requested_by: string
+  approved_by: string | null
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+// ─── Distribution & Logistics ────────────────────────────────────────────────
+
+export type VehicleStatus = 'Available' | 'In Service' | 'Maintenance' | 'Out of Service'
+export type VehicleType = 'Tanker' | 'Flatbed' | 'Pickup' | 'Service Truck' | 'Rail Car' | 'Other'
+
+export interface FleetVehicle {
+  vehicle_id: string
+  vehicle_number: string
+  vehicle_type: VehicleType
+  make: string
+  model: string
+  year: number
+  license_plate: string
+  vin: string
+  status: VehicleStatus
+  assigned_driver: string | null
+  current_location: string
+  odometer_miles: number
+  last_service_date: string
+  next_service_due_miles: number
+  fuel_type: string
+  capacity_tons: number
+  insurance_expiry: string
+  registration_expiry: string
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export type DeliveryStatus = 'Scheduled' | 'Loading' | 'In Transit' | 'Delivered' | 'Cancelled' | 'Delayed'
+
+export interface Delivery {
+  delivery_id: string
+  delivery_number: string
+  sales_order_id: string | null
+  customer_name: string
+  delivery_address: string
+  vehicle_id: string | null
+  driver_name: string | null
+  status: DeliveryStatus
+  scheduled_date: string
+  scheduled_time: string
+  actual_departure: string | null
+  actual_arrival: string | null
+  product: string
+  quantity_tons: number
+  temperature_f: number | null
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+// ─── HR & Compliance ─────────────────────────────────────────────────────────
+
+export type LeaveType = 'Vacation' | 'Sick' | 'Personal' | 'FMLA' | 'Bereavement' | 'Jury Duty' | 'Other'
+export type LeaveStatus = 'Pending' | 'Approved' | 'Denied' | 'Cancelled'
+
+export interface LeaveRequest {
+  request_id: string
+  employee_id: string
+  employee_name: string
+  leave_type: LeaveType
+  status: LeaveStatus
+  start_date: string
+  end_date: string
+  days_requested: number
+  reason: string
+  approved_by: string | null
+  approved_at: string | null
+  notes: string
+  created_at: string
+}
+
+export type ComplianceCategory = 'Environmental' | 'Safety' | 'Labor' | 'Financial' | 'Quality' | 'Security' | 'Other'
+export type ComplianceStatus = 'Compliant' | 'Non-Compliant' | 'Under Review' | 'Expired' | 'Upcoming'
+
+export interface ComplianceItem {
+  item_id: string
+  title: string
+  category: ComplianceCategory
+  status: ComplianceStatus
+  regulation: string
+  description: string
+  responsible_party: string
+  due_date: string
+  last_review_date: string | null
+  next_review_date: string
+  documents: string[]
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export type TrainingStatus = 'Not Started' | 'In Progress' | 'Completed' | 'Overdue' | 'Waived'
+export type TrainingCategory = 'Safety' | 'Technical' | 'Compliance' | 'Leadership' | 'Operations' | 'Other'
+
+export interface TrainingRecord {
+  record_id: string
+  employee_id: string
+  employee_name: string
+  course_name: string
+  category: TrainingCategory
+  status: TrainingStatus
+  assigned_date: string
+  due_date: string
+  completed_date: string | null
+  score: number | null
+  instructor: string
+  hours: number
+  certificate_url: string | null
+  notes: string
+  created_at: string
+}
+
+// ─── Design & Engineering ─────────────────────────────────────────────────────
+
+export type SpecStatus = 'Draft' | 'In Review' | 'Approved' | 'Obsolete'
+export type ECOStatus = 'Draft' | 'Pending Review' | 'Approved' | 'Rejected' | 'Implemented'
+export type ECOPriority = 'Low' | 'Medium' | 'High' | 'Critical'
+
+export interface ProductSpec {
+  spec_id: string
+  spec_number: string
+  product_name: string
+  version: string
+  status: SpecStatus
+  category: string
+  description: string
+  min_penetration: number | null
+  max_penetration: number | null
+  min_viscosity: number | null
+  max_viscosity: number | null
+  min_softening_point: number | null
+  max_softening_point: number | null
+  test_methods: string[]
+  approved_by: string | null
+  approved_date: string | null
+  effective_date: string
+  created_at: string
+  updated_at: string
+}
+
+export interface BOMLine {
+  line_id: string
+  item_number: string
+  description: string
+  quantity: number
+  unit: string
+  unit_cost: number
+  total_cost: number
+  supplier: string
+  lead_time_days: number
+  notes: string
+}
+
+export interface BillOfMaterials {
+  bom_id: string
+  bom_number: string
+  product_name: string
+  version: string
+  status: SpecStatus
+  description: string
+  lines: BOMLine[]
+  total_material_cost: number
+  created_by: string
+  approved_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface EngineeringChange {
+  eco_id: string
+  eco_number: string
+  title: string
+  status: ECOStatus
+  priority: ECOPriority
+  description: string
+  reason: string
+  affected_products: string[]
+  affected_documents: string[]
+  requested_by: string
+  assigned_to: string | null
+  reviewed_by: string | null
+  review_date: string | null
+  implementation_date: string | null
+  estimated_cost: number
+  actual_cost: number | null
+  notes: string
+  created_at: string
+  updated_at: string
+}

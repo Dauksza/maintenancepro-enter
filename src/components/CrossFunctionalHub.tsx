@@ -23,7 +23,7 @@ import {
   Wrench,
 } from '@phosphor-icons/react'
 
-type ModuleKey = 'salesFinance' | 'production' | 'maintenance'
+type ModuleKey = 'salesFinance' | 'production' | 'maintenance' | 'supplyChain' | 'distribution' | 'hrCompliance'
 
 interface CrossFunctionalHubProps {
   currentModule?: ModuleKey | null
@@ -33,6 +33,9 @@ const MODULE_CONTEXT: Record<ModuleKey, string> = {
   salesFinance: 'Track how plant readiness and maintenance execution affect customer commitments and cash flow.',
   production: 'Coordinate plant throughput with maintenance priorities and the sales pipeline from one shared view.',
   maintenance: 'See which maintenance actions have the biggest downstream impact on operations, delivery, and margin.',
+  supplyChain: 'Monitor procurement, vendor performance, and supply chain health alongside production and delivery.',
+  distribution: 'Track fleet status, delivery performance, and logistics operations across all customer commitments.',
+  hrCompliance: 'Align workforce availability, training status, and compliance posture with operational demands.',
 }
 
 function formatCurrency(value: number) {

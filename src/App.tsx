@@ -75,6 +75,18 @@ const FinancialDashboard = lazy(() => import('@/components/FinancialDashboard').
 const ProductionTracking = lazy(() => import('@/components/ProductionTracking').then(m => ({ default: m.ProductionTracking })))
 const SalesOrders = lazy(() => import('@/components/SalesOrders').then(m => ({ default: m.SalesOrders })))
 const CrossFunctionalHub = lazy(() => import('@/components/CrossFunctionalHub').then(m => ({ default: m.CrossFunctionalHub })))
+const ProcurementDashboard = lazy(() => import('@/components/ProcurementDashboard').then(m => ({ default: m.ProcurementDashboard })))
+const PurchaseOrders = lazy(() => import('@/components/PurchaseOrders').then(m => ({ default: m.PurchaseOrders })))
+const VendorManagement = lazy(() => import('@/components/VendorManagement').then(m => ({ default: m.VendorManagement })))
+const FleetManagement = lazy(() => import('@/components/FleetManagement').then(m => ({ default: m.FleetManagement })))
+const DeliveryTracking = lazy(() => import('@/components/DeliveryTracking').then(m => ({ default: m.DeliveryTracking })))
+const HRDashboard = lazy(() => import('@/components/HRDashboard').then(m => ({ default: m.HRDashboard })))
+const LeaveManagement = lazy(() => import('@/components/LeaveManagement').then(m => ({ default: m.LeaveManagement })))
+const ComplianceDashboard = lazy(() => import('@/components/ComplianceDashboard').then(m => ({ default: m.ComplianceDashboard })))
+const TrainingManagement = lazy(() => import('@/components/TrainingManagement').then(m => ({ default: m.TrainingManagement })))
+const ProductSpecifications = lazy(() => import('@/components/ProductSpecifications').then(m => ({ default: m.ProductSpecifications })))
+const BillOfMaterials = lazy(() => import('@/components/BillOfMaterials').then(m => ({ default: m.BillOfMaterials })))
+const EngineeringChanges = lazy(() => import('@/components/EngineeringChanges').then(m => ({ default: m.EngineeringChanges })))
 import { 
   Wrench, 
   ClipboardText, 
@@ -112,7 +124,17 @@ import {
   SidebarSimple,
   CurrencyDollar,
   Factory,
-  ShoppingCart
+  ShoppingCart,
+  Buildings,
+  Receipt,
+  UsersThree,
+  ShieldCheck,
+  GraduationCap,
+  TreeStructure,
+  Van,
+  CalendarCheck,
+  Cube,
+  NavigationArrow,
 } from '@phosphor-icons/react'
 import { 
   generateSampleWorkOrders, 
@@ -142,7 +164,7 @@ import { canViewTab, hasPermission } from '@/lib/permissions'
 import { toast } from 'sonner'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardNavigation'
 
-type ModuleKey = 'salesFinance' | 'production' | 'maintenance'
+type ModuleKey = 'salesFinance' | 'production' | 'maintenance' | 'supplyChain' | 'distribution' | 'hrCompliance'
 
 const MODULE_DETAILS = {
   salesFinance: {
@@ -174,7 +196,37 @@ const MODULE_DETAILS = {
     accent: 'from-primary via-primary to-sky-500',
     icon: Wrench,
     highlights: ['Maintenance dashboard', 'Scheduling and PM', 'Assets, parts, and compliance']
-  }
+  },
+  supplyChain: {
+    label: 'Supply Chain & Procurement',
+    shortLabel: 'Supply Chain',
+    description: 'Purchase orders, vendor management, inventory forecasting, and supplier performance.',
+    audience: 'Ideal for procurement managers, purchasing agents, and supply chain coordinators.',
+    defaultTab: 'procurement-dashboard',
+    accent: 'from-violet-500 via-purple-500 to-indigo-500',
+    icon: Buildings,
+    highlights: ['Purchase orders', 'Vendor management', 'Inventory forecasting']
+  },
+  distribution: {
+    label: 'Distribution & Logistics',
+    shortLabel: 'Distribution',
+    description: 'Fleet management, delivery tracking, route planning, and customer portal.',
+    audience: 'Ideal for dispatch coordinators, drivers, and logistics managers.',
+    defaultTab: 'fleet',
+    accent: 'from-sky-500 via-blue-500 to-cyan-500',
+    icon: Van,
+    highlights: ['Fleet management', 'Delivery tracking', 'Route planning']
+  },
+  hrCompliance: {
+    label: 'HR & Compliance',
+    shortLabel: 'HR & Compliance',
+    description: 'Human resources, leave management, compliance tracking, and employee training.',
+    audience: 'Ideal for HR managers, compliance officers, and department heads.',
+    defaultTab: 'hr-dashboard',
+    accent: 'from-rose-500 via-pink-500 to-fuchsia-500',
+    icon: UsersThree,
+    highlights: ['HR dashboard', 'Leave management', 'Compliance & training']
+  },
 } as const
 
 function App() {
@@ -724,7 +776,50 @@ function App() {
           { tab: 'database', label: 'Database', icon: Database },
         ]
       }
-    ]
+    ],
+    supplyChain: [
+      {
+        title: 'Procurement',
+        items: [
+          { tab: 'procurement-dashboard', label: 'Dashboard', icon: Buildings },
+          { tab: 'purchase-orders', label: 'Purchase Orders', icon: Receipt },
+          { tab: 'vendors', label: 'Vendors', icon: Cube },
+        ]
+      },
+      {
+        title: 'Design & Engineering',
+        items: [
+          { tab: 'product-specs', label: 'Product Specs', icon: ClipboardText },
+          { tab: 'bom', label: 'Bill of Materials', icon: TreeStructure },
+          { tab: 'engineering-changes', label: 'Engineering Changes', icon: Gear },
+        ]
+      }
+    ],
+    distribution: [
+      {
+        title: 'Logistics',
+        items: [
+          { tab: 'fleet', label: 'Fleet Management', icon: Van },
+          { tab: 'deliveries', label: 'Delivery Tracking', icon: NavigationArrow },
+        ]
+      }
+    ],
+    hrCompliance: [
+      {
+        title: 'Human Resources',
+        items: [
+          { tab: 'hr-dashboard', label: 'HR Dashboard', icon: UsersThree },
+          { tab: 'leave', label: 'Leave Management', icon: CalendarCheck },
+          { tab: 'training', label: 'Training', icon: GraduationCap },
+        ]
+      },
+      {
+        title: 'Compliance',
+        items: [
+          { tab: 'compliance', label: 'Compliance', icon: ShieldCheck },
+        ]
+      }
+    ],
   }), [certificationCounts.critical, overdueCount])
 
   const currentModuleDetails = selectedModule ? MODULE_DETAILS[selectedModule] : null
@@ -882,7 +977,7 @@ function App() {
                 </div>
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-3">
+              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {(Object.entries(MODULE_DETAILS) as [ModuleKey, typeof MODULE_DETAILS[ModuleKey]][]).map(([key, module]) => {
                   const Icon = module.icon
 
@@ -1688,6 +1783,57 @@ function App() {
 
             <TabsContent value="operations-hub" className="space-y-6 animate-fade-in">
               <CrossFunctionalHub currentModule={selectedModule} />
+            </TabsContent>
+
+            {/* Supply Chain tabs */}
+            <TabsContent value="procurement-dashboard" className="space-y-6 animate-fade-in">
+              <ProcurementDashboard />
+            </TabsContent>
+
+            <TabsContent value="purchase-orders" className="space-y-6 animate-fade-in">
+              <PurchaseOrders />
+            </TabsContent>
+
+            <TabsContent value="vendors" className="space-y-6 animate-fade-in">
+              <VendorManagement />
+            </TabsContent>
+
+            <TabsContent value="product-specs" className="space-y-6 animate-fade-in">
+              <ProductSpecifications />
+            </TabsContent>
+
+            <TabsContent value="bom" className="space-y-6 animate-fade-in">
+              <BillOfMaterials />
+            </TabsContent>
+
+            <TabsContent value="engineering-changes" className="space-y-6 animate-fade-in">
+              <EngineeringChanges />
+            </TabsContent>
+
+            {/* Distribution tabs */}
+            <TabsContent value="fleet" className="space-y-6 animate-fade-in">
+              <FleetManagement />
+            </TabsContent>
+
+            <TabsContent value="deliveries" className="space-y-6 animate-fade-in">
+              <DeliveryTracking />
+            </TabsContent>
+
+            {/* HR & Compliance tabs */}
+            <TabsContent value="hr-dashboard" className="space-y-6 animate-fade-in">
+              <HRDashboard />
+            </TabsContent>
+
+            <TabsContent value="leave" className="space-y-6 animate-fade-in">
+              <LeaveManagement />
+            </TabsContent>
+
+            <TabsContent value="training" className="space-y-6 animate-fade-in">
+              <TrainingManagement />
+            </TabsContent>
+
+            <TabsContent value="compliance" className="space-y-6 animate-fade-in">
+              <ComplianceDashboard />
             </TabsContent>
           </Tabs>
           </Suspense>
