@@ -32,7 +32,7 @@ export function generateSampleSalesOrders(): SalesOrder[] {
     'Highway 31 Contractors',
     'Southern Asphalt Inc.',
   ]
-  const products: AsphaltProduct[] = ['PG 64-22', 'PG 70-22', 'PG 76-22', 'AC-20', 'Emulsion']
+  const products: AsphaltProduct[] = ['PG 64-22', 'PG 70-22', 'PG 76-22', 'PG 82-22', 'AC-20', 'Emulsion']
   const statuses: SalesOrderStatus[] = [
     'Quote',
     'Confirmed',
@@ -51,8 +51,9 @@ export function generateSampleSalesOrders(): SalesOrder[] {
     for (let i = 0; i < count; i++) {
       const product = products[Math.floor(Math.random() * products.length)]
       const tons = 50 + Math.floor(Math.random() * 500)
+      // PG 76-22 and PG 82-22 command a premium; Emulsion trades at a discount.
       const unitPrice =
-        product.startsWith('PG 76') || product.startsWith('PG 82')
+        product === 'PG 76-22' || product === 'PG 82-22'
           ? 750 + Math.random() * 100
           : product === 'Emulsion'
             ? 550 + Math.random() * 80
@@ -95,7 +96,7 @@ export function generateSampleSalesOrders(): SalesOrder[] {
 
 export function generateSampleProductionBatches(): ProductionBatch[] {
   const batches: ProductionBatch[] = []
-  const products: AsphaltProduct[] = ['PG 64-22', 'PG 70-22', 'PG 76-22', 'AC-20', 'Emulsion']
+  const products: AsphaltProduct[] = ['PG 64-22', 'PG 70-22', 'PG 76-22', 'PG 82-22', 'AC-20', 'Emulsion']
   const operators = ['John Smith', 'Maria Garcia', 'Bob Johnson', 'Sarah Lee']
   let batchNum = 1
   for (let month = 1; month <= 12; month++) {

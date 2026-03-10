@@ -250,8 +250,11 @@ function App() {
   const [formSubmissions, setFormSubmissions] = useKV<FormSubmission[]>('form-submissions', [])
   const [userProfile, setUserProfile] = useKV<UserProfile | null>('user-profile', null)
   const [hasSeededData, setHasSeededData] = useKV<boolean>('has-seeded-data', false)
-  // Cross-functional data stores – seeded alongside the maintenance data so that
-  // the Operations Hub (CrossFunctionalHub) shows an integrated picture from first load.
+  // Cross-functional data stores.  Only the setters are used here so that
+  // handleLoadSampleData can seed all modules in one pass.  Empty-array
+  // defaults are intentional: calling sample generators on every App render
+  // would be wasteful; the individual module components own the read path and
+  // supply their own defaults via useKV (e.g. SalesOrders, ProductionTracking).
   const [, setSalesOrders] = useKV<SalesOrder[]>('sales-orders', [])
   const [, setProductionBatches] = useKV<ProductionBatch[]>('production-batches', [])
   const [, setMaintenanceCosts] = useKV<MaintenanceCostEntry[]>('maintenance-costs', [])
