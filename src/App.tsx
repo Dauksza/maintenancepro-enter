@@ -74,6 +74,7 @@ const LabSpecifications = lazy(() => import('@/components/LabQualityCenter').the
 const FinancialDashboard = lazy(() => import('@/components/FinancialDashboard').then(m => ({ default: m.FinancialDashboard })))
 const ProductionTracking = lazy(() => import('@/components/ProductionTracking').then(m => ({ default: m.ProductionTracking })))
 const SalesOrders = lazy(() => import('@/components/SalesOrders').then(m => ({ default: m.SalesOrders })))
+const CrossFunctionalHub = lazy(() => import('@/components/CrossFunctionalHub').then(m => ({ default: m.CrossFunctionalHub })))
 import { 
   Wrench, 
   ClipboardText, 
@@ -289,7 +290,8 @@ function App() {
     'lab-specs',
     'financial',
     'production',
-    'sales'
+    'sales',
+    'operations-hub',
   ]
   const safeActiveTab = activeTab && validTabs.includes(activeTab) ? activeTab : 'dashboard'
 
@@ -324,6 +326,7 @@ function App() {
     financial: 'Financial Overview',
     production: 'Production Tracking',
     sales: 'Sales Orders',
+    'operations-hub': 'Operations Hub',
   }
   const currentSectionLabel = TAB_LABELS[safeActiveTab] ?? 'Dashboard'
 
@@ -637,6 +640,7 @@ function App() {
         title: 'Business Overview',
         items: [
           { tab: 'financial', label: 'Financial Overview', icon: CurrencyDollar },
+          { tab: 'operations-hub', label: 'Operations Hub', icon: GitBranch },
           { tab: 'sales', label: 'Sales Orders', icon: ShoppingCart },
           { tab: 'analytics', label: 'Analytics', icon: ChartBar },
         ]
@@ -647,6 +651,7 @@ function App() {
         title: 'Production Control',
         items: [
           { tab: 'production', label: 'Production Tracking', icon: Factory },
+          { tab: 'operations-hub', label: 'Operations Hub', icon: GitBranch },
           { tab: 'blend-calculator', label: 'Blend Calculator', icon: Flask },
           { tab: 'tanks', label: 'Tank Inventory', icon: Drop },
         ]
@@ -706,6 +711,7 @@ function App() {
       {
         title: 'Insights',
         items: [
+          { tab: 'operations-hub', label: 'Operations Hub', icon: GitBranch },
           { tab: 'analytics', label: 'Analytics', icon: ChartBar },
           { tab: 'predictive', label: 'Predictive', icon: Brain },
         ]
@@ -1678,6 +1684,10 @@ function App() {
 
             <TabsContent value="sales" className="space-y-6 animate-fade-in">
               <SalesOrders />
+            </TabsContent>
+
+            <TabsContent value="operations-hub" className="space-y-6 animate-fade-in">
+              <CrossFunctionalHub currentModule={selectedModule} />
             </TabsContent>
           </Tabs>
           </Suspense>
