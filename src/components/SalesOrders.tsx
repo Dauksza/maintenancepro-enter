@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
-import type { SalesOrder, SalesOrderStatus, AsphaltProduct, ProductionBatch } from '@/lib/types'
+import type { SalesOrder, SalesOrderStatus, AsphaltProduct, ProductionBatch, TankerLoadingTicket } from '@/lib/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,6 +43,7 @@ import {
   CurrencyDollar,
   CheckCircle,
   Clock,
+  Truck,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { v4 as uuidv4 } from 'uuid'
@@ -272,6 +273,7 @@ function OrderDialog({ open, onClose, onSave, existing }: OrderDialogProps) {
 export function SalesOrders() {
   const [orders, setOrders] = useKV<SalesOrder[]>('sales-orders', [])
   const [productionBatches] = useKV<ProductionBatch[]>('production-batches', [])
+  const [loadingTickets, setLoadingTickets] = useKV<TankerLoadingTicket[]>('tanker-loading-tickets', [])
   const [addOpen, setAddOpen] = useState(false)
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null)
   const [filterStatus, setFilterStatus] = useState<SalesOrderStatus | 'All'>('All')
@@ -310,6 +312,45 @@ export function SalesOrders() {
   const handleLoadSample = () => {
     setOrders(generateSampleSalesOrders())
     toast.success('Sample sales data loaded')
+  }
+
+  const handleDispatchToLoading = (order: SalesOrder) => {
+    const existing = (loadingTickets || [])
+    const today = new Date()
+    const prefix = `LT-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
+    const todayTickets = existing.filter(t => t.ticket_number.startsWith(prefix))
+    const seq = todayTickets.length + 1
+    const ticketNumber = `${prefix}-${String(seq).padStart(3, '0')}`
+    const now = new Date().toISOString()
+    const newTicket: TankerLoadingTicket = {
+      ticket_id: uuidv4(),
+      ticket_number: ticketNumber,
+      customer: order.customer_name,
+      destination: '',
+      truck_id: '',
+      driver_name: '',
+      product: order.product,
+      tare_weight_lbs: 52000,
+      gross_weight_lbs: null,
+      net_weight_lbs: null,
+      volume_gallons: null,
+      load_from_tank_id: '',
+      temperature_f: null,
+      status: 'Pending',
+      scheduled_load_time: order.delivery_date ? `${order.delivery_date}T08:00` : now.slice(0, 16),
+      actual_load_start: null,
+      actual_load_end: null,
+      operator: '',
+      notes: `Dispatched from sales order ${order.order_number}`,
+      linked_order_id: order.order_id,
+      created_at: now,
+      updated_at: now,
+    }
+    setLoadingTickets(cur => [...(cur || []), newTicket])
+    setOrders(cur => (cur || []).map(o =>
+      o.order_id === order.order_id ? { ...o, status: 'Delivered' as SalesOrderStatus, updated_at: now } : o
+    ))
+    toast.success(`Loading ticket ${ticketNumber} created — order marked Delivered`)
   }
 
   const yearOrders = useMemo(() =>
@@ -639,6 +680,11 @@ export function SalesOrders() {
                     </div>
                     <div className="flex items-center gap-3 ml-4">
                       <span className="font-semibold text-sm">{fmt(order.total_price)}</span>
+                      {order.status === 'Ready' && (
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 px-2" onClick={() => handleDispatchToLoading(order)}>
+                          <Truck size={12} />Dispatch
+                        </Button>
+                      )}
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditOrder(order); setAddOpen(true) }}>
                         <Pencil size={13} />
                       </Button>
