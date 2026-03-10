@@ -406,10 +406,10 @@ function LabQualityCenter({ view }: { view: LabView }) {
   })
 
   const dashboardTitle = view === 'dashboard'
-    ? 'Lab dashboard'
+    ? 'Lab Dashboard'
     : view === 'queue'
-      ? 'Sample queue'
-      : 'Product specifications'
+      ? 'Sample Queue'
+      : 'Product Specifications'
 
   const dashboardDescription = view === 'dashboard'
     ? 'Monitor release readiness, sample turnaround, and product quality in one place.'
