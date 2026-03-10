@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
 import type { ProductionBatch, ProductionBatchStatus, AsphaltProduct, SalesOrder, PurchaseOrder } from '@/lib/types'
+import { generateSampleProductionBatches } from '@/lib/sample-data'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -94,43 +95,6 @@ function statusBadge(status: ProductionBatchStatus) {
 }
 
 // ─── Sample data generator ────────────────────────────────────────────────────
-
-function generateSampleBatches(): ProductionBatch[] {
-  const batches: ProductionBatch[] = []
-  const products: AsphaltProduct[] = ['PG 64-22', 'PG 70-22', 'PG 76-22', 'AC-20', 'Emulsion']
-  const operators = ['John Smith', 'Maria Garcia', 'Bob Johnson', 'Sarah Lee']
-  let batchNum = 1
-  for (let month = 1; month <= 12; month++) {
-    const count = 4 + Math.floor(Math.random() * 4)
-    for (let i = 0; i < count; i++) {
-      const day = 1 + Math.floor(Math.random() * 28)
-      const product = products[Math.floor(Math.random() * products.length)]
-      const target = 200 + Math.floor(Math.random() * 300)
-      const efficiency = 0.85 + Math.random() * 0.2
-      const actual = Math.round(target * efficiency)
-      const status: ProductionBatchStatus = month < new Date().getMonth() + 1 ? 'Complete' : month === new Date().getMonth() + 1 ? (Math.random() > 0.5 ? 'Complete' : 'In Progress') : 'Planned'
-      batches.push({
-        batch_id: uuidv4(),
-        batch_number: `BATCH-${CURRENT_YEAR}-${String(batchNum++).padStart(4, '0')}`,
-        date: `${CURRENT_YEAR}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-        product,
-        target_tons: target,
-        actual_tons: status === 'Complete' ? actual : status === 'In Progress' ? Math.round(actual * 0.5) : 0,
-        start_time: status !== 'Planned' ? `${CURRENT_YEAR}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T06:00:00Z` : null,
-        end_time: status === 'Complete' ? `${CURRENT_YEAR}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T14:00:00Z` : null,
-        status,
-        operator: operators[Math.floor(Math.random() * operators.length)],
-        equipment_id: null,
-        linked_order_id: null,
-        downtime_minutes: status === 'Complete' ? Math.floor(Math.random() * 45) : 0,
-        notes: '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-    }
-  }
-  return batches
-}
 
 // ─── Add/Edit Batch Dialog ────────────────────────────────────────────────────
 
@@ -254,7 +218,7 @@ function BatchDialog({ open, onClose, onSave, existing }: BatchDialogProps) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ProductionTracking() {
-  const [batches, setBatches] = useKV<ProductionBatch[]>('production-batches', [])
+  const [batches, setBatches] = useKV<ProductionBatch[]>('production-batches', generateSampleProductionBatches())
   const [salesOrders] = useKV<SalesOrder[]>('sales-orders', [])
   const [purchaseOrders] = useKV<PurchaseOrder[]>('purchase-orders', [])
   const [addOpen, setAddOpen] = useState(false)
@@ -295,7 +259,7 @@ export function ProductionTracking() {
   }
 
   const handleLoadSample = () => {
-    setBatches(generateSampleBatches())
+    setBatches(generateSampleProductionBatches())
     toast.success('Sample production data loaded')
   }
 
