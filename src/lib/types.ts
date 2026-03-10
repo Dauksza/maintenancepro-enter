@@ -1315,6 +1315,7 @@ export interface TankerLoadingTicket {
   actual_load_end: string | null
   operator: string
   notes: string
+  linked_order_id?: string | null
   created_at: string
   updated_at: string
 }

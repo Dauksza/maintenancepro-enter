@@ -10,7 +10,7 @@ import {
   PieChart, Pie, Cell
 } from 'recharts'
 import { Buildings, Receipt, TrendUp, Warning, Package } from '@phosphor-icons/react'
-import type { Vendor, PurchaseOrder, POStatus, VendorCategory } from '@/lib/types'
+import type { Vendor, PurchaseOrder, POStatus, VendorCategory, AsphaltTank, PartInventoryItem } from '@/lib/types'
 
 function generateInitialData(): { vendors: Vendor[]; pos: PurchaseOrder[] } {
   const now = new Date().toISOString()
@@ -120,11 +120,18 @@ const STATUS_COLORS: Record<POStatus, string> = {
 
 const PIE_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899']
 
+/** Maximum number of low-stock parts alerts to show on the dashboard */
+const MAX_PARTS_ALERTS = 5
+
 export function ProcurementDashboard() {
   const [vendors] = useKV<Vendor[]>('procurement-vendors', generateInitialData().vendors)
   const [pos] = useKV<PurchaseOrder[]>('purchase-orders', generateInitialData().pos)
+  const [asphaltTanks] = useKV<AsphaltTank[]>('asphalt-tanks', [])
+  const [partsInventory] = useKV<PartInventoryItem[]>('parts-inventory', [])
   const safeVendors = vendors ?? generateInitialData().vendors
   const safePOs = pos ?? []
+  const safeTanks = asphaltTanks ?? []
+  const safeParts = partsInventory ?? []
 
   const kpis = useMemo(() => {
     const totalSpend = safePOs.filter(p => p.status === 'Received' || p.status === 'Partially Received')
@@ -166,11 +173,39 @@ export function ProcurementDashboard() {
     [safePOs]
   )
 
-  const lowStockAlerts = [
-    { item: 'PG 64-22 Cement', current: '42 tons', reorder: '100 tons', urgency: 'High' },
-    { item: 'SBS Modifier', current: '4 drums', reorder: '10 drums', urgency: 'Medium' },
-    { item: 'Hard Hats', current: '6 ea', reorder: '20 ea', urgency: 'Low' },
-  ]
+  const lowStockAlerts = useMemo(() => {
+    const alerts: { item: string; current: string; reorder: string; urgency: 'High' | 'Medium' | 'Low' }[] = []
+
+    // Tanks below minimum level
+    safeTanks
+      .filter(t => t.status === 'Active' && t.current_volume_gallons <= t.min_level_gallons)
+      .forEach(t => {
+        const pct = t.min_level_gallons > 0
+          ? Math.round((t.current_volume_gallons / t.min_level_gallons) * 100)
+          : 0
+        alerts.push({
+          item: `${t.tank_name} (${t.product})`,
+          current: `${Math.round(t.current_volume_gallons).toLocaleString()} gal`,
+          reorder: `${Math.round(t.min_level_gallons).toLocaleString()} gal`,
+          urgency: pct <= 25 ? 'High' : pct <= 60 ? 'Medium' : 'Low',
+        })
+      })
+
+    // Parts that are Low Stock or Out of Stock
+    safeParts
+      .filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock')
+      .slice(0, MAX_PARTS_ALERTS)
+      .forEach(p => {
+        alerts.push({
+          item: `${p.part_name} (${p.part_number})`,
+          current: `${p.quantity_on_hand} ${p.unit_of_measure}`,
+          reorder: `${p.minimum_stock_level} ${p.unit_of_measure}`,
+          urgency: p.status === 'Out of Stock' ? 'High' : 'Medium',
+        })
+      })
+
+    return alerts
+  }, [safeTanks, safeParts])
 
   return (
     <div className="space-y-6">
@@ -309,20 +344,24 @@ export function ProcurementDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {lowStockAlerts.map((alert, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border px-4 py-2">
-                <div>
-                  <span className="font-medium text-sm">{alert.item}</span>
-                  <span className="text-xs text-muted-foreground ml-3">Current: {alert.current}</span>
-                  <span className="text-xs text-muted-foreground ml-3">Reorder point: {alert.reorder}</span>
+          {lowStockAlerts.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No low-stock items detected</p>
+          ) : (
+            <div className="space-y-2">
+              {lowStockAlerts.map((alert, i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg border px-4 py-2">
+                  <div>
+                    <span className="font-medium text-sm">{alert.item}</span>
+                    <span className="text-xs text-muted-foreground ml-3">Current: {alert.current}</span>
+                    <span className="text-xs text-muted-foreground ml-3">Reorder point: {alert.reorder}</span>
+                  </div>
+                  <Badge variant={alert.urgency === 'High' ? 'destructive' : alert.urgency === 'Medium' ? 'outline' : 'secondary'}>
+                    {alert.urgency}
+                  </Badge>
                 </div>
-                <Badge variant={alert.urgency === 'High' ? 'destructive' : alert.urgency === 'Medium' ? 'outline' : 'secondary'}>
-                  {alert.urgency}
-                </Badge>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

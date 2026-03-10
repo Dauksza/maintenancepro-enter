@@ -156,12 +156,29 @@ export function TankerLoading() {
     })
   }
 
+  /** Restores previously deducted volume back to the source tank. No-op if tankId is empty or volume is zero. */
+  function restoreTankVolume(tankId: string, volumeGallons: number, timestamp: string) {
+    if (!tankId || !(volumeGallons > 0)) return
+    setTanks(cur => {
+      if (!cur) return []
+      return cur.map(t => {
+        if (t.tank_id !== tankId) return t
+        const restoredVol = Math.min(t.capacity_gallons, t.current_volume_gallons + volumeGallons)
+        return { ...t, current_volume_gallons: restoredVol, last_updated: timestamp }
+      })
+    })
+  }
+
   function handleSave() {
     if (!form.customer.trim()) { toast.error('Customer is required'); return }
     if (!form.truck_id.trim()) { toast.error('Truck ID is required'); return }
     const now = new Date().toISOString()
     const tare = parseFloat(form.tare_weight_lbs) || 0
     const gross = form.gross_weight_lbs ? parseFloat(form.gross_weight_lbs) : null
+    if (gross != null && gross < tare) {
+      toast.error('Gross weight must be greater than or equal to tare weight')
+      return
+    }
     const net = gross != null ? gross - tare : null
     const volume = net != null ? net / ASPHALT_LBS_PER_GAL : null
 
@@ -194,6 +211,11 @@ export function TankerLoading() {
       if (!wasComplete && nowComplete && form.load_from_tank_id && volume != null && volume > 0) {
         deductTankVolume(form.load_from_tank_id, volume, now)
         toast.info('Tank level updated with loaded volume')
+      }
+      // Restore tank volume when reverting a completed ticket back to an earlier status
+      if (wasComplete && !nowComplete && editTicket.load_from_tank_id && editTicket.volume_gallons != null && editTicket.volume_gallons > 0) {
+        restoreTankVolume(editTicket.load_from_tank_id, editTicket.volume_gallons, now)
+        toast.info('Tank level restored — ticket reverted from Complete')
       }
       setTickets(cur => (cur || []).map(t => t.ticket_id === editTicket.ticket_id
         ? {
@@ -417,11 +439,12 @@ export function TankerLoading() {
             <div className="space-y-1">
               <Label>Gross Weight (lbs)</Label>
               <Input type="number" value={form.gross_weight_lbs} onChange={e => setForm(f => ({...f, gross_weight_lbs: e.target.value}))} placeholder="After loading" />
-              {form.gross_weight_lbs && form.tare_weight_lbs && (
-                <p className="text-xs text-muted-foreground">
-                  Net: {((parseFloat(form.gross_weight_lbs) || 0) - (parseFloat(form.tare_weight_lbs) || 0)).toLocaleString()} lbs
-                </p>
-              )}
+              {form.gross_weight_lbs && form.tare_weight_lbs && (() => {
+                const net = (parseFloat(form.gross_weight_lbs) || 0) - (parseFloat(form.tare_weight_lbs) || 0)
+                return net < 0
+                  ? <p className="text-xs text-destructive">Gross weight must be ≥ tare weight</p>
+                  : <p className="text-xs text-muted-foreground">Net: {net.toLocaleString()} lbs</p>
+              })()}
             </div>
             <div className="space-y-1">
               <Label>Temperature (°F)</Label>

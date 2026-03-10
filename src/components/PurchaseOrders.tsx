@@ -177,8 +177,29 @@ export function PurchaseOrders() {
 
   const handleStatusUpdate = (poId: string, status: POStatus) => {
     const now = new Date().toISOString()
-    setPos(prev => (prev ?? []).map(p => p.po_id === poId ? { ...p, status, updated_at: now, actual_delivery_date: status === 'Received' ? new Date().toISOString().split('T')[0] : p.actual_delivery_date } : p))
-    if (detailPO?.po_id === poId) setDetailPO(prev => prev ? { ...prev, status } : null)
+    setPos(prev => (prev ?? []).map(p => {
+      if (p.po_id !== poId) return p
+      // When marking Received, set all line items' quantity_received to their quantity_ordered
+      const updatedLines = status === 'Received'
+        ? p.lines.map(l => ({ ...l, quantity_received: l.quantity_ordered }))
+        : p.lines
+      return {
+        ...p,
+        status,
+        lines: updatedLines,
+        updated_at: now,
+        actual_delivery_date: status === 'Received' ? new Date().toISOString().split('T')[0] : p.actual_delivery_date,
+      }
+    }))
+    if (detailPO?.po_id === poId) {
+      setDetailPO(prev => {
+        if (!prev) return null
+        const updatedLines = status === 'Received'
+          ? prev.lines.map(l => ({ ...l, quantity_received: l.quantity_ordered }))
+          : prev.lines
+        return { ...prev, status, lines: updatedLines }
+      })
+    }
     toast.success(`PO status updated to ${status}`)
   }
 
