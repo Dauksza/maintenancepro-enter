@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
-import type { SalesOrder, SalesOrderStatus, AsphaltProduct } from '@/lib/types'
+import type { SalesOrder, SalesOrderStatus, AsphaltProduct, ProductionBatch } from '@/lib/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -254,12 +254,26 @@ function OrderDialog({ open, onClose, onSave, existing }: OrderDialogProps) {
 
 export function SalesOrders() {
   const [orders, setOrders] = useKV<SalesOrder[]>('sales-orders', [])
+  const [productionBatches] = useKV<ProductionBatch[]>('production-batches', [])
   const [addOpen, setAddOpen] = useState(false)
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null)
   const [filterStatus, setFilterStatus] = useState<SalesOrderStatus | 'All'>('All')
   const [filterYear, setFilterYear] = useState(CURRENT_YEAR)
 
   const safeOrders = orders || []
+  const safeBatches = productionBatches || []
+
+  // Map order_id → linked production batches for fulfillment status display
+  const batchesByOrderId = useMemo(() => {
+    const map = new Map<string, ProductionBatch[]>()
+    safeBatches.forEach(batch => {
+      if (batch.linked_order_id) {
+        const existing = map.get(batch.linked_order_id) || []
+        map.set(batch.linked_order_id, [...existing, batch])
+      }
+    })
+    return map
+  }, [safeBatches])
 
   const handleSave = (order: SalesOrder) => {
     setOrders(current => {
@@ -577,7 +591,13 @@ export function SalesOrders() {
                 {filteredOrders.length === 0 && (
                   <p className="text-muted-foreground text-sm py-8 text-center">No orders found</p>
                 )}
-                {filteredOrders.map(order => (
+                {filteredOrders.map(order => {
+                  const linkedBatches = batchesByOrderId.get(order.order_id) || []
+                  const producedTons = linkedBatches
+                    .filter(b => b.status === 'Complete')
+                    .reduce((s, b) => s + b.actual_tons, 0)
+                  const inProgressBatch = linkedBatches.find(b => b.status === 'In Progress')
+                  return (
                   <div key={order.order_id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -585,6 +605,17 @@ export function SalesOrders() {
                         <span className="text-sm text-muted-foreground truncate">{order.customer_name}</span>
                         <Badge variant="outline" className="text-xs shrink-0">{order.product}</Badge>
                         {statusBadge(order.status)}
+                        {inProgressBatch && (
+                          <Badge className="text-xs bg-yellow-100 text-yellow-700 border-yellow-200">In Production</Badge>
+                        )}
+                        {!inProgressBatch && producedTons > 0 && producedTons < order.quantity_tons && (
+                          <Badge className="text-xs bg-blue-100 text-blue-700 border-blue-200">
+                            {Math.round((producedTons / order.quantity_tons) * 100)}% produced
+                          </Badge>
+                        )}
+                        {!inProgressBatch && producedTons >= order.quantity_tons && order.quantity_tons > 0 && (
+                          <Badge className="text-xs bg-green-100 text-green-700 border-green-200">Fully produced</Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {order.order_date} → {order.delivery_date}
@@ -602,7 +633,8 @@ export function SalesOrders() {
                       </Button>
                     </div>
                   </div>
-                ))}
+                )
+                })}
               </div>
             </CardContent>
           </Card>

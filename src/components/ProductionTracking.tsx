@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
-import type { ProductionBatch, ProductionBatchStatus, AsphaltProduct, SalesOrder } from '@/lib/types'
+import type { ProductionBatch, ProductionBatchStatus, AsphaltProduct, SalesOrder, PurchaseOrder } from '@/lib/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -248,6 +248,7 @@ function BatchDialog({ open, onClose, onSave, existing }: BatchDialogProps) {
 export function ProductionTracking() {
   const [batches, setBatches] = useKV<ProductionBatch[]>('production-batches', [])
   const [salesOrders] = useKV<SalesOrder[]>('sales-orders', [])
+  const [purchaseOrders] = useKV<PurchaseOrder[]>('purchase-orders', [])
   const [addOpen, setAddOpen] = useState(false)
   const [editBatch, setEditBatch] = useState<ProductionBatch | null>(null)
   const [filterYear, setFilterYear] = useState(CURRENT_YEAR)
@@ -255,6 +256,20 @@ export function ProductionTracking() {
 
   const safeBatches = batches || []
   const safeOrders = salesOrders || []
+  const safePOs = purchaseOrders || []
+
+  // Procurement alerts: open POs for raw materials that could affect production
+  const openRawMaterialPOs = useMemo(() =>
+    safePOs.filter(po => !['Received', 'Cancelled'].includes(po.status) &&
+      po.lines.some(l => l.description?.toLowerCase().includes('asphalt') ||
+        l.part_number?.toLowerCase().startsWith('ac-') ||
+        l.part_number?.toLowerCase().startsWith('pg'))),
+    [safePOs]
+  )
+  const pendingApprovalPOs = useMemo(() =>
+    safePOs.filter(po => po.status === 'Pending Approval'),
+    [safePOs]
+  )
 
   const handleSaveBatch = (batch: ProductionBatch) => {
     setBatches(current => {
@@ -640,6 +655,21 @@ export function ProductionTracking() {
                         </div>
                       )
                     })}
+                  </div>
+                )}
+                {(openRawMaterialPOs.length > 0 || pendingApprovalPOs.length > 0) && (
+                  <div className="mt-4 rounded-xl border bg-muted/20 p-4 space-y-2">
+                    <p className="text-sm font-medium">Procurement alerts</p>
+                    {openRawMaterialPOs.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {openRawMaterialPOs.length} open raw material PO{openRawMaterialPOs.length > 1 ? 's' : ''} in progress — verify supply timing before scheduling new batches.
+                      </p>
+                    )}
+                    {pendingApprovalPOs.length > 0 && (
+                      <p className="text-xs text-amber-600">
+                        {pendingApprovalPOs.length} PO{pendingApprovalPOs.length > 1 ? 's' : ''} awaiting approval may delay material delivery.
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>

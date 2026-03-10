@@ -5,6 +5,7 @@ import type {
   BudgetEntry,
   SalesOrder,
   ProductionBatch,
+  PurchaseOrder,
   CostCategory,
 } from '@/lib/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -51,6 +52,7 @@ import {
   Pencil,
   Trash,
   ChartPie,
+  Receipt,
   Warning,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
@@ -333,6 +335,7 @@ export function FinancialDashboard() {
   const [budgets, setBudgets] = useKV<BudgetEntry[]>('maintenance-budgets', [])
   const [salesOrders] = useKV<SalesOrder[]>('sales-orders', [])
   const [productionBatches] = useKV<ProductionBatch[]>('production-batches', [])
+  const [purchaseOrders] = useKV<PurchaseOrder[]>('purchase-orders', [])
 
   const [addCostOpen, setAddCostOpen] = useState(false)
   const [budgetOpen, setBudgetOpen] = useState(false)
@@ -343,6 +346,7 @@ export function FinancialDashboard() {
   const safeBudgets = budgets || []
   const safeSales = salesOrders || []
   const safeBatches = productionBatches || []
+  const safePOs = purchaseOrders || []
 
   const handleLoadSample = () => {
     setCosts(generateSampleCosts())
@@ -401,6 +405,18 @@ export function FinancialDashboard() {
       .filter(o => ['Quote', 'Confirmed', 'In Production', 'Ready'].includes(o.status))
       .reduce((sum, order) => sum + order.total_price, 0),
     [safeSales])
+
+  const procurementSpendYTD = useMemo(() =>
+    safePOs
+      .filter(po => ['Received', 'Partially Received'].includes(po.status))
+      .reduce((s, po) => s + po.total, 0),
+    [safePOs])
+
+  const openPOCommitments = useMemo(() =>
+    safePOs
+      .filter(po => !['Received', 'Cancelled', 'Draft'].includes(po.status))
+      .reduce((s, po) => s + po.total, 0),
+    [safePOs])
 
   const topCustomers = useMemo(() => {
     const totals = new Map<string, number>()
@@ -572,6 +588,47 @@ export function FinancialDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Procurement KPIs */}
+      {(procurementSpendYTD > 0 || openPOCommitments > 0) && (
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-1">
+                <Receipt size={14} />Procurement Spend YTD
+              </CardDescription>
+              <CardTitle className="text-2xl">{fmt(procurementSpendYTD)}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Received POs</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-1">
+                <TrendDown size={14} />Open PO Commitments
+              </CardDescription>
+              <CardTitle className="text-2xl">{fmt(openPOCommitments)}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {safePOs.filter(po => !['Received', 'Cancelled', 'Draft'].includes(po.status)).length} active orders
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-1">
+                <CurrencyDollar size={14} />Total Operating Costs
+              </CardDescription>
+              <CardTitle className="text-2xl">{fmt(totalCostYTD + procurementSpendYTD)}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Maintenance + procurement</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Tabs defaultValue="trends">
         <TabsList>

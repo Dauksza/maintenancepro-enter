@@ -121,41 +121,49 @@ const STATUS_COLORS: Record<POStatus, string> = {
 const PIE_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899']
 
 export function ProcurementDashboard() {
-  const [data] = useKV<{ vendors: Vendor[]; pos: PurchaseOrder[] }>('procurement-dashboard-data', generateInitialData())
-  const safeData = data ?? generateInitialData()
+  const [vendors] = useKV<Vendor[]>('procurement-vendors', generateInitialData().vendors)
+  const [pos] = useKV<PurchaseOrder[]>('purchase-orders', generateInitialData().pos)
+  const safeVendors = vendors ?? generateInitialData().vendors
+  const safePOs = pos ?? []
 
   const kpis = useMemo(() => {
-    const totalSpend = safeData.pos.filter(p => p.status === 'Received' || p.status === 'Partially Received')
+    const totalSpend = safePOs.filter(p => p.status === 'Received' || p.status === 'Partially Received')
       .reduce((s, p) => s + p.total, 0)
-    const openPOs = safeData.pos.filter(p => !['Received', 'Cancelled', 'Draft'].includes(p.status)).length
-    const pendingApproval = safeData.pos.filter(p => p.status === 'Pending Approval').length
-    const onTimeVendors = safeData.vendors.filter(v => v.on_time_delivery_rate > 0)
+    const openPOs = safePOs.filter(p => !['Received', 'Cancelled', 'Draft'].includes(p.status)).length
+    const pendingApproval = safePOs.filter(p => p.status === 'Pending Approval').length
+    const onTimeVendors = safeVendors.filter(v => v.on_time_delivery_rate > 0)
     const avgOnTime = onTimeVendors.length
       ? onTimeVendors.reduce((s, v) => s + v.on_time_delivery_rate, 0) / onTimeVendors.length
       : 0
     return { totalSpend, openPOs, pendingApproval, avgOnTime }
-  }, [safeData])
+  }, [safePOs, safeVendors])
 
   const spendByCategory = useMemo(() => {
     const cats: Record<VendorCategory, number> = {
       'Raw Materials': 0, Equipment: 0, Services: 0, Chemicals: 0, Safety: 0, Other: 0
     }
-    safeData.pos.filter(p => p.status !== 'Cancelled').forEach(po => {
-      const vendor = safeData.vendors.find(v => v.vendor_id === po.vendor_id)
-      if (vendor) cats[vendor.category] = (cats[vendor.category] || 0) + po.total
+    safePOs.filter(p => p.status !== 'Cancelled').forEach(po => {
+      // Match vendor by ID first, then fall back to name match
+      const vendor = safeVendors.find(v => v.vendor_id === po.vendor_id) ??
+        safeVendors.find(v => v.name.toLowerCase() === po.vendor_name?.toLowerCase())
+      if (vendor) {
+        cats[vendor.category] = (cats[vendor.category] || 0) + po.total
+      } else {
+        cats['Other'] = (cats['Other'] || 0) + po.total
+      }
     })
     return Object.entries(cats).filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }))
-  }, [safeData])
+  }, [safePOs, safeVendors])
 
   const poStatusDist = useMemo(() => {
     const counts: Record<string, number> = {}
-    safeData.pos.forEach(p => { counts[p.status] = (counts[p.status] || 0) + 1 })
+    safePOs.forEach(p => { counts[p.status] = (counts[p.status] || 0) + 1 })
     return Object.entries(counts).map(([name, value]) => ({ name, value }))
-  }, [safeData])
+  }, [safePOs])
 
   const recentPOs = useMemo(() =>
-    [...safeData.pos].sort((a, b) => b.order_date.localeCompare(a.order_date)).slice(0, 5),
-    [safeData]
+    [...safePOs].sort((a, b) => b.order_date.localeCompare(a.order_date)).slice(0, 5),
+    [safePOs]
   )
 
   const lowStockAlerts = [
