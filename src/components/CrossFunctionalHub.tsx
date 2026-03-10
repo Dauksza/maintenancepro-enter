@@ -29,8 +29,6 @@ interface CrossFunctionalHubProps {
   currentModule?: ModuleKey | null
 }
 
-const CURRENT_YEAR = new Date().getFullYear()
-
 const MODULE_CONTEXT: Record<ModuleKey, string> = {
   salesFinance: 'Track how plant readiness and maintenance execution affect customer commitments and cash flow.',
   production: 'Coordinate plant throughput with maintenance priorities and the sales pipeline from one shared view.',
@@ -50,6 +48,7 @@ function clampPercentage(value: number) {
 }
 
 export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
+  const currentYear = useMemo(() => new Date().getFullYear(), [])
   const [workOrders] = useKV<WorkOrder[]>('maintenance-work-orders', [])
   const [parts] = useKV<PartInventoryItem[]>('parts-inventory', [])
   const [reminders] = useKV<CertificationReminder[]>('certification-reminders', [])
@@ -82,6 +81,10 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
     () => openWorkOrders.reduce((sum, order) => sum + (order.estimated_downtime_hours || 0), 0),
     [openWorkOrders],
   )
+  const overdueDowntimeHours = useMemo(
+    () => overdueWorkOrders.reduce((sum, order) => sum + (order.estimated_downtime_hours || 0), 0),
+    [overdueWorkOrders],
+  )
   const lowStockParts = useMemo(
     () => safeParts.filter(part => ['Low Stock', 'Out of Stock'].includes(part.status)),
     [safeParts],
@@ -92,8 +95,8 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
   )
 
   const yearBatches = useMemo(
-    () => safeBatches.filter(batch => new Date(batch.date).getFullYear() === CURRENT_YEAR),
-    [safeBatches],
+    () => safeBatches.filter(batch => new Date(batch.date).getFullYear() === currentYear),
+    [currentYear, safeBatches],
   )
   const activeBatches = useMemo(
     () => yearBatches.filter(batch => ['Planned', 'In Progress'].includes(batch.status)),
@@ -117,8 +120,8 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
   )
 
   const yearSalesOrders = useMemo(
-    () => safeSalesOrders.filter(order => new Date(order.order_date).getFullYear() === CURRENT_YEAR),
-    [safeSalesOrders],
+    () => safeSalesOrders.filter(order => new Date(order.order_date).getFullYear() === currentYear),
+    [currentYear, safeSalesOrders],
   )
   const activeSalesOrders = useMemo(
     () => yearSalesOrders.filter(order => !['Paid', 'Cancelled'].includes(order.status)),
@@ -150,12 +153,12 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
   )
 
   const yearCosts = useMemo(
-    () => safeCostEntries.filter(entry => new Date(entry.date).getFullYear() === CURRENT_YEAR),
-    [safeCostEntries],
+    () => safeCostEntries.filter(entry => new Date(entry.date).getFullYear() === currentYear),
+    [currentYear, safeCostEntries],
   )
   const yearBudget = useMemo(
-    () => safeBudgets.filter(entry => entry.year === CURRENT_YEAR),
-    [safeBudgets],
+    () => safeBudgets.filter(entry => entry.year === currentYear),
+    [currentYear, safeBudgets],
   )
   const maintenanceSpend = useMemo(
     () => yearCosts.reduce((sum, entry) => sum + entry.amount, 0),
@@ -166,18 +169,24 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
     [yearBudget],
   )
 
-  const maintenanceReadiness = openWorkOrders.length > 0
-    ? clampPercentage(((openWorkOrders.length - overdueWorkOrders.length) / openWorkOrders.length) * 100)
-    : 100
+  const maintenanceReadiness = calculateCoverage(openWorkOrders.length - overdueWorkOrders.length, openWorkOrders.length)
   const partsCoverage = safeParts.length > 0
     ? clampPercentage(((safeParts.length - lowStockParts.length) / safeParts.length) * 100)
     : 100
-  const demandCoverage = openDemandTons > 0
-    ? clampPercentage((scheduledTons / openDemandTons) * 100)
-    : 100
-  const budgetCoverage = maintenanceBudget > 0
-    ? clampPercentage(((maintenanceBudget - maintenanceSpend) / maintenanceBudget) * 100)
-    : 100
+  const certificationCoverage = calculateCoverage(
+    safeReminders.length - expiringCertifications.length,
+    safeReminders.length,
+  )
+  const demandCoverage = calculateCoverage(scheduledTons, openDemandTons)
+  const budgetCoverage = calculateCoverage(maintenanceBudget - maintenanceSpend, maintenanceBudget)
+  const demandCoverageDetail = openDemandTons > 0
+    ? `${Math.round(scheduledTons).toLocaleString()} t scheduled vs ${Math.round(openDemandTons).toLocaleString()} t open demand`
+    : 'No open demand is currently waiting on production scheduling.'
+  const budgetCoverageDetail = maintenanceBudget === 0
+    ? 'Add budgets to track spend headroom'
+    : maintenanceSpend > maintenanceBudget
+      ? `${formatCurrency(maintenanceSpend - maintenanceBudget)} over annual budget`
+      : `${formatCurrency(Math.max(maintenanceBudget - maintenanceSpend, 0))} remaining`
 
   const productAlignment = useMemo(() => {
     const demandByProduct = new Map<string, number>()
@@ -203,7 +212,7 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
         }
       })
       .filter(item => item.demand > 0 || item.supply > 0)
-      .sort((a, b) => Math.abs(a.gap) - Math.abs(b.gap))
+      .sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap))
       .slice(0, 4)
   }, [activeBatches, pipelineOrders])
 
@@ -213,7 +222,7 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
     if (overdueWorkOrders.length > 0) {
       items.push({
         title: 'Clear overdue maintenance work',
-        detail: `${overdueWorkOrders.length} overdue work orders are attached to ${plannedDowntimeHours.toFixed(1)} planned downtime hours.`,
+        detail: `${overdueWorkOrders.length} overdue work orders account for ${overdueDowntimeHours.toFixed(1)} planned downtime hours.`,
         tone: overdueWorkOrders.length > 3 ? 'critical' : 'warning',
       })
     }
@@ -265,8 +274,8 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
     maintenanceBudget,
     maintenanceSpend,
     openDemandTons,
+    overdueDowntimeHours,
     overdueWorkOrders.length,
-    plannedDowntimeHours,
     scheduledTons,
   ])
 
@@ -328,7 +337,11 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
           <CardContent className="space-y-5">
             <ReadinessRow label="Schedule adherence" value={maintenanceReadiness} detail={`${overdueWorkOrders.length} overdue of ${openWorkOrders.length || 0} open`} />
             <ReadinessRow label="Parts coverage" value={partsCoverage} detail={`${lowStockParts.length} low or out of stock`} />
-            <ReadinessRow label="Certification coverage" value={safeReminders.length > 0 ? clampPercentage(((safeReminders.length - expiringCertifications.length) / safeReminders.length) * 100) : 100} detail={`${expiringCertifications.length} expiring soon`} />
+            <ReadinessRow
+              label="Certification coverage"
+              value={certificationCoverage}
+              detail={`${expiringCertifications.length} expiring soon`}
+            />
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <SnapshotStat icon={Clock} label="Planned downtime" value={`${plannedDowntimeHours.toFixed(1)} h`} />
@@ -346,7 +359,11 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
             <CardDescription>Compare available plant output with what customers and dispatchers already need.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <ReadinessRow label="Open demand coverage" value={demandCoverage} detail={`${Math.round(scheduledTons).toLocaleString()} t scheduled vs ${Math.round(openDemandTons).toLocaleString()} t open demand`} />
+            <ReadinessRow
+              label="Open demand coverage"
+              value={demandCoverage}
+              detail={demandCoverageDetail}
+            />
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <SnapshotStat icon={Factory} label="Produced YTD" value={`${Math.round(producedTons).toLocaleString()} t`} />
@@ -358,15 +375,7 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
               {productAlignment.length > 0 ? (
                 <div className="space-y-2">
                   {productAlignment.map(item => (
-                    <div key={item.product} className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2 text-sm">
-                      <div>
-                        <p className="font-medium">{item.product}</p>
-                        <p className="text-xs text-muted-foreground">{item.demand.toLocaleString()} t demand · {item.supply.toLocaleString()} t scheduled</p>
-                      </div>
-                      <Badge variant={item.gap >= 0 ? 'secondary' : 'destructive'}>
-                        {item.gap >= 0 ? `+${item.gap}` : item.gap} t
-                      </Badge>
-                    </div>
+                    <ProductAlignmentRow key={item.product} item={item} />
                   ))}
                 </div>
               ) : (
@@ -385,7 +394,11 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
             <CardDescription>Keep delivery promises, receivables, and maintenance spend aligned.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <ReadinessRow label="Budget remaining" value={budgetCoverage} detail={maintenanceBudget > 0 ? `${formatCurrency(Math.max(maintenanceBudget - maintenanceSpend, 0))} remaining` : 'Add budgets to track spend headroom'} />
+            <ReadinessRow
+              label="Budget remaining"
+              value={budgetCoverage}
+              detail={budgetCoverageDetail}
+            />
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <SnapshotStat icon={CurrencyDollar} label="Pipeline value" value={formatCurrency(pipelineValue)} />
@@ -439,6 +452,11 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
       </Card>
     </div>
   )
+}
+
+function calculateCoverage(numerator: number, denominator: number) {
+  if (denominator <= 0) return 100
+  return clampPercentage((numerator / denominator) * 100)
 }
 
 interface MetricCardProps {
@@ -498,6 +516,30 @@ function SnapshotStat({ icon: Icon, label, value }: SnapshotStatProps) {
         <span>{label}</span>
       </div>
       <p className="mt-2 text-lg font-semibold">{value}</p>
+    </div>
+  )
+}
+
+interface ProductAlignmentItem {
+  product: string
+  demand: number
+  supply: number
+  gap: number
+}
+
+function ProductAlignmentRow({ item }: { item: ProductAlignmentItem }) {
+  const isCovered = item.gap >= 0
+  const gapLabel = isCovered ? `+${item.gap}` : item.gap
+
+  return (
+    <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+      <div>
+        <p className="font-medium">{item.product}</p>
+        <p className="text-xs text-muted-foreground">{item.demand.toLocaleString()} t demand · {item.supply.toLocaleString()} t scheduled</p>
+      </div>
+      <Badge variant={isCovered ? 'secondary' : 'destructive'}>
+        {gapLabel} t
+      </Badge>
     </div>
   )
 }
