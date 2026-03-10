@@ -67,6 +67,9 @@ const TankInventoryManagement = lazy(() => import('@/components/TankInventoryMan
 const RailOperations = lazy(() => import('@/components/RailOperations').then(m => ({ default: m.RailOperations })))
 const TankerLoading = lazy(() => import('@/components/TankerLoading').then(m => ({ default: m.TankerLoading })))
 const AsphaltFlowDiagram = lazy(() => import('@/components/AsphaltFlowDiagram').then(m => ({ default: m.AsphaltFlowDiagram })))
+const LabDashboard = lazy(() => import('@/components/LabQualityCenter').then(m => ({ default: m.LabDashboard })))
+const LabSampleQueue = lazy(() => import('@/components/LabQualityCenter').then(m => ({ default: m.LabSampleQueue })))
+const LabSpecifications = lazy(() => import('@/components/LabQualityCenter').then(m => ({ default: m.LabSpecifications })))
 // Business modules
 const FinancialDashboard = lazy(() => import('@/components/FinancialDashboard').then(m => ({ default: m.FinancialDashboard })))
 const ProductionTracking = lazy(() => import('@/components/ProductionTracking').then(m => ({ default: m.ProductionTracking })))
@@ -281,6 +284,9 @@ function App() {
     'rail-ops',
     'tanker-loading',
     'flow-diagram',
+    'lab-dashboard',
+    'lab-queue',
+    'lab-specs',
     'financial',
     'production',
     'sales'
@@ -312,6 +318,9 @@ function App() {
     'rail-ops': 'Rail Operations',
     'tanker-loading': 'Tanker Loading',
     'flow-diagram': 'Flow Diagram',
+    'lab-dashboard': 'Lab Dashboard',
+    'lab-queue': 'Sample Queue',
+    'lab-specs': 'Product Specifications',
     financial: 'Financial Overview',
     production: 'Production Tracking',
     sales: 'Sales Orders',
@@ -649,6 +658,14 @@ function App() {
           { tab: 'tanker-loading', label: 'Tanker Loading', icon: Truck },
           { tab: 'flow-diagram', label: 'Flow Diagram', icon: GitBranch },
           { tab: 'forms', label: 'Forms & Inspections', icon: CheckSquare },
+        ]
+      },
+      {
+        title: 'Lab & Quality',
+        items: [
+          { tab: 'lab-dashboard', label: 'Lab Dashboard', icon: Flask },
+          { tab: 'lab-queue', label: 'Sample Queue', icon: CheckSquare },
+          { tab: 'lab-specs', label: 'Product Specs', icon: ClipboardText },
         ]
       }
     ],
@@ -1637,6 +1654,18 @@ function App() {
 
             <TabsContent value="flow-diagram" className="space-y-6 animate-fade-in">
               <AsphaltFlowDiagram />
+            </TabsContent>
+
+            <TabsContent value="lab-dashboard" className="space-y-6 animate-fade-in">
+              <LabDashboard />
+            </TabsContent>
+
+            <TabsContent value="lab-queue" className="space-y-6 animate-fade-in">
+              <LabSampleQueue />
+            </TabsContent>
+
+            <TabsContent value="lab-specs" className="space-y-6 animate-fade-in">
+              <LabSpecifications />
             </TabsContent>
 
             <TabsContent value="financial" className="space-y-6 animate-fade-in">
