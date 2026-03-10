@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
-import type { ProductionBatch, ProductionBatchStatus, AsphaltProduct, SalesOrder } from '@/lib/types'
+import type { ProductionBatch, ProductionBatchStatus, AsphaltProduct, SalesOrder, PurchaseOrder } from '@/lib/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -55,6 +55,14 @@ const ASPHALT_PRODUCTS: AsphaltProduct[] = [
 const BATCH_STATUSES: ProductionBatchStatus[] = ['Planned', 'In Progress', 'Complete', 'Cancelled']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const CURRENT_YEAR = new Date().getFullYear()
+
+/** Description keywords and part-number prefixes that identify raw-material PO lines */
+const RAW_MATERIAL_DESC_PATTERNS = ['asphalt'] as const
+const RAW_MATERIAL_PART_PREFIXES = ['ac-', 'pg'] as const
+
+const isRawMaterialLine = (l: { description?: string; part_number?: string }) =>
+  RAW_MATERIAL_DESC_PATTERNS.some(p => l.description?.toLowerCase().includes(p)) ||
+  RAW_MATERIAL_PART_PREFIXES.some(p => l.part_number?.toLowerCase().startsWith(p))
 
 const STATUS_COLORS: Record<ProductionBatchStatus, string> = {
   Planned: 'oklch(0.60 0.15 240)',
@@ -248,6 +256,7 @@ function BatchDialog({ open, onClose, onSave, existing }: BatchDialogProps) {
 export function ProductionTracking() {
   const [batches, setBatches] = useKV<ProductionBatch[]>('production-batches', [])
   const [salesOrders] = useKV<SalesOrder[]>('sales-orders', [])
+  const [purchaseOrders] = useKV<PurchaseOrder[]>('purchase-orders', [])
   const [addOpen, setAddOpen] = useState(false)
   const [editBatch, setEditBatch] = useState<ProductionBatch | null>(null)
   const [filterYear, setFilterYear] = useState(CURRENT_YEAR)
@@ -255,6 +264,18 @@ export function ProductionTracking() {
 
   const safeBatches = batches || []
   const safeOrders = salesOrders || []
+  const safePOs = purchaseOrders || []
+
+  // Procurement alerts: open POs for raw materials that could affect production
+  const openRawMaterialPOs = useMemo(() =>
+    safePOs.filter(po => !['Received', 'Cancelled'].includes(po.status) &&
+      po.lines.some(isRawMaterialLine)),
+    [safePOs]
+  )
+  const pendingApprovalPOs = useMemo(() =>
+    safePOs.filter(po => po.status === 'Pending Approval'),
+    [safePOs]
+  )
 
   const handleSaveBatch = (batch: ProductionBatch) => {
     setBatches(current => {
@@ -640,6 +661,21 @@ export function ProductionTracking() {
                         </div>
                       )
                     })}
+                  </div>
+                )}
+                {(openRawMaterialPOs.length > 0 || pendingApprovalPOs.length > 0) && (
+                  <div className="mt-4 rounded-xl border bg-muted/20 p-4 space-y-2">
+                    <p className="text-sm font-medium">Procurement alerts</p>
+                    {openRawMaterialPOs.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {openRawMaterialPOs.length} open raw material PO{openRawMaterialPOs.length > 1 ? 's' : ''} in progress — verify supply timing before scheduling new batches.
+                      </p>
+                    )}
+                    {pendingApprovalPOs.length > 0 && (
+                      <p className="text-xs text-amber-600">
+                        {pendingApprovalPOs.length} PO{pendingApprovalPOs.length > 1 ? 's' : ''} awaiting approval may delay material delivery.
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>

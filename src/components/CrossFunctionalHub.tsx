@@ -6,7 +6,9 @@ import type {
   MaintenanceCostEntry,
   PartInventoryItem,
   ProductionBatch,
+  PurchaseOrder,
   SalesOrder,
+  TankerLoadingTicket,
   WorkOrder,
 } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
@@ -18,7 +20,9 @@ import {
   CurrencyDollar,
   Factory,
   Package,
+  Receipt,
   ShieldCheck,
+  Truck,
   WarningCircle,
   Wrench,
 } from '@phosphor-icons/react'
@@ -28,6 +32,9 @@ type ModuleKey = 'salesFinance' | 'production' | 'maintenance' | 'supplyChain' |
 interface CrossFunctionalHubProps {
   currentModule?: ModuleKey | null
 }
+
+/** Maximum action items shown in the cross-functional priorities card */
+const MAX_ACTION_ITEMS = 6
 
 const MODULE_CONTEXT: Record<ModuleKey, string> = {
   salesFinance: 'Track how plant readiness and maintenance execution affect customer commitments and cash flow.',
@@ -59,6 +66,8 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
   const [salesOrders] = useKV<SalesOrder[]>('sales-orders', [])
   const [costEntries] = useKV<MaintenanceCostEntry[]>('maintenance-costs', [])
   const [budgets] = useKV<BudgetEntry[]>('maintenance-budgets', [])
+  const [loadingTickets] = useKV<TankerLoadingTicket[]>('tanker-loading-tickets', [])
+  const [purchaseOrders] = useKV<PurchaseOrder[]>('purchase-orders', [])
 
   const safeWorkOrders = workOrders || []
   const safeParts = parts || []
@@ -67,6 +76,8 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
   const safeSalesOrders = salesOrders || []
   const safeCostEntries = costEntries || []
   const safeBudgets = budgets || []
+  const safeLoadingTickets = loadingTickets || []
+  const safePurchaseOrders = purchaseOrders || []
 
   const openWorkOrders = useMemo(
     () => safeWorkOrders.filter(order => !['Completed', 'Cancelled'].includes(order.status)),
@@ -191,6 +202,28 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
       ? `${formatCurrency(maintenanceSpend - maintenanceBudget)} over annual budget`
       : `${formatCurrency(Math.max(maintenanceBudget - maintenanceSpend, 0))} remaining`
 
+  // ── Tanker loading & procurement metrics ─────────────────────────────────
+  const activeLoads = useMemo(
+    () => safeLoadingTickets.filter(t => ['Pending', 'Loading'].includes(t.status)),
+    [safeLoadingTickets],
+  )
+  const completedLoadsToday = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    return safeLoadingTickets.filter(t => t.status === 'Complete' && t.updated_at?.slice(0, 10) === today)
+  }, [safeLoadingTickets])
+  const pendingApprovalPOs = useMemo(
+    () => safePurchaseOrders.filter(po => po.status === 'Pending Approval'),
+    [safePurchaseOrders],
+  )
+  const openPOs = useMemo(
+    () => safePurchaseOrders.filter(po => !['Received', 'Cancelled'].includes(po.status)),
+    [safePurchaseOrders],
+  )
+  const openPOValue = useMemo(
+    () => openPOs.reduce((s, po) => s + po.total, 0),
+    [openPOs],
+  )
+
   const productAlignment = useMemo(() => {
     const demandByProduct = new Map<string, number>()
     const supplyByProduct = new Map<string, number>()
@@ -221,6 +254,14 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
 
   const actionItems = useMemo(() => {
     const items: Array<{ title: string; detail: string; tone: 'default' | 'warning' | 'critical' }> = []
+
+    if (pendingApprovalPOs.length > 0) {
+      items.push({
+        title: 'Approve outstanding purchase orders',
+        detail: `${pendingApprovalPOs.length} PO${pendingApprovalPOs.length > 1 ? 's' : ''} (${formatCurrency(pendingApprovalPOs.reduce((s, po) => s + po.total, 0))}) are awaiting approval and may delay procurement.`,
+        tone: 'warning',
+      })
+    }
 
     if (overdueWorkOrders.length > 0) {
       items.push({
@@ -265,12 +306,12 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
     if (items.length === 0) {
       items.push({
         title: 'Operations are aligned',
-        detail: 'Maintenance, production, and commercial indicators are currently balanced with no major cross-functional blockers.',
+        detail: 'Maintenance, production, commercial, and supply chain indicators are currently balanced with no major cross-functional blockers.',
         tone: 'default',
       })
     }
 
-    return items.slice(0, 4)
+    return items.slice(0, MAX_ACTION_ITEMS)
   }, [
     expiringCertifications.length,
     lowStockParts.length,
@@ -279,6 +320,7 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
     openDemandTons,
     overdueDowntimeHours,
     overdueWorkOrders.length,
+    pendingApprovalPOs,
     scheduledTons,
   ])
 
@@ -321,10 +363,10 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
           helper={`${pipelineOrders.length} pipeline orders`}
         />
         <MetricCard
-          icon={ChartLineUp}
-          label="Maintenance spend"
-          value={formatCurrency(maintenanceSpend)}
-          helper={maintenanceBudget > 0 ? `${formatCurrency(maintenanceBudget)} annual budget` : 'No budget set'}
+          icon={Truck}
+          label="Active tanker loads"
+          value={activeLoads.length.toLocaleString()}
+          helper={`${completedLoadsToday.length} completed today · ${openPOs.length} open POs`}
         />
       </div>
 
@@ -429,30 +471,73 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <WarningCircle size={18} />
-            Cross-functional priorities
-          </CardTitle>
-          <CardDescription>Action items synthesized from maintenance, production, and customer demand data.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          {actionItems.map(item => (
-            <div key={item.title} className="rounded-xl border bg-card p-4 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium">{item.title}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
-                </div>
-                <Badge variant={item.tone === 'critical' ? 'destructive' : item.tone === 'warning' ? 'secondary' : 'outline'}>
-                  {item.tone === 'critical' ? 'Urgent' : item.tone === 'warning' ? 'Watch' : 'Stable'}
-                </Badge>
-              </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Truck size={18} />
+              Distribution & supply chain
+            </CardTitle>
+            <CardDescription>Tanker loading activity and open procurement orders affecting plant output.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid grid-cols-2 gap-3">
+              <SnapshotStat icon={Truck} label="Active loads" value={activeLoads.length.toString()} />
+              <SnapshotStat icon={Receipt} label="Open POs" value={openPOs.length.toString()} />
+              <SnapshotStat icon={ChartLineUp} label="Open PO value" value={formatCurrency(openPOValue)} />
+              <SnapshotStat icon={Clock} label="Loads completed today" value={completedLoadsToday.length.toString()} />
             </div>
-          ))}
-        </CardContent>
-      </Card>
+
+            {pendingApprovalPOs.length > 0 && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-medium text-amber-800">
+                  {pendingApprovalPOs.length} PO{pendingApprovalPOs.length > 1 ? 's' : ''} awaiting approval
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {pendingApprovalPOs.slice(0, 3).map(po => (
+                    <li key={po.po_id} className="flex items-center justify-between text-xs text-amber-700">
+                      <span>{po.po_number} · {po.vendor_name}</span>
+                      <span className="font-medium">{formatCurrency(po.total)}</span>
+                    </li>
+                  ))}
+                  {pendingApprovalPOs.length > 3 && (
+                    <li className="text-xs text-amber-600">+{pendingApprovalPOs.length - 3} more</li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {activeLoads.length === 0 && openPOs.length === 0 && (
+              <p className="text-sm text-muted-foreground">No active tanker loads or open purchase orders at this time.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <WarningCircle size={18} />
+              Cross-functional priorities
+            </CardTitle>
+            <CardDescription>Action items synthesized from all operational modules.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {actionItems.map(item => (
+              <div key={item.title} className="rounded-xl border bg-card p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium">{item.title}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
+                  </div>
+                  <Badge variant={item.tone === 'critical' ? 'destructive' : item.tone === 'warning' ? 'secondary' : 'outline'}>
+                    {item.tone === 'critical' ? 'Urgent' : item.tone === 'warning' ? 'Watch' : 'Stable'}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

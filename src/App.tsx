@@ -344,6 +344,21 @@ function App() {
     'production',
     'sales',
     'operations-hub',
+    // Supply Chain & Procurement
+    'procurement-dashboard',
+    'purchase-orders',
+    'vendors',
+    'product-specs',
+    'bom',
+    'engineering-changes',
+    // Distribution & Logistics
+    'fleet',
+    'deliveries',
+    // HR & Compliance
+    'hr-dashboard',
+    'leave',
+    'training',
+    'compliance',
   ]
   const safeActiveTab = activeTab && validTabs.includes(activeTab) ? activeTab : 'dashboard'
 
@@ -379,6 +394,21 @@ function App() {
     production: 'Production Tracking',
     sales: 'Sales Orders',
     'operations-hub': 'Operations Hub',
+    // Supply Chain & Procurement
+    'procurement-dashboard': 'Procurement Dashboard',
+    'purchase-orders': 'Purchase Orders',
+    vendors: 'Vendors',
+    'product-specs': 'Product Specifications',
+    bom: 'Bill of Materials',
+    'engineering-changes': 'Engineering Changes',
+    // Distribution & Logistics
+    fleet: 'Fleet Management',
+    deliveries: 'Delivery Tracking',
+    // HR & Compliance
+    'hr-dashboard': 'HR Dashboard',
+    leave: 'Leave Management',
+    training: 'Training',
+    compliance: 'Compliance',
   }
   const currentSectionLabel = TAB_LABELS[safeActiveTab] ?? 'Dashboard'
 
