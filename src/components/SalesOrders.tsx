@@ -58,6 +58,23 @@ function fmt(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
 }
 
+/**
+ * Computes the production fulfillment status for a sales order given the
+ * production batches that reference it via linked_order_id.
+ */
+function getFulfillmentStatus(
+  order: SalesOrder,
+  linkedBatches: ProductionBatch[]
+): { inProgress: boolean; pct: number; fullyProduced: boolean } {
+  if (order.quantity_tons <= 0) return { inProgress: false, pct: 0, fullyProduced: false }
+  const inProgress = linkedBatches.some(b => b.status === 'In Progress')
+  const producedTons = linkedBatches
+    .filter(b => b.status === 'Complete')
+    .reduce((s, b) => s + b.actual_tons, 0)
+  const pct = Math.min(100, Math.round((producedTons / order.quantity_tons) * 100))
+  return { inProgress, pct, fullyProduced: !inProgress && producedTons >= order.quantity_tons }
+}
+
 const STATUS_STYLES: Record<SalesOrderStatus, string> = {
   Quote: 'bg-slate-100 text-slate-700 border-slate-200',
   Confirmed: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -593,10 +610,7 @@ export function SalesOrders() {
                 )}
                 {filteredOrders.map(order => {
                   const linkedBatches = batchesByOrderId.get(order.order_id) || []
-                  const producedTons = linkedBatches
-                    .filter(b => b.status === 'Complete')
-                    .reduce((s, b) => s + b.actual_tons, 0)
-                  const inProgressBatch = linkedBatches.find(b => b.status === 'In Progress')
+                  const { inProgress, pct, fullyProduced } = getFulfillmentStatus(order, linkedBatches)
                   return (
                   <div key={order.order_id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
                     <div className="flex-1 min-w-0">
@@ -605,15 +619,15 @@ export function SalesOrders() {
                         <span className="text-sm text-muted-foreground truncate">{order.customer_name}</span>
                         <Badge variant="outline" className="text-xs shrink-0">{order.product}</Badge>
                         {statusBadge(order.status)}
-                        {inProgressBatch && (
+                        {inProgress && (
                           <Badge className="text-xs bg-yellow-100 text-yellow-700 border-yellow-200">In Production</Badge>
                         )}
-                        {!inProgressBatch && producedTons > 0 && producedTons < order.quantity_tons && (
+                        {!inProgress && pct > 0 && pct < 100 && (
                           <Badge className="text-xs bg-blue-100 text-blue-700 border-blue-200">
-                            {Math.round((producedTons / order.quantity_tons) * 100)}% produced
+                            {pct}% produced
                           </Badge>
                         )}
-                        {!inProgressBatch && producedTons >= order.quantity_tons && order.quantity_tons > 0 && (
+                        {fullyProduced && (
                           <Badge className="text-xs bg-green-100 text-green-700 border-green-200">Fully produced</Badge>
                         )}
                       </div>

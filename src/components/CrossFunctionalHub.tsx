@@ -33,6 +33,9 @@ interface CrossFunctionalHubProps {
   currentModule?: ModuleKey | null
 }
 
+/** Maximum action items shown in the cross-functional priorities card */
+const MAX_ACTION_ITEMS = 6
+
 const MODULE_CONTEXT: Record<ModuleKey, string> = {
   salesFinance: 'Track how plant readiness and maintenance execution affect customer commitments and cash flow.',
   production: 'Coordinate plant throughput with maintenance priorities and the sales pipeline from one shared view.',
@@ -308,7 +311,7 @@ export function CrossFunctionalHub({ currentModule }: CrossFunctionalHubProps) {
       })
     }
 
-    return items.slice(0, 6)
+    return items.slice(0, MAX_ACTION_ITEMS)
   }, [
     expiringCertifications.length,
     lowStockParts.length,

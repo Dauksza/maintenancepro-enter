@@ -590,7 +590,7 @@ export function FinancialDashboard() {
       </div>
 
       {/* Procurement KPIs */}
-      {(procurementSpendYTD > 0 || openPOCommitments > 0) && (
+      {safePOs.filter(po => po.status !== 'Cancelled').length > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
@@ -612,7 +612,9 @@ export function FinancialDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                {safePOs.filter(po => !['Received', 'Cancelled', 'Draft'].includes(po.status)).length} active orders
+                {safePOs.filter(po => !['Received', 'Cancelled', 'Draft'].includes(po.status)).length} active
+                {safePOs.filter(po => po.status === 'Draft').length > 0 &&
+                  ` · ${safePOs.filter(po => po.status === 'Draft').length} draft`}
               </p>
             </CardContent>
           </Card>

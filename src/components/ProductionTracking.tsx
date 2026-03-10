@@ -56,6 +56,14 @@ const BATCH_STATUSES: ProductionBatchStatus[] = ['Planned', 'In Progress', 'Comp
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const CURRENT_YEAR = new Date().getFullYear()
 
+/** Description keywords and part-number prefixes that identify raw-material PO lines */
+const RAW_MATERIAL_DESC_PATTERNS = ['asphalt'] as const
+const RAW_MATERIAL_PART_PREFIXES = ['ac-', 'pg'] as const
+
+const isRawMaterialLine = (l: { description?: string; part_number?: string }) =>
+  RAW_MATERIAL_DESC_PATTERNS.some(p => l.description?.toLowerCase().includes(p)) ||
+  RAW_MATERIAL_PART_PREFIXES.some(p => l.part_number?.toLowerCase().startsWith(p))
+
 const STATUS_COLORS: Record<ProductionBatchStatus, string> = {
   Planned: 'oklch(0.60 0.15 240)',
   'In Progress': 'oklch(0.72 0.18 55)',
@@ -261,9 +269,7 @@ export function ProductionTracking() {
   // Procurement alerts: open POs for raw materials that could affect production
   const openRawMaterialPOs = useMemo(() =>
     safePOs.filter(po => !['Received', 'Cancelled'].includes(po.status) &&
-      po.lines.some(l => l.description?.toLowerCase().includes('asphalt') ||
-        l.part_number?.toLowerCase().startsWith('ac-') ||
-        l.part_number?.toLowerCase().startsWith('pg'))),
+      po.lines.some(isRawMaterialLine)),
     [safePOs]
   )
   const pendingApprovalPOs = useMemo(() =>
