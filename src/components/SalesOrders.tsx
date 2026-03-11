@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
 import type { SalesOrder, SalesOrderStatus, AsphaltProduct, ProductionBatch, TankerLoadingTicket } from '@/lib/types'
+import { generateSampleSalesOrders } from '@/lib/sample-data'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -92,44 +93,6 @@ function statusBadge(status: SalesOrderStatus) {
 }
 
 // ─── Sample data generator ─────────────────────────────────────────────────────
-
-function generateSampleSalesOrders(): SalesOrder[] {
-  const customers = ['City of Birmingham', 'ALDOT District 3', 'JB&A Paving', 'Gulf States Paving', 'Highway 31 Contractors', 'Southern Asphalt Inc.']
-  const products: AsphaltProduct[] = ['PG 64-22', 'PG 70-22', 'PG 76-22', 'AC-20', 'Emulsion']
-  const statuses: SalesOrderStatus[] = ['Quote', 'Confirmed', 'In Production', 'Ready', 'Delivered', 'Invoiced', 'Paid', 'Paid', 'Paid']
-  const orders: SalesOrder[] = []
-  let orderNum = 1
-  for (let month = 1; month <= 12; month++) {
-    const count = 3 + Math.floor(Math.random() * 4)
-    for (let i = 0; i < count; i++) {
-      const product = products[Math.floor(Math.random() * products.length)]
-      const tons = 50 + Math.floor(Math.random() * 500)
-      const unitPrice = product.startsWith('PG 76') || product.startsWith('PG 82') ? 750 + Math.random() * 100 : product === 'Emulsion' ? 550 + Math.random() * 80 : 620 + Math.random() * 80
-      const price = Math.round(tons * unitPrice * 100) / 100
-      const orderDate = `${CURRENT_YEAR}-${String(month).padStart(2, '0')}-${String(1 + Math.floor(Math.random() * 20)).padStart(2, '0')}`
-      const delivDate = `${CURRENT_YEAR}-${String(Math.min(12, month + 1)).padStart(2, '0')}-${String(1 + Math.floor(Math.random() * 28)).padStart(2, '0')}`
-      const status = month < new Date().getMonth() + 1 ? (Math.random() > 0.15 ? 'Paid' : 'Invoiced') : statuses[Math.floor(Math.random() * statuses.length)]
-      orders.push({
-        order_id: uuidv4(),
-        order_number: `SO-${CURRENT_YEAR}-${String(orderNum++).padStart(4, '0')}`,
-        customer_name: customers[Math.floor(Math.random() * customers.length)],
-        customer_contact: null,
-        order_date: orderDate,
-        delivery_date: delivDate,
-        product,
-        quantity_tons: tons,
-        unit_price_per_ton: Math.round(unitPrice * 100) / 100,
-        total_price: price,
-        status,
-        invoice_number: status === 'Invoiced' || status === 'Paid' ? `INV-${CURRENT_YEAR}-${String(orderNum).padStart(5, '0')}` : null,
-        notes: '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-    }
-  }
-  return orders
-}
 
 // ─── Order Dialog ─────────────────────────────────────────────────────────────
 
@@ -271,7 +234,7 @@ function OrderDialog({ open, onClose, onSave, existing }: OrderDialogProps) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function SalesOrders() {
-  const [orders, setOrders] = useKV<SalesOrder[]>('sales-orders', [])
+  const [orders, setOrders] = useKV<SalesOrder[]>('sales-orders', generateSampleSalesOrders())
   const [productionBatches] = useKV<ProductionBatch[]>('production-batches', [])
   const [loadingTickets, setLoadingTickets] = useKV<TankerLoadingTicket[]>('tanker-loading-tickets', [])
   const [addOpen, setAddOpen] = useState(false)

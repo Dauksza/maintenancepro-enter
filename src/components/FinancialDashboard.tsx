@@ -8,6 +8,7 @@ import type {
   PurchaseOrder,
   CostCategory,
 } from '@/lib/types'
+import { generateSampleMaintenanceCosts, generateSampleMaintenanceBudgets } from '@/lib/sample-data'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -76,72 +77,6 @@ function fmt(n: number) {
 }
 
 // ─── Sample data generators ─────────────────────────────────────────────────
-
-function generateSampleCosts(): MaintenanceCostEntry[] {
-  const entries: MaintenanceCostEntry[] = []
-  const categories: CostCategory[] = ['Labor', 'Parts', 'Contractor', 'Equipment Rental', 'Other']
-  const descriptions = {
-    Labor: ['Technician overtime', 'Emergency repair crew', 'Scheduled PM labor', 'Welding services'],
-    Parts: ['Pump seal kit', 'Bearing replacement', 'Belt replacement', 'Filter elements', 'Valve rebuild kit'],
-    Contractor: ['Electrical contractor', 'Hydraulics specialist', 'Crane rental service', 'Alignment service'],
-    'Equipment Rental': ['Scissor lift rental', 'Forklift rental', 'Pressure washer rental'],
-    Other: ['Safety supplies', 'Lubricants & oils', 'Miscellaneous hardware'],
-  }
-  for (let month = 1; month <= 12; month++) {
-    categories.forEach(cat => {
-      const count = 2 + Math.floor(Math.random() * 3)
-      const descs = descriptions[cat]
-      for (let i = 0; i < count; i++) {
-        const baseAmounts: Record<CostCategory, [number, number]> = {
-          Labor: [800, 4000],
-          Parts: [200, 3000],
-          Contractor: [500, 8000],
-          'Equipment Rental': [300, 2500],
-          Other: [50, 800],
-        }
-        const [lo, hi] = baseAmounts[cat]
-        const amount = Math.round((lo + Math.random() * (hi - lo)) * 100) / 100
-        entries.push({
-          cost_id: uuidv4(),
-          work_order_id: null,
-          date: `${CURRENT_YEAR}-${String(month).padStart(2, '0')}-${String(1 + Math.floor(Math.random() * 28)).padStart(2, '0')}`,
-          category: cat,
-          description: descs[Math.floor(Math.random() * descs.length)],
-          amount,
-          vendor: null,
-          invoice_number: null,
-          created_at: new Date().toISOString(),
-        })
-      }
-    })
-  }
-  return entries
-}
-
-function generateSampleBudgets(): BudgetEntry[] {
-  const entries: BudgetEntry[] = []
-  const budgets: Record<CostCategory, number> = {
-    Labor: 15000,
-    Parts: 8000,
-    Contractor: 12000,
-    'Equipment Rental': 4000,
-    Other: 2000,
-  }
-  COST_CATEGORIES.forEach(cat => {
-    for (let month = 1; month <= 12; month++) {
-      entries.push({
-        budget_id: uuidv4(),
-        year: CURRENT_YEAR,
-        month,
-        category: cat,
-        budgeted_amount: budgets[cat] * (0.9 + Math.random() * 0.2),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-    }
-  })
-  return entries
-}
 
 // ─── Add Cost Dialog ─────────────────────────────────────────────────────────
 
@@ -331,8 +266,8 @@ function BudgetDialog({ open, onClose, existing, onSave }: BudgetDialogProps) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function FinancialDashboard() {
-  const [costs, setCosts] = useKV<MaintenanceCostEntry[]>('maintenance-costs', [])
-  const [budgets, setBudgets] = useKV<BudgetEntry[]>('maintenance-budgets', [])
+  const [costs, setCosts] = useKV<MaintenanceCostEntry[]>('maintenance-costs', generateSampleMaintenanceCosts())
+  const [budgets, setBudgets] = useKV<BudgetEntry[]>('maintenance-budgets', generateSampleMaintenanceBudgets())
   const [salesOrders] = useKV<SalesOrder[]>('sales-orders', [])
   const [productionBatches] = useKV<ProductionBatch[]>('production-batches', [])
   const [purchaseOrders] = useKV<PurchaseOrder[]>('purchase-orders', [])
@@ -349,8 +284,8 @@ export function FinancialDashboard() {
   const safePOs = purchaseOrders || []
 
   const handleLoadSample = () => {
-    setCosts(generateSampleCosts())
-    setBudgets(generateSampleBudgets())
+    setCosts(generateSampleMaintenanceCosts())
+    setBudgets(generateSampleMaintenanceBudgets())
     toast.success('Sample financial data loaded')
   }
 

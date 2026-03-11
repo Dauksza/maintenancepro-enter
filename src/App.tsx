@@ -18,14 +18,17 @@ import type {
   FormSubmission,
   UserRole,
   UserProfile,
-  PriorityLevel
+  PriorityLevel,
+  SalesOrder,
+  ProductionBatch,
+  MaintenanceCostEntry,
+  BudgetEntry,
 } from '@/lib/types'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Toaster } from '@/components/ui/sonner'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { NotificationBell } from '@/components/NotificationBell'
 import { UserProfileMenu } from '@/components/UserProfileMenu'
 import { SystemStatus, LiveActivityIndicator } from '@/components/SystemStatus'
 import { PWAInstallBanner } from '@/components/PWAInstallBanner'
@@ -153,14 +156,16 @@ import { isOverdue } from '@/lib/maintenance-utils'
 import { generateRemindersFromSkillMatrix, getReminderCounts } from '@/lib/certification-utils'
 import {
   generateSkillMatchNotifications,
-  generateAutoSchedulerNotifications,
-  generateAssignmentChangeNotification,
-  generateOverdueNotification,
-  markNotificationAsRead,
   markNotificationAsAccepted,
   markNotificationAsRejected
 } from '@/lib/notification-utils'
-import { canViewTab, hasPermission } from '@/lib/permissions'
+import { hasPermission } from '@/lib/permissions'
+import {
+  generateSampleSalesOrders,
+  generateSampleProductionBatches,
+  generateSampleMaintenanceCosts,
+  generateSampleMaintenanceBudgets,
+} from '@/lib/sample-data'
 import { toast } from 'sonner'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardNavigation'
 
@@ -245,6 +250,15 @@ function App() {
   const [formSubmissions, setFormSubmissions] = useKV<FormSubmission[]>('form-submissions', [])
   const [userProfile, setUserProfile] = useKV<UserProfile | null>('user-profile', null)
   const [hasSeededData, setHasSeededData] = useKV<boolean>('has-seeded-data', false)
+  // Cross-functional data stores.  Only the setters are used here so that
+  // handleLoadSampleData can seed all modules in one pass.  Empty-array
+  // defaults are intentional: calling sample generators on every App render
+  // would be wasteful; the individual module components own the read path and
+  // supply their own defaults via useKV (e.g. SalesOrders, ProductionTracking).
+  const [, setSalesOrders] = useKV<SalesOrder[]>('sales-orders', [])
+  const [, setProductionBatches] = useKV<ProductionBatch[]>('production-batches', [])
+  const [, setMaintenanceCosts] = useKV<MaintenanceCostEntry[]>('maintenance-costs', [])
+  const [, setMaintenanceBudgets] = useKV<BudgetEntry[]>('maintenance-budgets', [])
   const [notificationPreferences, setNotificationPreferences] = useKV<NotificationPreferences>(
     'notification-preferences',
     {
@@ -510,6 +524,14 @@ function App() {
     setSchedules(sampleSchedules)
     setParts(sampleParts)
     setReminders(sampleReminders)
+
+    // Seed cross-functional module stores so the Operations Hub shows a
+    // complete integrated picture immediately after sample data is loaded.
+    setSalesOrders(generateSampleSalesOrders())
+    setProductionBatches(generateSampleProductionBatches())
+    setMaintenanceCosts(generateSampleMaintenanceCosts())
+    setMaintenanceBudgets(generateSampleMaintenanceBudgets())
+
     setHasSeededData(true)
     
     toast.success('Sample data loaded successfully')
@@ -522,6 +544,10 @@ function App() {
     setSchedules,
     setParts,
     setReminders,
+    setSalesOrders,
+    setProductionBatches,
+    setMaintenanceCosts,
+    setMaintenanceBudgets,
     setHasSeededData
   ])
 
@@ -641,14 +667,6 @@ function App() {
     handleUpdateNotification(notificationId, updated)
 
     toast.info('Assignment suggestion declined')
-  }
-
-  const handleMarkNotificationAsRead = (notificationId: string) => {
-    const notification = (notifications || []).find(n => n.notification_id === notificationId)
-    if (!notification) return
-
-    const updated = markNotificationAsRead(notification)
-    handleUpdateNotification(notificationId, updated)
   }
 
   const handleGenerateNotificationsForWorkOrder = (workOrder: WorkOrder) => {
