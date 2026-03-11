@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { v4 as uuidv4 } from 'uuid'
 import { toast } from 'sonner'
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { Progress } from '@/components/ui/progress'
 import {
   Brain,
   BookOpen,
@@ -34,8 +35,9 @@ import {
   Desktop,
   Cloud,
   Cpu,
-  Info,
   ArrowsClockwise,
+  DownloadSimple,
+  CheckCircle,
 } from '@phosphor-icons/react'
 
 export type ContentType = 'study-guide' | 'quiz' | 'test' | 'interactive-lesson'
@@ -141,98 +143,82 @@ Use well-structured Markdown with clear headers and engaging language throughout
 }
 
 // ---------------------------------------------------------------------------
-// Local edge-model support
+// Local edge-model support — powered by @huggingface/transformers (ONNX/WASM)
+// No Ollama, no external server: models download from HuggingFace Hub and
+// are cached in the browser.  Just npm install and generate.
 // ---------------------------------------------------------------------------
 
 export type AIProvider = 'mistral' | 'local'
 
+/** Models verified to work with @huggingface/transformers in-browser ONNX inference. */
 export const RECOMMENDED_LOCAL_MODELS = [
   {
-    id: 'phi3:mini',
-    name: 'Phi-3 Mini',
-    params: '3.8B',
-    size: '~2.3 GB',
-    vendor: 'Microsoft',
-    notes: 'Best quality-to-speed balance on CPU',
+    id: 'HuggingFaceTB/SmolLM2-360M-Instruct',
+    name: 'SmolLM2 360M',
+    params: '360M',
+    size: '~270 MB',
+    vendor: 'HuggingFace',
+    notes: 'Best default — fast, tiny download',
   },
   {
-    id: 'phi3.5',
-    name: 'Phi-3.5 Mini',
-    params: '3.8B',
-    size: '~2.2 GB',
-    vendor: 'Microsoft',
-    notes: 'Improved reasoning over Phi-3',
+    id: 'HuggingFaceTB/SmolLM2-1.7B-Instruct',
+    name: 'SmolLM2 1.7B',
+    params: '1.7B',
+    size: '~1.4 GB',
+    vendor: 'HuggingFace',
+    notes: 'Better quality, still CPU-friendly',
   },
   {
-    id: 'gemma2:2b',
-    name: 'Gemma 2',
-    params: '2B',
-    size: '~1.6 GB',
-    vendor: 'Google',
-    notes: 'Lightweight with solid comprehension',
-  },
-  {
-    id: 'llama3.2:3b',
-    name: 'Llama 3.2',
-    params: '3B',
-    size: '~2.0 GB',
+    id: 'Xenova/TinyLlama-1.1B-Chat-v1.0',
+    name: 'TinyLlama 1.1B',
+    params: '1.1B',
+    size: '~675 MB',
     vendor: 'Meta',
-    notes: 'Versatile, well-rounded instruction model',
+    notes: 'Solid reasoning, well-tested',
   },
   {
-    id: 'llama3.2:1b',
-    name: 'Llama 3.2 (1B)',
-    params: '1B',
-    size: '~1.3 GB',
-    vendor: 'Meta',
-    notes: 'Smallest Llama, fastest inference',
-  },
-  {
-    id: 'qwen2.5:1.5b',
-    name: 'Qwen 2.5',
-    params: '1.5B',
-    size: '~1.0 GB',
+    id: 'Xenova/Qwen1.5-0.5B-Chat',
+    name: 'Qwen 1.5 0.5B',
+    params: '0.5B',
+    size: '~400 MB',
     vendor: 'Alibaba',
-    notes: 'Tiny footprint, multilingual support',
+    notes: 'Smallest option, multilingual',
   },
   {
-    id: 'deepseek-r1:1.5b',
-    name: 'DeepSeek-R1',
-    params: '1.5B',
-    size: '~1.1 GB',
-    vendor: 'DeepSeek',
-    notes: 'Strong reasoning capabilities',
+    id: 'Xenova/phi-1_5',
+    name: 'Phi-1.5',
+    params: '1.3B',
+    size: '~780 MB',
+    vendor: 'Microsoft',
+    notes: 'Strong instruction following',
   },
 ] as const
 
 const MISTRAL_BASE_URL = 'https://api.mistral.ai/v1'
 const MISTRAL_MODEL = 'mistral-large-latest'
-const DEFAULT_LOCAL_ENDPOINT = 'http://localhost:11434/v1'
-const DEFAULT_LOCAL_MODEL = 'phi3:mini'
+const DEFAULT_LOCAL_MODEL = 'HuggingFaceTB/SmolLM2-360M-Instruct'
 
 const SYSTEM_MESSAGE = {
-  role: 'system',
+  role: 'system' as const,
   content:
     'You are an expert instructional designer and subject-matter educator. Create high-quality, well-structured training content using clear Markdown formatting. Be thorough, accurate, and engaging.',
 }
 
-/** Shared SSE streaming helper – works with Mistral and any OpenAI-compatible API (Ollama, LM Studio, Jan). */
-async function streamChatCompletion(
-  baseEndpoint: string,
-  model: string,
-  authHeader: string | null,
+/** Mistral streaming helper — SSE over HTTPS. */
+async function streamMistralCompletion(
+  apiKey: string,
   messages: Array<{ role: string; content: string }>,
   signal: AbortSignal,
   onChunk: (fullContent: string) => void
 ): Promise<string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (authHeader) headers['Authorization'] = authHeader
-
-  const response = await fetch(`${baseEndpoint}/chat/completions`, {
+  const response = await fetch(`${MISTRAL_BASE_URL}/chat/completions`, {
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
     body: JSON.stringify({
-      model,
+      model: MISTRAL_MODEL,
       messages,
       stream: true,
       max_tokens: 4096,
@@ -257,9 +243,7 @@ async function streamChatCompletion(
     if (done) break
 
     const chunk = decoder.decode(value, { stream: true })
-    const lines = chunk.split('\n')
-
-    for (const line of lines) {
+    for (const line of chunk.split('\n')) {
       if (line.startsWith('data: ')) {
         const data = line.slice(6).trim()
         if (data === '[DONE]') continue
@@ -345,7 +329,6 @@ export function AITrainingModule() {
   const [library, setLibrary] = useKV<TrainingContent[]>('ai-training-library', [])
   const [apiKey, setApiKey] = useKV<string>('mistral-api-key', '')
   const [aiProvider, setAiProvider] = useKV<AIProvider>('ai-provider', 'mistral')
-  const [localEndpoint, setLocalEndpoint] = useKV<string>('local-model-endpoint', DEFAULT_LOCAL_ENDPOINT)
   const [localModel, setLocalModel] = useKV<string>('local-model-name', DEFAULT_LOCAL_MODEL)
   const [enableFallback, setEnableFallback] = useKV<boolean>('ai-fallback-enabled', false)
 
@@ -360,8 +343,13 @@ export function AITrainingModule() {
   // Local state – API key
   const [apiKeyInput, setApiKeyInput] = useState(apiKey || '')
   const [showApiKey, setShowApiKey] = useState(false)
-  const [localEndpointInput, setLocalEndpointInput] = useState(localEndpoint || DEFAULT_LOCAL_ENDPOINT)
-  const [localModelInput, setLocalModelInput] = useState(localModel || DEFAULT_LOCAL_MODEL)
+
+  // Local state – worker & model download
+  const workerRef = useRef<Worker | null>(null)
+  const [modelStatus, setModelStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [modelProgress, setModelProgress] = useState<{ file: string; pct: number } | null>(null)
+  const localStreamRef = useRef<{ resolve: (v: string) => void; reject: (e: Error) => void } | null>(null)
+  const localFullTextRef = useRef('')
 
   // Local state – Generation flow
   const [generating, setGenerating] = useState(false)
@@ -383,20 +371,69 @@ export function AITrainingModule() {
     toast.success('API key saved')
   }, [apiKeyInput, setApiKey])
 
-  const handleSaveLocalConfig = useCallback(() => {
-    setLocalEndpoint(localEndpointInput.trim() || DEFAULT_LOCAL_ENDPOINT)
-    setLocalModel(localModelInput.trim() || DEFAULT_LOCAL_MODEL)
-    toast.success('Local model configuration saved')
-  }, [localEndpointInput, localModelInput, setLocalEndpoint, setLocalModel])
+  // Create / reuse the Web Worker for local inference
+  const getWorker = useCallback(() => {
+    if (!workerRef.current) {
+      workerRef.current = new Worker(
+        new URL('../workers/local-llm.worker.ts', import.meta.url),
+        { type: 'module' }
+      )
+      workerRef.current.onmessage = (e: MessageEvent) => {
+        const msg = e.data as
+          | { type: 'progress'; file: string; loaded: number; total: number }
+          | { type: 'ready'; model: string }
+          | { type: 'token'; text: string }
+          | { type: 'done'; fullText: string }
+          | { type: 'error'; message: string }
+
+        if (msg.type === 'progress') {
+          setModelStatus('loading')
+          const pct = msg.total > 0 ? Math.round((msg.loaded / msg.total) * 100) : 0
+          setModelProgress({ file: msg.file, pct })
+        } else if (msg.type === 'ready') {
+          setModelStatus('ready')
+          setModelProgress(null)
+        } else if (msg.type === 'token') {
+          localFullTextRef.current += msg.text
+          setStreamingContent(localFullTextRef.current)
+        } else if (msg.type === 'done') {
+          const full = localFullTextRef.current
+          localFullTextRef.current = ''
+          localStreamRef.current?.resolve(full)
+          localStreamRef.current = null
+        } else if (msg.type === 'error') {
+          const err = new Error(msg.message)
+          localStreamRef.current?.reject(err)
+          localStreamRef.current = null
+          if (msg.message !== 'Generation cancelled') {
+            setModelStatus('error')
+          }
+        }
+      }
+    }
+    return workerRef.current
+  }, [])
+
+  // Warm up the worker when provider switches to local
+  useEffect(() => {
+    if (aiProvider === 'local') {
+      const worker = getWorker()
+      worker.postMessage({ type: 'load', model: localModel || DEFAULT_LOCAL_MODEL })
+    }
+  }, [aiProvider, localModel, getWorker])
 
   const handleSelectRecommendedModel = useCallback(
     (modelId: string) => {
-      setLocalModelInput(modelId)
       setLocalModel(modelId)
       if (aiProvider !== 'local') setAiProvider('local')
+      setModelStatus('idle')
+      setModelProgress(null)
+      // Pre-warm the new model
+      const worker = getWorker()
+      worker.postMessage({ type: 'load', model: modelId })
       toast.success(`Switched to ${modelId}`)
     },
-    [aiProvider, setAiProvider, setLocalModel]
+    [aiProvider, setAiProvider, setLocalModel, getWorker]
   )
 
   const handleAddTag = useCallback(() => {
@@ -416,10 +453,6 @@ export function AITrainingModule() {
       toast.error('Please save your Mistral API key first')
       return
     }
-    if (aiProvider === 'local' && !localEndpoint) {
-      toast.error('Please configure your local model endpoint first')
-      return
-    }
     if (!topic.trim()) {
       toast.error('Please enter a topic')
       return
@@ -430,19 +463,26 @@ export function AITrainingModule() {
     setStreamingContent('')
 
     const prompt = CONTENT_PROMPTS[contentType](topic.trim(), context.trim())
-    const messages = [SYSTEM_MESSAGE, { role: 'user', content: prompt }]
+    const messages = [SYSTEM_MESSAGE, { role: 'user' as const, content: prompt }]
 
     abortRef.current = new AbortController()
+
+    /** Run local in-browser inference via the Web Worker */
+    const runLocal = (modelId: string): Promise<string> =>
+      new Promise((resolve, reject) => {
+        localFullTextRef.current = ''
+        localStreamRef.current = { resolve, reject }
+        const worker = getWorker()
+        worker.postMessage({ type: 'generate', model: modelId, messages, id: 'gen' })
+      })
 
     try {
       let fullContent = ''
 
       if (aiProvider === 'mistral') {
         try {
-          fullContent = await streamChatCompletion(
-            MISTRAL_BASE_URL,
-            MISTRAL_MODEL,
-            `Bearer ${apiKey}`,
+          fullContent = await streamMistralCompletion(
+            apiKey,
             messages,
             abortRef.current.signal,
             text => setStreamingContent(text)
@@ -450,38 +490,24 @@ export function AITrainingModule() {
           toast.success('Content generated successfully')
         } catch (mistralErr) {
           if (mistralErr instanceof Error && mistralErr.name === 'AbortError') throw mistralErr
-          if (enableFallback && localEndpoint) {
+          if (enableFallback) {
             toast.warning('Mistral API unavailable — falling back to local model…')
             setStreamingContent('')
-            fullContent = await streamChatCompletion(
-              localEndpoint,
-              localModel || DEFAULT_LOCAL_MODEL,
-              null,
-              messages,
-              abortRef.current.signal,
-              text => setStreamingContent(text)
-            )
+            fullContent = await runLocal(localModel || DEFAULT_LOCAL_MODEL)
             toast.success(`Content generated via local model (${localModel || DEFAULT_LOCAL_MODEL})`)
           } else {
             throw mistralErr
           }
         }
       } else {
-        fullContent = await streamChatCompletion(
-          localEndpoint || DEFAULT_LOCAL_ENDPOINT,
-          localModel || DEFAULT_LOCAL_MODEL,
-          null,
-          messages,
-          abortRef.current.signal,
-          text => setStreamingContent(text)
-        )
+        fullContent = await runLocal(localModel || DEFAULT_LOCAL_MODEL)
         toast.success(`Content generated via local model (${localModel || DEFAULT_LOCAL_MODEL})`)
       }
 
       setGeneratedContent(fullContent)
       setStreamingContent('')
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') {
+      if (err instanceof Error && (err.name === 'AbortError' || err.message === 'Generation cancelled')) {
         toast.info('Generation cancelled')
       } else {
         const message = err instanceof Error ? err.message : 'Failed to generate content'
@@ -491,10 +517,11 @@ export function AITrainingModule() {
       setGenerating(false)
       abortRef.current = null
     }
-  }, [aiProvider, apiKey, localEndpoint, localModel, enableFallback, contentType, topic, context])
+  }, [aiProvider, apiKey, localModel, enableFallback, contentType, topic, context, getWorker])
 
   const handleCancelGeneration = useCallback(() => {
     abortRef.current?.abort()
+    workerRef.current?.postMessage({ type: 'cancel' })
   }, [])
 
   const handleSaveToLibrary = useCallback(() => {
@@ -683,7 +710,7 @@ export function AITrainingModule() {
                     </div>
                     {enableFallback && (
                       <p className="text-xs text-muted-foreground">
-                        Will use <span className="font-mono font-medium">{localModel || DEFAULT_LOCAL_MODEL}</span> as fallback
+                        Will use <span className="font-medium">{localModel || DEFAULT_LOCAL_MODEL}</span> as fallback
                       </p>
                     )}
                   </>
@@ -692,52 +719,34 @@ export function AITrainingModule() {
                 {/* Local model config */}
                 {aiProvider === 'local' && (
                   <>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">API Endpoint</Label>
-                      <Input
-                        placeholder={DEFAULT_LOCAL_ENDPOINT}
-                        value={localEndpointInput}
-                        onChange={e => setLocalEndpointInput(e.target.value)}
-                        className="font-mono text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Model Name</Label>
-                      <Input
-                        placeholder={DEFAULT_LOCAL_MODEL}
-                        value={localModelInput}
-                        onChange={e => setLocalModelInput(e.target.value)}
-                        className="font-mono text-xs"
-                      />
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleSaveLocalConfig}
-                      disabled={!localEndpointInput.trim() || !localModelInput.trim()}
-                    >
-                      Save Configuration
-                    </Button>
-                    {localEndpoint && localModel && (
-                      <p className="text-xs text-green-600 dark:text-green-400">
-                        ✓ Using <span className="font-mono">{localModel}</span>
+                    {/* Model status */}
+                    {modelStatus === 'loading' && modelProgress && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <DownloadSimple className="w-3.5 h-3.5 animate-pulse" />
+                          Downloading model weights…
+                        </p>
+                        <Progress value={modelProgress.pct} className="h-1.5" />
+                        <p className="text-xs text-muted-foreground truncate">{modelProgress.file}</p>
+                      </div>
+                    )}
+                    {modelStatus === 'ready' && (
+                      <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Model ready · {localModel || DEFAULT_LOCAL_MODEL}
+                      </p>
+                    )}
+                    {modelStatus === 'error' && (
+                      <p className="text-xs text-destructive">
+                        Failed to load model. Check your connection and try again.
                       </p>
                     )}
                     <div className="flex gap-1.5 p-2 rounded-lg bg-muted/50">
-                      <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                      <div className="text-xs text-muted-foreground space-y-1">
-                        <p>
-                          Requires <span className="font-medium">Ollama</span> running locally.
-                          Install at <span className="font-medium">ollama.ai</span>, then pull the model:
-                        </p>
-                        <code className="block font-mono bg-background px-1.5 py-0.5 rounded">
-                          ollama pull {localModelInput || DEFAULT_LOCAL_MODEL}
-                        </code>
-                        <p className="text-muted-foreground/70">
-                          Also compatible with LM Studio and Jan (OpenAI-compatible endpoints).
-                        </p>
-                      </div>
+                      <DownloadSimple className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                      <p className="text-xs text-muted-foreground">
+                        Models download automatically from HuggingFace and are cached in your browser.
+                        No Ollama or external server needed — just select a model below and generate.
+                      </p>
                     </div>
                   </>
                 )}
@@ -772,9 +781,6 @@ export function AITrainingModule() {
                         </p>
                         <p className="text-xs text-muted-foreground">{m.params} · {m.size}</p>
                       </div>
-                      <code className="text-xs font-mono text-muted-foreground shrink-0 hidden sm:block">
-                        {m.id}
-                      </code>
                     </div>
                   </button>
                 ))}
@@ -881,10 +887,9 @@ export function AITrainingModule() {
                     className="w-full"
                     onClick={handleGenerate}
                     disabled={
-                    !topic.trim() ||
-                    (aiProvider === 'mistral' && !apiKey) ||
-                    (aiProvider === 'local' && !localEndpoint)
-                  }
+                      !topic.trim() ||
+                      (aiProvider === 'mistral' && !apiKey)
+                    }
                   >
                     <Sparkle className="w-4 h-4 mr-1.5" />
                     Generate Content
