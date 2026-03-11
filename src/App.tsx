@@ -87,6 +87,7 @@ const HRDashboard = lazy(() => import('@/components/HRDashboard').then(m => ({ d
 const LeaveManagement = lazy(() => import('@/components/LeaveManagement').then(m => ({ default: m.LeaveManagement })))
 const ComplianceDashboard = lazy(() => import('@/components/ComplianceDashboard').then(m => ({ default: m.ComplianceDashboard })))
 const TrainingManagement = lazy(() => import('@/components/TrainingManagement').then(m => ({ default: m.TrainingManagement })))
+const AITrainingModule = lazy(() => import('@/components/AITrainingModule').then(m => ({ default: m.AITrainingModule })))
 const ProductSpecifications = lazy(() => import('@/components/ProductSpecifications').then(m => ({ default: m.ProductSpecifications })))
 const BillOfMaterials = lazy(() => import('@/components/BillOfMaterials').then(m => ({ default: m.BillOfMaterials })))
 const EngineeringChanges = lazy(() => import('@/components/EngineeringChanges').then(m => ({ default: m.EngineeringChanges })))
@@ -373,6 +374,7 @@ function App() {
     'leave',
     'training',
     'compliance',
+    'ai-training',
   ]
   const safeActiveTab = activeTab && validTabs.includes(activeTab) ? activeTab : 'dashboard'
 
@@ -423,6 +425,7 @@ function App() {
     leave: 'Leave Management',
     training: 'Training',
     compliance: 'Compliance',
+    'ai-training': 'AI Training Studio',
   }
   const currentSectionLabel = TAB_LABELS[safeActiveTab] ?? 'Dashboard'
 
@@ -865,6 +868,12 @@ function App() {
         title: 'Compliance',
         items: [
           { tab: 'compliance', label: 'Compliance', icon: ShieldCheck },
+        ]
+      },
+      {
+        title: 'AI Studio',
+        items: [
+          { tab: 'ai-training', label: 'AI Training Studio', icon: Brain },
         ]
       }
     ],
@@ -1882,6 +1891,10 @@ function App() {
 
             <TabsContent value="compliance" className="space-y-6 animate-fade-in">
               <ComplianceDashboard />
+            </TabsContent>
+
+            <TabsContent value="ai-training" className="space-y-6 animate-fade-in">
+              <AITrainingModule />
             </TabsContent>
           </Tabs>
           </Suspense>
