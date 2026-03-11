@@ -215,7 +215,7 @@ export function CertificationReminders({
   )
 
   const safeReminders = reminders || []
-  const counts = getReminderCounts(safeReminders)
+  const counts = useMemo(() => getReminderCounts(safeReminders), [safeReminders])
 
   const filteredReminders = useMemo(() => {
     let filtered = safeReminders
