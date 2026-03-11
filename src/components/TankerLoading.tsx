@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
-import type { TankerLoadingTicket, AsphaltTank, AsphaltProduct, TankerLoadingStatus } from '@/lib/types'
+import type { TankerLoadingTicket, AsphaltTank, AsphaltProduct, TankerLoadingStatus, SalesOrder } from '@/lib/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -90,6 +90,7 @@ function nextTicketNumber(tickets: TankerLoadingTicket[]): string {
 export function TankerLoading() {
   const [tickets, setTickets] = useKV<TankerLoadingTicket[]>('tanker-loading-tickets', [])
   const [tanks, setTanks] = useKV<AsphaltTank[]>('asphalt-tanks', [])
+  const [salesOrders] = useKV<SalesOrder[]>('sales-orders', [])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editTicket, setEditTicket] = useState<TankerLoadingTicket | null>(null)
   const [form, setForm] = useState<TicketForm>(DEFAULT_FORM)
@@ -267,6 +268,11 @@ export function TankerLoading() {
     return (tanks || []).find(t => t.tank_id === id)?.tank_name ?? '—'
   }
 
+  function getSalesOrderNumber(orderId: string | null | undefined) {
+    if (!orderId) return null
+    return (salesOrders || []).find(o => o.order_id === orderId)?.order_number ?? null
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -341,6 +347,7 @@ export function TankerLoading() {
                 <TableRow>
                   <TableHead>Ticket #</TableHead>
                   <TableHead>Customer</TableHead>
+                  <TableHead>Sales Order</TableHead>
                   <TableHead>Truck ID</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Load From</TableHead>
@@ -354,6 +361,11 @@ export function TankerLoading() {
                   <TableRow key={t.ticket_id}>
                     <TableCell className="font-mono text-xs">{t.ticket_number}</TableCell>
                     <TableCell className="font-medium">{t.customer}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {getSalesOrderNumber(t.linked_order_id)
+                        ? <Badge className="text-[11px] bg-blue-50 text-blue-700 border-blue-200">{getSalesOrderNumber(t.linked_order_id)}</Badge>
+                        : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
                     <TableCell className="font-mono">{t.truck_id}</TableCell>
                     <TableCell>{t.product}</TableCell>
                     <TableCell>{getTankName(t.load_from_tank_id)}</TableCell>
@@ -388,6 +400,12 @@ export function TankerLoading() {
             <DialogDescription>Create a tanker loading ticket for outbound shipment</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-1">
+            {editTicket?.linked_order_id && getSalesOrderNumber(editTicket.linked_order_id) && (
+              <div className="col-span-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 flex items-center gap-2">
+                <span className="text-xs text-blue-700 font-medium">Dispatched from Sales Order:</span>
+                <Badge className="text-xs bg-blue-100 text-blue-700 border-blue-200">{getSalesOrderNumber(editTicket.linked_order_id)}</Badge>
+              </div>
+            )}
             <div className="space-y-1">
               <Label>Ticket Number</Label>
               <Input value={form.ticket_number} onChange={e => setForm(f => ({...f, ticket_number: e.target.value}))} />

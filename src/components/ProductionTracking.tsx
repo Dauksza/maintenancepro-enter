@@ -103,9 +103,10 @@ interface BatchDialogProps {
   onClose: () => void
   onSave: (batch: ProductionBatch) => void
   existing?: ProductionBatch | null
+  openSalesOrders?: SalesOrder[]
 }
 
-function BatchDialog({ open, onClose, onSave, existing }: BatchDialogProps) {
+function BatchDialog({ open, onClose, onSave, existing, openSalesOrders = [] }: BatchDialogProps) {
   const [form, setForm] = useState(() => ({
     batch_number: existing?.batch_number ?? '',
     date: existing?.date ?? new Date().toISOString().split('T')[0],
@@ -116,6 +117,7 @@ function BatchDialog({ open, onClose, onSave, existing }: BatchDialogProps) {
     operator: existing?.operator ?? '',
     downtime_minutes: existing?.downtime_minutes?.toString() ?? '0',
     notes: existing?.notes ?? '',
+    linked_order_id: existing?.linked_order_id ?? '',
   }))
 
   const handleSave = () => {
@@ -134,7 +136,7 @@ function BatchDialog({ open, onClose, onSave, existing }: BatchDialogProps) {
       status: form.status,
       operator: form.operator.trim(),
       equipment_id: existing?.equipment_id ?? null,
-      linked_order_id: existing?.linked_order_id ?? null,
+      linked_order_id: form.linked_order_id || null,
       downtime_minutes: parseInt(form.downtime_minutes) || 0,
       notes: form.notes.trim(),
       created_at: existing?.created_at ?? new Date().toISOString(),
@@ -202,6 +204,20 @@ function BatchDialog({ open, onClose, onSave, existing }: BatchDialogProps) {
             </div>
           </div>
           <div className="space-y-1">
+            <Label>Link to Sales Order <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Select value={form.linked_order_id || ''} onValueChange={v => setForm(p => ({ ...p, linked_order_id: v }))}>
+              <SelectTrigger><SelectValue placeholder="No linked order" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No linked order</SelectItem>
+                {openSalesOrders.map(o => (
+                  <SelectItem key={o.order_id} value={o.order_id}>
+                    {o.order_number} — {o.customer_name} ({o.quantity_tons.toLocaleString()} t {o.product})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
             <Label>Notes</Label>
             <Textarea placeholder="Optional notes..." rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
           </div>
@@ -219,7 +235,7 @@ function BatchDialog({ open, onClose, onSave, existing }: BatchDialogProps) {
 
 export function ProductionTracking() {
   const [batches, setBatches] = useKV<ProductionBatch[]>('production-batches', generateSampleProductionBatches())
-  const [salesOrders] = useKV<SalesOrder[]>('sales-orders', [])
+  const [salesOrders, setSalesOrders] = useKV<SalesOrder[]>('sales-orders', [])
   const [purchaseOrders] = useKV<PurchaseOrder[]>('purchase-orders', [])
   const [addOpen, setAddOpen] = useState(false)
   const [editBatch, setEditBatch] = useState<ProductionBatch | null>(null)
@@ -241,7 +257,15 @@ export function ProductionTracking() {
     [safePOs]
   )
 
+  // Open sales orders that can be linked to batches
+  const openSalesOrders = useMemo(() =>
+    safeOrders.filter(o => !['Paid', 'Cancelled', 'Delivered'].includes(o.status))
+      .sort((a, b) => a.order_number.localeCompare(b.order_number)),
+    [safeOrders]
+  )
+
   const handleSaveBatch = (batch: ProductionBatch) => {
+    const previous = (batches || []).find(b => b.batch_id === batch.batch_id)
     setBatches(current => {
       const existing = (current || []).find(b => b.batch_id === batch.batch_id)
       if (existing) {
@@ -249,6 +273,28 @@ export function ProductionTracking() {
       }
       return [...(current || []), batch]
     })
+
+    // Update linked sales order status when batch lifecycle changes
+    if (batch.linked_order_id) {
+      const now = new Date().toISOString()
+      const prevStatus = previous?.status
+      if (batch.status === 'In Progress' && prevStatus !== 'In Progress') {
+        // Batch started → mark linked order as "In Production"
+        setSalesOrders(cur => (cur || []).map(o =>
+          o.order_id === batch.linked_order_id && !['In Production', 'Ready', 'Delivered', 'Invoiced', 'Paid'].includes(o.status)
+            ? { ...o, status: 'In Production', updated_at: now }
+            : o
+        ))
+      } else if (batch.status === 'Complete' && prevStatus !== 'Complete') {
+        // Batch completed → mark linked order as "Ready" if it was "In Production"
+        setSalesOrders(cur => (cur || []).map(o =>
+          o.order_id === batch.linked_order_id && o.status === 'In Production'
+            ? { ...o, status: 'Ready', updated_at: now }
+            : o
+        ))
+      }
+    }
+
     toast.success(editBatch ? 'Batch updated' : 'Batch added')
     setEditBatch(null)
   }
@@ -391,7 +437,7 @@ export function ProductionTracking() {
             </Button>
           </div>
         </div>
-        <BatchDialog open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSaveBatch} />
+        <BatchDialog open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSaveBatch} openSalesOrders={openSalesOrders} />
       </div>
     )
   }
@@ -664,13 +710,20 @@ export function ProductionTracking() {
                 {filteredBatches.length === 0 && (
                   <p className="text-muted-foreground text-sm py-8 text-center">No batches found</p>
                 )}
-                {filteredBatches.map(batch => (
+                {filteredBatches.map(batch => {
+                  const linkedOrder = batch.linked_order_id
+                    ? safeOrders.find(o => o.order_id === batch.linked_order_id)
+                    : null
+                  return (
                   <div key={batch.batch_id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium">{batch.batch_number}</span>
                         <Badge variant="outline" className="text-xs">{batch.product}</Badge>
                         {statusBadge(batch.status)}
+                        {linkedOrder && (
+                          <Badge className="text-xs bg-blue-50 text-blue-700 border-blue-200">{linkedOrder.order_number}</Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {batch.date} · {batch.operator || 'No operator'}
@@ -693,7 +746,8 @@ export function ProductionTracking() {
                       </Button>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -705,6 +759,7 @@ export function ProductionTracking() {
         onClose={() => { setAddOpen(false); setEditBatch(null) }}
         onSave={handleSaveBatch}
         existing={editBatch}
+        openSalesOrders={openSalesOrders}
       />
     </div>
   )

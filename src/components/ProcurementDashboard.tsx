@@ -4,12 +4,13 @@ import { v4 as uuidv4 } from 'uuid'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts'
-import { Buildings, Receipt, TrendUp, Warning, Package } from '@phosphor-icons/react'
+import { Buildings, Receipt, TrendUp, Warning, Package, ArrowSquareOut } from '@phosphor-icons/react'
 import type { Vendor, PurchaseOrder, POStatus, VendorCategory, AsphaltTank, PartInventoryItem } from '@/lib/types'
 
 function generateInitialData(): { vendors: Vendor[]; pos: PurchaseOrder[] } {
@@ -128,6 +129,7 @@ export function ProcurementDashboard() {
   const [pos] = useKV<PurchaseOrder[]>('purchase-orders', generateInitialData().pos)
   const [asphaltTanks] = useKV<AsphaltTank[]>('asphalt-tanks', [])
   const [partsInventory] = useKV<PartInventoryItem[]>('parts-inventory', [])
+  const [, setActiveTab] = useKV<string>('active-tab', 'procurement-dashboard')
   const safeVendors = vendors ?? generateInitialData().vendors
   const safePOs = pos ?? []
   const safeTanks = asphaltTanks ?? []
@@ -209,9 +211,15 @@ export function ProcurementDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Procurement Dashboard</h2>
-        <p className="text-muted-foreground">Supply chain overview and purchasing activity</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Procurement Dashboard</h2>
+          <p className="text-muted-foreground">Supply chain overview and purchasing activity</p>
+        </div>
+        <Button variant="outline" className="gap-2" onClick={() => setActiveTab('purchase-orders')}>
+          <ArrowSquareOut size={16} />
+          Manage Purchase Orders
+        </Button>
       </div>
 
       {/* KPI Cards */}
@@ -302,8 +310,11 @@ export function ProcurementDashboard() {
 
       {/* Recent POs */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Recent Purchase Orders</CardTitle>
+          <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => setActiveTab('purchase-orders')}>
+            View All <ArrowSquareOut size={12} />
+          </Button>
         </CardHeader>
         <CardContent>
           <Table>

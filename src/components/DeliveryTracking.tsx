@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { Truck, MapPin, Clock, CheckCircle, Warning } from '@phosphor-icons/react'
-import type { Delivery, DeliveryStatus } from '@/lib/types'
+import type { Delivery, DeliveryStatus, SalesOrder } from '@/lib/types'
 
 const ALL_STATUSES: DeliveryStatus[] = ['Scheduled', 'Loading', 'In Transit', 'Delivered', 'Cancelled', 'Delayed']
 
@@ -94,16 +94,49 @@ const PIPELINE_STEPS: DeliveryStatus[] = ['Scheduled', 'Loading', 'In Transit', 
 
 export function DeliveryTracking() {
   const [deliveries, setDeliveries] = useKV<Delivery[]>('deliveries', generateSampleDeliveries())
+  const [salesOrders] = useKV<SalesOrder[]>('sales-orders', [])
   const safeDeliveries = deliveries ?? []
+  const safeSalesOrders = salesOrders ?? []
   const [filterStatus, setFilterStatus] = useState<DeliveryStatus | 'All'>('All')
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0])
   const [detailDelivery, setDetailDelivery] = useState<Delivery | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState({
+    sales_order_id: '',
     customer_name: '', delivery_address: '', driver_name: '', product: 'PG 64-22',
     quantity_tons: 20, scheduled_date: new Date().toISOString().split('T')[0],
     scheduled_time: '08:00', notes: ''
   })
+
+  // Sales orders that are ready or delivered (eligible for delivery scheduling)
+  const eligibleSalesOrders = useMemo(() =>
+    safeSalesOrders.filter(o => ['Confirmed', 'In Production', 'Ready'].includes(o.status))
+      .sort((a, b) => a.order_number.localeCompare(b.order_number)),
+    [safeSalesOrders]
+  )
+
+  // Map sales_order_id → SalesOrder for display
+  const salesOrdersById = useMemo(() => {
+    const map = new Map<string, SalesOrder>()
+    safeSalesOrders.forEach(o => map.set(o.order_id, o))
+    return map
+  }, [safeSalesOrders])
+
+  function handleSalesOrderSelect(orderId: string) {
+    const order = safeSalesOrders.find(o => o.order_id === orderId)
+    if (order) {
+      setForm(f => ({
+        ...f,
+        sales_order_id: orderId,
+        customer_name: order.customer_name,
+        product: order.product,
+        quantity_tons: order.quantity_tons,
+        scheduled_date: order.delivery_date || f.scheduled_date,
+      }))
+    } else {
+      setForm(f => ({ ...f, sales_order_id: '' }))
+    }
+  }
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -145,7 +178,7 @@ export function DeliveryTracking() {
     const newDel: Delivery = {
       delivery_id: uuidv4(),
       delivery_number: `DEL-${new Date().getFullYear()}-${String(safeDeliveries.length + 416).padStart(4, '0')}`,
-      sales_order_id: null,
+      sales_order_id: form.sales_order_id || null,
       customer_name: form.customer_name,
       delivery_address: form.delivery_address,
       vehicle_id: null,
@@ -165,7 +198,7 @@ export function DeliveryTracking() {
     setDeliveries(prev => [newDel, ...(prev ?? [])])
     toast.success(`Delivery ${newDel.delivery_number} scheduled`)
     setAddOpen(false)
-    setForm({ customer_name: '', delivery_address: '', driver_name: '', product: 'PG 64-22', quantity_tons: 20, scheduled_date: today, scheduled_time: '08:00', notes: '' })
+    setForm({ sales_order_id: '', customer_name: '', delivery_address: '', driver_name: '', product: 'PG 64-22', quantity_tons: 20, scheduled_date: today, scheduled_time: '08:00', notes: '' })
   }
 
   return (
@@ -223,6 +256,7 @@ export function DeliveryTracking() {
               <TableRow>
                 <TableHead>Delivery #</TableHead>
                 <TableHead>Customer</TableHead>
+                <TableHead>Sales Order</TableHead>
                 <TableHead>Product</TableHead>
                 <TableHead className="text-right">Tons</TableHead>
                 <TableHead>Driver</TableHead>
@@ -233,10 +267,13 @@ export function DeliveryTracking() {
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">No deliveries found</TableCell>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">No deliveries found</TableCell>
                 </TableRow>
               )}
-              {filtered.map(d => (
+              {filtered.map(d => {
+                const linkedOrder = d.sales_order_id ? salesOrdersById.get(d.sales_order_id) : null
+                const orderLabel = linkedOrder?.order_number ?? (d.sales_order_id && !linkedOrder ? d.sales_order_id : null)
+                return (
                 <TableRow key={d.delivery_id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailDelivery(d)}>
                   <TableCell className="font-mono text-sm">{d.delivery_number}</TableCell>
                   <TableCell>
@@ -244,6 +281,11 @@ export function DeliveryTracking() {
                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                       <MapPin size={10} /> {d.delivery_address.split(',')[1]?.trim() || d.delivery_address.slice(0, 30)}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {orderLabel
+                      ? <Badge className="text-[11px] bg-blue-50 text-blue-700 border-blue-200">{orderLabel}</Badge>
+                      : <span className="text-muted-foreground text-xs">—</span>}
                   </TableCell>
                   <TableCell className="text-sm">{d.product}</TableCell>
                   <TableCell className="text-right font-medium">{d.quantity_tons}</TableCell>
@@ -253,7 +295,8 @@ export function DeliveryTracking() {
                     <Badge variant={statusVariant(d.status)}>{d.status}</Badge>
                   </TableCell>
                 </TableRow>
-              ))}
+                )
+              })}
             </TableBody>
           </Table>
         </CardContent>
@@ -275,6 +318,19 @@ export function DeliveryTracking() {
                   <div><span className="text-muted-foreground">Temperature:</span> <span className="font-medium ml-1">{detailDelivery.temperature_f ? `${detailDelivery.temperature_f}°F` : '—'}</span></div>
                   <div><span className="text-muted-foreground">Driver:</span> <span className="font-medium ml-1">{detailDelivery.driver_name || '—'}</span></div>
                   <div><span className="text-muted-foreground">Vehicle:</span> <span className="font-medium ml-1">{detailDelivery.vehicle_id || '—'}</span></div>
+                  {detailDelivery.sales_order_id && (
+                    <div className="col-span-2 flex items-center gap-2">
+                      <span className="text-muted-foreground">Sales Order:</span>
+                      <Badge className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                        {salesOrdersById.get(detailDelivery.sales_order_id)?.order_number ?? detailDelivery.sales_order_id}
+                      </Badge>
+                      {salesOrdersById.get(detailDelivery.sales_order_id) && (
+                        <span className="text-xs text-muted-foreground">
+                          ({salesOrdersById.get(detailDelivery.sales_order_id)!.customer_name} — {salesOrdersById.get(detailDelivery.sales_order_id)!.status})
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <div className="col-span-2"><span className="text-muted-foreground">Address:</span> <span className="font-medium ml-1">{detailDelivery.delivery_address}</span></div>
                   <div><span className="text-muted-foreground">Scheduled:</span> <span className="font-medium ml-1">{detailDelivery.scheduled_date} {detailDelivery.scheduled_time}</span></div>
                   <div><span className="text-muted-foreground">Departed:</span> <span className="font-medium ml-1">{detailDelivery.actual_departure ? new Date(detailDelivery.actual_departure).toLocaleTimeString() : '—'}</span></div>
@@ -333,6 +389,22 @@ export function DeliveryTracking() {
             <DialogTitle>Schedule Delivery</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {eligibleSalesOrders.length > 0 && (
+              <div className="space-y-1">
+                <Label>Link to Sales Order <span className="text-muted-foreground text-xs">(optional — auto-fills fields)</span></Label>
+                <Select value={form.sales_order_id || ''} onValueChange={handleSalesOrderSelect}>
+                  <SelectTrigger><SelectValue placeholder="Select a sales order" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No linked order</SelectItem>
+                    {eligibleSalesOrders.map(o => (
+                      <SelectItem key={o.order_id} value={o.order_id}>
+                        {o.order_number} — {o.customer_name} ({o.quantity_tons}t {o.product})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1">
               <Label>Customer Name *</Label>
               <Input value={form.customer_name} onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))} />
