@@ -17,6 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { InteractiveQuizPlayer } from '@/components/InteractiveQuizPlayer'
 import type { QuizCompletionResult } from '@/components/InteractiveQuizPlayer'
+import { InteractiveLessonPlayer } from '@/components/InteractiveLessonPlayer'
 import { PythonPlayground } from '@/components/PythonPlayground'
 import {
   Brain,
@@ -1133,8 +1134,8 @@ export function AITrainingModule() {
   const abortRef = useRef<AbortController | null>(null)
   const contentViewerRef = useRef<HTMLDivElement | null>(null)
 
-  // View: generator | library | viewer | quiz-player | dashboard
-  const [activeView, setActiveView] = useState<'generator' | 'library' | 'viewer' | 'quiz-player' | 'dashboard'>(
+  // View: generator | library | viewer | quiz-player | lesson-player | dashboard
+  const [activeView, setActiveView] = useState<'generator' | 'library' | 'viewer' | 'quiz-player' | 'lesson-player' | 'dashboard'>(
     'generator'
   )
   const [viewingItem, setViewingItem] = useState<TrainingContent | null>(null)
@@ -1463,6 +1464,29 @@ export function AITrainingModule() {
     setActiveView('quiz-player')
   }, [])
 
+  const handleStartLesson = useCallback((item: TrainingContent) => {
+    setViewingItem(item)
+    setActiveView('lesson-player')
+  }, [])
+
+  const handleLessonComplete = useCallback(() => {
+    if (!viewingItem) return
+    const alreadyCompleted = safeProgress.some(p => p.contentId === viewingItem.id)
+    if (alreadyCompleted) {
+      toast.info('Lesson already marked as completed')
+      return
+    }
+    const record: ProgressRecord = {
+      id: uuidv4(),
+      contentId: viewingItem.id,
+      contentTitle: viewingItem.title,
+      contentType: viewingItem.contentType,
+      completedAt: new Date().toISOString(),
+    }
+    setProgressRecords(prev => [record, ...(prev || [])])
+    toast.success('🎉 Lesson completed! Progress recorded.')
+  }, [viewingItem, safeProgress, setProgressRecords])
+
   const handleAddResource = useCallback(
     (resource: Omit<Resource, 'id'>) => {
       if (!viewingItem) return
@@ -1567,7 +1591,7 @@ export function AITrainingModule() {
           </Button>
           <Button
             variant={
-              activeView === 'library' || activeView === 'viewer' || activeView === 'quiz-player'
+              activeView === 'library' || activeView === 'viewer' || activeView === 'quiz-player' || activeView === 'lesson-player'
                 ? 'default'
                 : 'outline'
             }
@@ -2154,6 +2178,16 @@ export function AITrainingModule() {
                                   {item.contentType === 'quiz' ? 'Take Quiz' : 'Take Test'}
                                 </Button>
                               )}
+                              {item.contentType === 'interactive-lesson' && (
+                                <Button
+                                  size="sm"
+                                  className="flex-1 text-xs h-8 bg-purple-600 hover:bg-purple-700 text-white"
+                                  onClick={() => handleStartLesson(item)}
+                                >
+                                  <Play className="w-3.5 h-3.5 mr-1" weight="fill" />
+                                  Start Lesson
+                                </Button>
+                              )}
                             </div>
                           </CardContent>
                         </Card>
@@ -2219,6 +2253,16 @@ export function AITrainingModule() {
                 >
                   <Play className="w-4 h-4 mr-1.5" weight="fill" />
                   {viewingItem.contentType === 'quiz' ? 'Take Quiz' : 'Take Test'}
+                </Button>
+              )}
+              {viewingItem.contentType === 'interactive-lesson' && (
+                <Button
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={() => handleStartLesson(viewingItem)}
+                >
+                  <Play className="w-4 h-4 mr-1.5" weight="fill" />
+                  Start Lesson
                 </Button>
               )}
               <Button
@@ -2368,6 +2412,37 @@ export function AITrainingModule() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Quick tip for interactive lesson */}
+              {viewingItem.contentType === 'interactive-lesson' && (
+                <Card className="border-purple-200 dark:border-purple-800 bg-purple-50/30 dark:bg-purple-950/20">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-start gap-3">
+                      <Play
+                        className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5"
+                        weight="fill"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                          Ready to learn?
+                        </p>
+                        <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
+                          Step through this lesson section by section with activities and
+                          hands-on practice.
+                        </p>
+                        <Button
+                          size="sm"
+                          className="mt-3 bg-purple-600 hover:bg-purple-700 text-white text-xs h-7"
+                          onClick={() => handleStartLesson(viewingItem)}
+                        >
+                          <Play className="w-3.5 h-3.5 mr-1" weight="fill" />
+                          Start Lesson
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
             )}
           </div>
@@ -2382,6 +2457,17 @@ export function AITrainingModule() {
           contentType={viewingItem.contentType as 'quiz' | 'test'}
           onBack={() => setActiveView('library')}
           onComplete={handleQuizComplete}
+        />
+      )}
+
+      {/* ── Interactive Lesson Player ─────────────────────────────────────────── */}
+      {activeView === 'lesson-player' && viewingItem && (
+        <InteractiveLessonPlayer
+          title={viewingItem.title}
+          content={viewingItem.content}
+          resources={viewingItem.resources}
+          onBack={() => setActiveView('library')}
+          onComplete={handleLessonComplete}
         />
       )}
 
