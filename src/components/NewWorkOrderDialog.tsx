@@ -110,7 +110,7 @@ export function NewWorkOrderDialog({
     }
 
     const draftWorkOrder: WorkOrder = {
-      work_order_id: `DRAFT-${Date.now()}`,
+      work_order_id: `DRAFT-${crypto.randomUUID()}`,
       equipment_area: draft.equipment_area,
       priority_level: draft.priority_level,
       status: 'Scheduled (Not Started)',
@@ -173,7 +173,7 @@ export function NewWorkOrderDialog({
     }
 
     const workOrder: WorkOrder = {
-      work_order_id: `WO-${Date.now()}`,
+      work_order_id: `WO-${crypto.randomUUID()}`,
       equipment_area: draft.equipment_area,
       priority_level: draft.priority_level,
       status: 'Scheduled (Not Started)',

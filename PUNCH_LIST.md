@@ -53,9 +53,9 @@ Use this tracking format for new findings:
 | 11 | 🔴 | **No real authentication** – `currentUserRole` is a client-side state variable; any user can switch roles freely | Open |
 | 12 | 🔴 | **Data is browser-local only** – `spark.kv` persists to `localStorage`; no multi-user or server sync | Open |
 | 13 | 🟡 | Excel export writes all three sheets but filenames are hard-coded; no timestamp or user name in the filename | Open |
-| 14 | 🟡 | `CertificationReminders` re-generates reminders on every render of `certificationCounts` (expensive `useMemo` with no dependency guard) | Open |
+| 14 | 🟡 | `CertificationReminders` re-generates reminders on every render of `certificationCounts` (expensive `useMemo` with no dependency guard) | ✅ Resolved |
 | 15 | 🟡 | `AutoSchedulerDialog` and `EnhancedAutoSchedulerDialog` are both present; the former appears to be an older, superseded version | Open |
-| 16 | 🟡 | Work order "Cloning" copies the original `work_order_id` before a new UUID is set in `NewWorkOrderDialog` – race condition possible if dialog closes early | Open |
+| 16 | 🟡 | Work order "Cloning" copies the original `work_order_id` before a new UUID is set in `NewWorkOrderDialog` – race condition possible if dialog closes early | ✅ Resolved |
 | 17 | 🟢 | P&ID Drawing Editor has no undo/redo keybinding integration with the global `UndoRedoManager` | Open |
 | 18 | 🟢 | `PhotoUploadDialog` accepts files via drag-and-drop UI but only stores metadata; actual binary upload is not wired to any backend | Open |
 | 19 | 🟢 | `DocumentStorageDialog` lists documents but has no download / preview path for stored items | Open |
@@ -98,7 +98,7 @@ Use this tracking format for new findings:
 |---|----------|-------|--------|
 | 36 | 🟡 | `App.tsx` is 1 481 lines; it manages global state, renders the entire layout, and handles all event handlers – should be split into context/provider + layout + page components | Open |
 | 37 | 🟡 | Many components use `|| []` default coalescing rather than dedicated empty-state checks; hides potential `undefined` propagation bugs | Open |
-| 38 | 🟢 | `uuid` package used for ID generation but the native `crypto.randomUUID()` is available in all target browsers | Open |
+| 38 | 🟢 | `uuid` package used for ID generation but the native `crypto.randomUUID()` is available in all target browsers | ✅ Resolved |
 | 39 | 🟢 | `eslint` version `^10.0.0` is listed in `devDependencies` but eslint 10 is a pre-release; should be pinned to stable `^9.x` | Open |
 | 40 | 🟢 | TypeScript `noCheck` flag used in the build script (`tsc -b --noCheck`); type errors are silenced at build time | Open |
 | 41 | ⚪ | Several `console.error` / `console.warn` calls are scattered in production code without a structured logger | Open |
