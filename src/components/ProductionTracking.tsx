@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
-import type { ProductionBatch, ProductionBatchStatus, AsphaltProduct, SalesOrder, PurchaseOrder } from '@/lib/types'
+import type { ProductionBatch, ProductionBatchStatus, AsphaltProduct, SalesOrder, SalesOrderStatus, PurchaseOrder } from '@/lib/types'
 import { generateSampleProductionBatches } from '@/lib/sample-data'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -93,6 +93,9 @@ function statusBadge(status: ProductionBatchStatus) {
     return <Badge variant="secondary" className="text-xs">{status}</Badge>
   return <Badge variant="outline" className="text-xs">{status}</Badge>
 }
+
+/** Sales order statuses considered "past production" — do not revert these when a batch starts */
+const SALES_STATUSES_PAST_PRODUCTION: SalesOrderStatus[] = ['In Production', 'Ready', 'Delivered', 'Invoiced', 'Paid', 'Cancelled']
 
 // ─── Sample data generator ────────────────────────────────────────────────────
 
@@ -281,7 +284,7 @@ export function ProductionTracking() {
       if (batch.status === 'In Progress' && prevStatus !== 'In Progress') {
         // Batch started → mark linked order as "In Production"
         setSalesOrders(cur => (cur || []).map(o =>
-          o.order_id === batch.linked_order_id && !['In Production', 'Ready', 'Delivered', 'Invoiced', 'Paid'].includes(o.status)
+          o.order_id === batch.linked_order_id && !SALES_STATUSES_PAST_PRODUCTION.includes(o.status)
             ? { ...o, status: 'In Production', updated_at: now }
             : o
         ))

@@ -272,7 +272,7 @@ export function DeliveryTracking() {
               )}
               {filtered.map(d => {
                 const linkedOrder = d.sales_order_id ? salesOrdersById.get(d.sales_order_id) : null
-                const orderLabel = linkedOrder?.order_number ?? (d.sales_order_id && !linkedOrder ? d.sales_order_id : null)
+                const orderLabel = linkedOrder?.order_number ?? d.sales_order_id ?? null
                 return (
                 <TableRow key={d.delivery_id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailDelivery(d)}>
                   <TableCell className="font-mono text-sm">{d.delivery_number}</TableCell>
