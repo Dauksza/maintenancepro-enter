@@ -244,6 +244,7 @@ export function SalesOrders() {
 
   const safeOrders = orders || []
   const safeBatches = productionBatches || []
+  const safeTickets = loadingTickets || []
 
   // Map order_id → linked production batches for fulfillment status display
   const batchesByOrderId = useMemo(() => {
@@ -256,6 +257,18 @@ export function SalesOrders() {
     })
     return map
   }, [safeBatches])
+
+  // Map order_id → linked loading tickets
+  const ticketsByOrderId = useMemo(() => {
+    const map = new Map<string, TankerLoadingTicket[]>()
+    safeTickets.forEach(ticket => {
+      if (ticket.linked_order_id) {
+        const existing = map.get(ticket.linked_order_id) || []
+        map.set(ticket.linked_order_id, [...existing, ticket])
+      }
+    })
+    return map
+  }, [safeTickets])
 
   const handleSave = (order: SalesOrder) => {
     setOrders(current => {
@@ -615,6 +628,8 @@ export function SalesOrders() {
                 {filteredOrders.map(order => {
                   const linkedBatches = batchesByOrderId.get(order.order_id) || []
                   const { inProgress, pct, fullyProduced } = getFulfillmentStatus(order, linkedBatches)
+                  const linkedTickets = ticketsByOrderId.get(order.order_id) || []
+                  const completedTickets = linkedTickets.filter(t => t.status === 'Complete')
                   return (
                   <div key={order.order_id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
                     <div className="flex-1 min-w-0">
@@ -633,6 +648,12 @@ export function SalesOrders() {
                         )}
                         {fullyProduced && (
                           <Badge className="text-xs bg-green-100 text-green-700 border-green-200">Fully produced</Badge>
+                        )}
+                        {linkedTickets.length > 0 && (
+                          <Badge className={`text-xs gap-1 flex items-center ${completedTickets.length === linkedTickets.length ? 'bg-green-50 text-green-700 border-green-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
+                            <Truck size={10} />
+                            {completedTickets.length}/{linkedTickets.length} loaded
+                          </Badge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
