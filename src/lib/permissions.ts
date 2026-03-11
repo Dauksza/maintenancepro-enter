@@ -1,4 +1,4 @@
-import type { UserRole, RolePermissions, Permission, UserProfile } from './types'
+import type { UserRole, RolePermissions, WorkOrder } from './types'
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   Admin: {
@@ -129,41 +129,49 @@ export function hasPermission(
   resource: string,
   action: 'create' | 'read' | 'update' | 'delete' | 'execute'
 ): boolean {
-  // All users have all permissions - no role restrictions
-  return true
+  if (!userRole) return false
+  const roleConfig = ROLE_PERMISSIONS[userRole]
+  if (!roleConfig) return false
+  return roleConfig.permissions.some(
+    p => (p.resource === '*' || p.resource === resource) && p.actions.includes(action)
+  )
 }
 
 export function canViewTab(userRole: UserRole | undefined, tabId: string): boolean {
-  // All users can view all tabs - no role restrictions
-  return true
+  if (!userRole) return false
+  const roleConfig = ROLE_PERMISSIONS[userRole]
+  if (!roleConfig) return false
+  return roleConfig.can_view_tabs.includes('*') || roleConfig.can_view_tabs.includes(tabId)
 }
 
 export function canEditData(
   userRole: UserRole | undefined,
   isOwnData: boolean
 ): boolean {
-  // All users can edit all data - no role restrictions
-  return true
+  if (!userRole) return false
+  const roleConfig = ROLE_PERMISSIONS[userRole]
+  if (!roleConfig) return false
+  if (roleConfig.can_edit_all_data) return true
+  return isOwnData && roleConfig.can_edit_own_data
 }
 
 export function canApprove(userRole: UserRole | undefined): boolean {
-  // All users can approve - no role restrictions
-  return true
+  if (!userRole) return false
+  return ROLE_PERMISSIONS[userRole]?.can_approve ?? false
 }
 
 export function canManageUsers(userRole: UserRole | undefined): boolean {
-  // All users can manage users - no role restrictions
-  return true
+  if (!userRole) return false
+  return ROLE_PERMISSIONS[userRole]?.can_manage_users ?? false
 }
 
 export function canConfigureSystem(userRole: UserRole | undefined): boolean {
-  // All users can configure system - no role restrictions
-  return true
+  if (!userRole) return false
+  return ROLE_PERMISSIONS[userRole]?.can_configure_system ?? false
 }
 
 export function getAvailableTabs(userRole: UserRole | undefined): string[] {
-  // All tabs are available to all users - no role restrictions
-  return [
+  const allTabs = [
     'dashboard',
     'tracking',
     'timeline',
@@ -183,14 +191,28 @@ export function getAvailableTabs(userRole: UserRole | undefined): string[] {
     'pm-schedules',
     'templates'
   ]
+  if (!userRole) return []
+  const roleConfig = ROLE_PERMISSIONS[userRole]
+  if (!roleConfig) return []
+  if (roleConfig.can_view_tabs.includes('*')) return allTabs
+  return allTabs.filter(tab => roleConfig.can_view_tabs.includes(tab))
 }
 
 export function filterWorkOrdersByPermission(
-  workOrders: any[],
+  workOrders: WorkOrder[],
   userRole: UserRole | undefined,
   userId: string | undefined
-): any[] {
-  // All users can see all work orders - no role restrictions
+): WorkOrder[] {
+  if (!userRole) return []
+  const roleConfig = ROLE_PERMISSIONS[userRole]
+  if (!roleConfig) return []
+  // Technicians only see work orders directly assigned to them
+  if (userRole === 'Technician' && userId) {
+    return workOrders.filter(wo => wo.assigned_technician === userId)
+  }
+  // All other roles (Admin, Manager, Supervisor, Viewer) have read access
+  // to all work orders; write restrictions are enforced separately via
+  // hasPermission / canEditData at the action level.
   return workOrders
 }
 
