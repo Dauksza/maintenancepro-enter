@@ -9,11 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { InteractiveQuizPlayer } from '@/components/InteractiveQuizPlayer'
 import {
   Brain,
   BookOpen,
@@ -30,9 +31,28 @@ import {
   MagnifyingGlass,
   Plus,
   X,
+  Play,
+  Link,
+  FileText,
+  Video,
+  Article,
+  Presentation,
+  List,
+  CheckSquare,
 } from '@phosphor-icons/react'
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
 export type ContentType = 'study-guide' | 'quiz' | 'test' | 'interactive-lesson'
+
+export type ResourceType = 'video' | 'article' | 'slides' | 'document'
+
+export interface Resource {
+  id: string
+  type: ResourceType
+  title: string
+  url: string
+}
 
 export interface TrainingContent {
   id: string
@@ -42,97 +62,316 @@ export interface TrainingContent {
   content: string
   createdAt: string
   tags: string[]
+  resources?: Resource[]
 }
 
-const CONTENT_TYPE_CONFIG: Record<ContentType, { label: string; icon: React.ElementType; color: string; description: string }> = {
+// ── Config ────────────────────────────────────────────────────────────────────
+
+const CONTENT_TYPE_CONFIG: Record<
+  ContentType,
+  { label: string; icon: React.ElementType; color: string; description: string }
+> = {
   'study-guide': {
     label: 'Study Guide',
     icon: BookOpen,
     color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-    description: 'Comprehensive reference material with key concepts and explanations',
+    description: 'Comprehensive illustrated reference with key concepts, diagrams, and examples',
   },
-  'quiz': {
+  quiz: {
     label: 'Quiz',
     icon: Question,
     color: 'bg-green-500/10 text-green-600 dark:text-green-400',
-    description: 'Multiple-choice questions to test knowledge retention',
+    description: 'Multiple-choice questions — take it interactively and get a score',
   },
-  'test': {
+  test: {
     label: 'Test',
     icon: ClipboardText,
     color: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
-    description: 'Formal assessment with mixed question types',
+    description: 'Formal assessment with mixed question types — graded on submission',
   },
   'interactive-lesson': {
     label: 'Interactive Lesson',
     icon: Lightbulb,
     color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-    description: 'Step-by-step lesson with activities and discussion prompts',
+    description: 'Step-by-step lesson with activities, scenarios, and discussion prompts',
   },
 }
 
+const RESOURCE_TYPE_CONFIG: Record<ResourceType, { label: string; icon: React.ElementType; color: string }> = {
+  video: {
+    label: 'Video',
+    icon: Video,
+    color: 'bg-red-500/10 text-red-600 dark:text-red-400',
+  },
+  article: {
+    label: 'Article',
+    icon: Article,
+    color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  },
+  slides: {
+    label: 'Slides',
+    icon: Presentation,
+    color: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  },
+  document: {
+    label: 'Document',
+    icon: FileText,
+    color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',
+  },
+}
+
+// ── Prompts ───────────────────────────────────────────────────────────────────
+
 const CONTENT_PROMPTS: Record<ContentType, (topic: string, context: string) => string> = {
   'study-guide': (topic, context) =>
-    `Create a comprehensive study guide on "${topic}"${context ? ` for a ${context} context` : ''}. Structure it with:
+    `Create a comprehensive, illustrated study guide on "${topic}"${context ? ` for a ${context} context` : ''}. Structure it as follows:
 
-1. **Overview** – A clear, concise introduction to the topic
-2. **Key Concepts** – Bullet-pointed list of essential ideas with brief explanations
-3. **Detailed Sections** – In-depth coverage of each key concept with examples
-4. **Key Terms / Glossary** – Important vocabulary with definitions
-5. **Summary** – A concise recap of the most important points
-6. **Review Questions** – 5 questions to self-test understanding
+---
 
-Use well-structured Markdown formatting with headers, bullet points, and bold text for emphasis.`,
+# 📘 Study Guide: ${topic}
 
-  'quiz': (topic, context) =>
-    `Create an interactive quiz on "${topic}"${context ? ` relevant to a ${context} context` : ''}. Include:
+## 🎯 Learning Objectives
+List 4–6 clear, measurable outcomes the learner will achieve.
 
-- **15 multiple-choice questions** with 4 answer options each (A, B, C, D)
-- After each question, clearly mark the correct answer with **✓ Correct Answer: [letter]**
-- Provide a **brief explanation** (1-2 sentences) for why the answer is correct
+## 🔍 Overview
+A clear, concise 2–3 paragraph introduction. Use a compelling hook.
 
-Format each question like:
-**Question N:** [question text]
-A) option
-B) option
-C) option
-D) option
-✓ Correct Answer: [letter] – [explanation]
+## 📌 Key Concepts at a Glance
+A quick-reference table with two columns: **Concept** | **Definition**
 
-Use well-structured Markdown throughout.`,
+## 🧩 Section 1: [First Major Topic]
+In-depth explanation with:
+- Bullet-pointed key points
+- A real-world example or scenario in a > blockquote callout
+- A step-by-step procedure if applicable (numbered list)
 
-  'test': (topic, context) =>
-    `Create a formal assessment test on "${topic}"${context ? ` for a ${context} environment` : ''}. Include:
+## 🧩 Section 2: [Second Major Topic]
+In-depth explanation with bullet points, examples, and callouts.
 
-### Part 1: Multiple Choice (5 questions)
-- 4 options each, mark correct with ✓
+## 🧩 Section 3: [Third Major Topic]
+In-depth explanation with bullet points, examples, and callouts.
 
-### Part 2: True / False (5 questions)
-- Mark correct answer in bold
+## ⚠️ Common Mistakes to Avoid
+A numbered list of the top 5–7 mistakes and how to avoid them.
 
-### Part 3: Short Answer (3 questions)
-- Provide a model answer for each
+## 🗂️ Key Terms Glossary
+A table with **Term** | **Definition** columns for 10+ important vocabulary words.
 
-### Part 4: Essay / Scenario (1 question)
-- Include grading criteria (what a strong answer should cover)
+## 💡 Quick Reference Summary
+A concise bullet-point recap (10–15 points) of the most critical information.
 
-Use well-structured Markdown with clear section headers.`,
+## ✅ Knowledge Check Questions
+5 self-test questions (no answers shown) so the learner can test themselves.
+
+## 📚 Further Learning
+Suggest 3–5 topics, standards, or procedures the learner should explore next.
+
+---
+
+Use rich Markdown throughout: headers, tables, bold/italic emphasis, blockquote callouts (> ⚠️ **Warning:** ...), and numbered/bulleted lists. Make it visually organized and as long as needed to be truly comprehensive.`,
+
+  quiz: (topic, context) =>
+    `Create an interactive quiz on "${topic}"${context ? ` relevant to a ${context} context` : ''}. Include exactly 15 multiple-choice questions.
+
+Use EXACTLY this format for every question (this format is required for the interactive quiz player):
+
+**Question 1:** [Question text here]
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+✓ Correct Answer: [A/B/C/D] – [Brief 1–2 sentence explanation of why this is correct]
+
+**Question 2:** [Question text here]
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+✓ Correct Answer: [A/B/C/D] – [explanation]
+
+[Continue for all 15 questions]
+
+Rules:
+- Questions must be clear, unambiguous, and test real understanding
+- All four options must be plausible (no obviously wrong distractors)
+- Vary the difficulty (5 easy, 7 medium, 3 hard)
+- Include scenario-based questions where appropriate
+- Explanations must be informative and educational`,
+
+  test: (topic, context) =>
+    `Create a formal assessment test on "${topic}"${context ? ` for a ${context} environment` : ''}.
+
+## 📋 Test: ${topic}
+
+---
+
+### Part 1: Multiple Choice (10 questions — 2 points each)
+Use EXACTLY this format for every question:
+
+**Question 1:** [Question text]
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+✓ Correct Answer: [A/B/C/D] – [explanation]
+
+[Questions 1–10 in this exact format]
+
+---
+
+### Part 2: True / False (5 questions — 1 point each)
+Use EXACTLY this format:
+
+**Question 11:** [Statement]
+A) True
+B) False
+✓ Correct Answer: [A/B] – [explanation]
+
+[Questions 11–15 in this exact format]
+
+---
+
+### Part 3: Short Answer (3 questions — 5 points each)
+**Question 16:** [Open-ended question]
+Model Answer: [Comprehensive model answer]
+
+**Question 17:** [Open-ended question]
+Model Answer: [Comprehensive model answer]
+
+**Question 18:** [Open-ended question]
+Model Answer: [Comprehensive model answer]
+
+---
+
+### Part 4: Scenario / Essay (1 question — 10 points)
+**Question 19:** [Realistic workplace scenario requiring detailed response]
+
+**Grading Criteria (strong answer should cover):**
+- [Key point 1]
+- [Key point 2]
+- [Key point 3]
+- [Key point 4]
+- [Key point 5]
+
+---
+
+**Total: 40 points | Passing Score: 28 points (70%)**`,
 
   'interactive-lesson': (topic, context) =>
-    `Create an interactive lesson plan on "${topic}"${context ? ` for a ${context} setting` : ''}. Structure it with:
+    `Create a fully interactive lesson plan on "${topic}"${context ? ` for a ${context} setting` : ''}. Make it highly engaging, illustrated with examples, and as comprehensive as needed.
 
-1. **Learning Objectives** – 3-5 clear, measurable outcomes
-2. **Introduction / Hook** – An engaging opening scenario or question
-3. **Section 1** – First concept with explanation + embedded activity or reflection prompt
-4. **Section 2** – Second concept with explanation + embedded activity
-5. **Section 3** – Third concept (if applicable) + embedded activity
-6. **Practice Scenarios** – 2-3 realistic scenarios for learners to apply knowledge
-7. **Group Discussion Questions** – 3 questions to stimulate conversation
-8. **Key Takeaways** – Bullet-pointed summary of the lesson
-9. **Further Exploration** – Suggested resources or next steps
+---
 
-Use well-structured Markdown with clear headers and engaging language throughout.`,
+# 🎓 Interactive Lesson: ${topic}
+
+## 🎯 Learning Objectives
+By the end of this lesson, learners will be able to:
+1. [Objective 1 — measurable action verb]
+2. [Objective 2]
+3. [Objective 3]
+4. [Objective 4]
+5. [Objective 5]
+
+---
+
+## 🚀 Opening Hook (5 minutes)
+An engaging opening scenario, surprising fact, or provocative question to capture interest.
+
+> 💬 **Discussion Prompt:** [Thought-provoking question for the class to consider before starting]
+
+---
+
+## 📖 Section 1: [First Core Concept] (15 minutes)
+
+### What is it?
+[Explanation with clear, accessible language]
+
+### Why does it matter?
+[Real-world relevance and consequences of not understanding this]
+
+### How does it work?
+[Step-by-step breakdown if procedural, or key principles if conceptual]
+
+> 📌 **Key Point:** [Highlight the single most important takeaway from this section]
+
+### ✏️ Activity 1: [Activity Name]
+**Instructions:** [Clear step-by-step instructions for a hands-on activity, role-play, or problem-solving exercise]
+**Time:** [X minutes]
+**Materials:** [Any needed materials or information]
+**Debrief Questions:**
+- [Question 1]
+- [Question 2]
+
+---
+
+## 📖 Section 2: [Second Core Concept] (15 minutes)
+
+[Same structure as Section 1]
+
+### ✏️ Activity 2: [Activity Name]
+[Activity instructions, time, materials, debrief questions]
+
+---
+
+## 📖 Section 3: [Third Core Concept] (15 minutes)
+
+[Same structure as Section 1]
+
+### ✏️ Activity 3: [Activity Name]
+[Activity instructions, time, materials, debrief questions]
+
+---
+
+## 🔬 Practice Scenarios (20 minutes)
+Apply knowledge to realistic workplace situations.
+
+### Scenario 1: [Scenario Title]
+**Situation:** [Detailed realistic scenario description]
+**Your Task:** [What the learner must do or decide]
+**Discussion Questions:**
+- [Question 1]
+- [Question 2]
+**Ideal Response:** [What a strong response looks like]
+
+### Scenario 2: [Scenario Title]
+[Same format]
+
+### Scenario 3: [Scenario Title]
+[Same format]
+
+---
+
+## 💬 Group Discussion (10 minutes)
+1. [Broad discussion question connecting the topic to learners' experience]
+2. [Question exploring edge cases or exceptions]
+3. [Question about implications or future applications]
+
+---
+
+## 🏁 Key Takeaways
+- ✅ [Takeaway 1]
+- ✅ [Takeaway 2]
+- ✅ [Takeaway 3]
+- ✅ [Takeaway 4]
+- ✅ [Takeaway 5]
+
+---
+
+## 📚 Further Exploration
+| Resource Type | Topic | Why It's Valuable |
+|---|---|---|
+| [Standard/Regulation] | [Name] | [Relevance] |
+| [Procedure/SOP] | [Name] | [Relevance] |
+| [Concept] | [Name] | [Relevance] |
+
+---
+
+**Estimated Lesson Duration:** [X hours Y minutes]
+**Recommended Class Size:** [X–Y learners]
+**Prerequisites:** [Any required prior knowledge]`,
 }
+
+// ── Small components ──────────────────────────────────────────────────────────
 
 function ContentTypeCard({
   type,
@@ -187,19 +426,265 @@ function RenderedContent({ markdown }: RenderedContentProps) {
   const html = DOMPurify.sanitize(rawHtml)
   return (
     <div
-      className="prose prose-sm dark:prose-invert max-w-none leading-relaxed"
-      // eslint-disable-next-line react/no-danger
+      className="prose prose-sm dark:prose-invert max-w-none leading-relaxed
+        prose-headings:font-bold prose-headings:tracking-tight
+        prose-h1:text-2xl prose-h1:border-b prose-h1:pb-2 prose-h1:mb-4
+        prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3
+        prose-h3:text-lg prose-h3:mt-4 prose-h3:mb-2
+        prose-p:leading-7 prose-p:mb-3
+        prose-ul:my-3 prose-li:my-1
+        prose-ol:my-3
+        prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/40 prose-blockquote:px-4 prose-blockquote:py-2 prose-blockquote:rounded-r-lg
+        prose-table:border prose-table:border-border prose-thead:bg-muted prose-th:px-4 prose-th:py-2 prose-td:px-4 prose-td:py-2
+        prose-code:bg-muted prose-code:px-1 prose-code:rounded prose-code:text-xs
+        prose-strong:text-foreground"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   )
 }
+
+/** Convert a YouTube watch URL to an embed URL. Returns null if not YouTube. */
+function getYouTubeEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url)
+    if (u.hostname === 'youtu.be') {
+      const id = u.pathname.slice(1)
+      return id ? `https://www.youtube.com/embed/${id}` : null
+    }
+    const isYouTubeHost =
+      u.hostname === 'youtube.com' ||
+      u.hostname === 'www.youtube.com' ||
+      u.hostname === 'm.youtube.com'
+    if (isYouTubeHost) {
+      const id = u.searchParams.get('v')
+      return id ? `https://www.youtube.com/embed/${id}` : null
+    }
+  } catch {
+    // not a valid URL
+  }
+  return null
+}
+
+/** Convert a Google Slides edit URL to an embed URL. */
+function getSlidesEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url)
+    if (u.hostname === 'docs.google.com' && u.pathname.includes('/presentation/')) {
+      const match = u.pathname.match(/\/presentation\/d\/([^/]+)/)
+      if (match) return `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=false`
+    }
+  } catch {
+    // not a valid URL
+  }
+  return null
+}
+
+// ── Resource card ──────────────────────────────────────────────────────────────
+
+function ResourceCard({
+  resource,
+  onDelete,
+}: {
+  resource: Resource
+  onDelete?: () => void
+}) {
+  const cfg = RESOURCE_TYPE_CONFIG[resource.type]
+  const Icon = cfg.icon
+  const youtubeEmbed = resource.type === 'video' ? getYouTubeEmbedUrl(resource.url) : null
+  const slidesEmbed = resource.type === 'slides' ? getSlidesEmbedUrl(resource.url) : null
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <div className={`p-1.5 rounded-md ${cfg.color}`}>
+          <Icon className="w-4 h-4" weight="duotone" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{resource.title}</p>
+          <a
+            href={resource.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-primary truncate block"
+          >
+            {resource.url}
+          </a>
+        </div>
+        {onDelete && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+            onClick={onDelete}
+          >
+            <X className="w-3.5 h-3.5" />
+          </Button>
+        )}
+      </div>
+
+      {/* Embed iframe for YouTube videos */}
+      {youtubeEmbed && (
+        <div className="aspect-video w-full rounded-lg overflow-hidden border">
+          <iframe
+            src={youtubeEmbed}
+            title={resource.title}
+            allowFullScreen
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          />
+        </div>
+      )}
+
+      {/* Embed iframe for Google Slides */}
+      {slidesEmbed && (
+        <div className="aspect-video w-full rounded-lg overflow-hidden border">
+          <iframe
+            src={slidesEmbed}
+            title={resource.title}
+            allowFullScreen
+            className="w-full h-full"
+          />
+        </div>
+      )}
+
+      {/* Non-embeddable: article / document — show as open link */}
+      {!youtubeEmbed && !slidesEmbed && (
+        <a
+          href={resource.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 p-2.5 rounded-lg border border-border hover:bg-muted/50 transition-colors group"
+        >
+          <Link className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0" />
+          <span className="text-sm text-muted-foreground group-hover:text-foreground truncate">
+            Open {cfg.label}
+          </span>
+        </a>
+      )}
+    </div>
+  )
+}
+
+// ── Add-resource dialog ───────────────────────────────────────────────────────
+
+function AddResourceDialog({
+  open,
+  onClose,
+  onAdd,
+}: {
+  open: boolean
+  onClose: () => void
+  onAdd: (resource: Omit<Resource, 'id'>) => void
+}) {
+  const [type, setType] = useState<ResourceType>('video')
+  const [title, setTitle] = useState('')
+  const [url, setUrl] = useState('')
+
+  const handleAdd = () => {
+    if (!title.trim() || !url.trim()) return
+    onAdd({ type, title: title.trim(), url: url.trim() })
+    setTitle('')
+    setUrl('')
+    setType('video')
+    onClose()
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={open => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Resource</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Attach a video, article, slides, or document to this content item.
+        </p>
+        <div className="space-y-4 pt-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Resource Type</Label>
+            <Select value={type} onValueChange={v => setType(v as ResourceType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(RESOURCE_TYPE_CONFIG) as ResourceType[]).map(t => (
+                  <SelectItem key={t} value={t}>
+                    {RESOURCE_TYPE_CONFIG[t].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="res-title" className="text-xs">
+              Title <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="res-title"
+              placeholder={
+                type === 'video'
+                  ? 'e.g. LOTO Safety Training Video'
+                  : type === 'article'
+                    ? 'e.g. OSHA 1910.147 Overview'
+                    : type === 'slides'
+                      ? 'e.g. Module 3 Slides'
+                      : 'e.g. Reference Manual PDF'
+              }
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="res-url" className="text-xs">
+              URL <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="res-url"
+              type="url"
+              placeholder={
+                type === 'video'
+                  ? 'https://www.youtube.com/watch?v=...'
+                  : type === 'slides'
+                    ? 'https://docs.google.com/presentation/d/...'
+                    : 'https://...'
+              }
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+            />
+            {type === 'video' && (
+              <p className="text-xs text-muted-foreground">
+                YouTube videos will be embedded directly in the lesson viewer.
+              </p>
+            )}
+            {type === 'slides' && (
+              <p className="text-xs text-muted-foreground">
+                Google Slides links will be embedded directly. Other slide formats will open in a
+                new tab.
+              </p>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleAdd} disabled={!title.trim() || !url.trim()}>
+            <Plus className="w-4 h-4 mr-1.5" />
+            Add Resource
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export function AITrainingModule() {
   // KV state
   const [library, setLibrary] = useKV<TrainingContent[]>('ai-training-library', [])
   const [apiKey, setApiKey] = useKV<string>('mistral-api-key', '')
 
-  // Local state – Generator panel
+  // Generator panel
   const [contentType, setContentType] = useState<ContentType>('study-guide')
   const [topic, setTopic] = useState('')
   const [context, setContext] = useState('')
@@ -207,24 +692,31 @@ export function AITrainingModule() {
   const [tagInput, setTagInput] = useState('')
   const [tags, setTags] = useState<string[]>([])
 
-  // Local state – API key
+  // API key
   const [apiKeyInput, setApiKeyInput] = useState(apiKey || '')
   const [showApiKey, setShowApiKey] = useState(false)
 
-  // Local state – Generation flow
+  // Generation flow
   const [generating, setGenerating] = useState(false)
   const [generatedContent, setGeneratedContent] = useState('')
   const [streamingContent, setStreamingContent] = useState('')
   const abortRef = useRef<AbortController | null>(null)
 
-  // Local state – View
-  const [activeView, setActiveView] = useState<'generator' | 'library' | 'viewer'>('generator')
+  // View: generator | library | viewer | quiz-player
+  const [activeView, setActiveView] = useState<'generator' | 'library' | 'viewer' | 'quiz-player'>(
+    'generator'
+  )
   const [viewingItem, setViewingItem] = useState<TrainingContent | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<ContentType | 'all'>('all')
 
-  // Local state – Delete confirmation
+  // Delete confirmation
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+
+  // Resource management
+  const [addResourceDialogOpen, setAddResourceDialogOpen] = useState(false)
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
 
   const handleSaveApiKey = useCallback(() => {
     setApiKey(apiKeyInput.trim())
@@ -233,9 +725,7 @@ export function AITrainingModule() {
 
   const handleAddTag = useCallback(() => {
     const t = tagInput.trim()
-    if (t && !tags.includes(t)) {
-      setTags(prev => [...prev, t])
-    }
+    if (t && !tags.includes(t)) setTags(prev => [...prev, t])
     setTagInput('')
   }, [tagInput, tags])
 
@@ -258,7 +748,6 @@ export function AITrainingModule() {
     setStreamingContent('')
 
     const prompt = CONTENT_PROMPTS[contentType](topic.trim(), context.trim())
-
     abortRef.current = new AbortController()
 
     try {
@@ -274,12 +763,13 @@ export function AITrainingModule() {
             {
               role: 'system',
               content:
-                'You are an expert instructional designer and subject-matter educator. Create high-quality, well-structured training content using clear Markdown formatting. Be thorough, accurate, and engaging.',
+                'You are an expert instructional designer and subject-matter educator. Create high-quality, well-structured training content using rich Markdown formatting. Be thorough, accurate, and engaging. For quizzes and tests, always follow the exact format specified — this is critical for the interactive quiz player to work correctly.',
             },
             { role: 'user', content: prompt },
           ],
           stream: true,
-          max_tokens: 4096,
+          // 8192 tokens allows comprehensive content (study guides, full-length tests, detailed lessons)
+          max_tokens: 8192,
           temperature: 0.7,
         }),
         signal: abortRef.current.signal,
@@ -351,10 +841,10 @@ export function AITrainingModule() {
       content: generatedContent,
       createdAt: new Date().toISOString(),
       tags,
+      resources: [],
     }
     setLibrary(prev => [item, ...(prev || [])])
     toast.success('Saved to library')
-    // Reset form
     setGeneratedContent('')
     setStreamingContent('')
     setTitle('')
@@ -379,6 +869,40 @@ export function AITrainingModule() {
     setActiveView('viewer')
   }, [])
 
+  const handleTakeQuiz = useCallback((item: TrainingContent) => {
+    setViewingItem(item)
+    setActiveView('quiz-player')
+  }, [])
+
+  const handleAddResource = useCallback(
+    (resource: Omit<Resource, 'id'>) => {
+      if (!viewingItem) return
+      const newResource: Resource = { ...resource, id: uuidv4() }
+      const updatedItem: TrainingContent = {
+        ...viewingItem,
+        resources: [...(viewingItem.resources || []), newResource],
+      }
+      setLibrary(prev => (prev || []).map(item => (item.id === updatedItem.id ? updatedItem : item)))
+      setViewingItem(updatedItem)
+      toast.success('Resource added')
+    },
+    [viewingItem, setLibrary]
+  )
+
+  const handleRemoveResource = useCallback(
+    (resourceId: string) => {
+      if (!viewingItem) return
+      const updatedItem: TrainingContent = {
+        ...viewingItem,
+        resources: (viewingItem.resources || []).filter(r => r.id !== resourceId),
+      }
+      setLibrary(prev => (prev || []).map(item => (item.id === updatedItem.id ? updatedItem : item)))
+      setViewingItem(updatedItem)
+      toast.success('Resource removed')
+    },
+    [viewingItem, setLibrary]
+  )
+
   const displayContent = streamingContent || generatedContent
 
   const safeLibrary = library || []
@@ -392,10 +916,12 @@ export function AITrainingModule() {
     return matchesSearch && matchesType
   })
 
+  // ── Render ────────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-primary/10">
             <Brain className="w-6 h-6 text-primary" weight="duotone" />
@@ -403,7 +929,7 @@ export function AITrainingModule() {
           <div>
             <h2 className="text-xl font-bold tracking-tight">AI Training Studio</h2>
             <p className="text-sm text-muted-foreground">
-              Generate study guides, quizzes, tests, and interactive lessons with Mistral AI
+              Generate illustrated study guides, interactive lessons, and graded quizzes with AI
             </p>
           </div>
         </div>
@@ -417,7 +943,11 @@ export function AITrainingModule() {
             Generate
           </Button>
           <Button
-            variant={activeView === 'library' || activeView === 'viewer' ? 'default' : 'outline'}
+            variant={
+              activeView === 'library' || activeView === 'viewer' || activeView === 'quiz-player'
+                ? 'default'
+                : 'outline'
+            }
             size="sm"
             onClick={() => setActiveView('library')}
           >
@@ -432,7 +962,7 @@ export function AITrainingModule() {
         </div>
       </div>
 
-      {/* Generator View */}
+      {/* ── Generator View ─────────────────────────────────────────────────────── */}
       {activeView === 'generator' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Config */}
@@ -477,8 +1007,7 @@ export function AITrainingModule() {
                   <p className="text-xs text-green-600 dark:text-green-400">✓ API key saved</p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    Get your key at{' '}
-                    <span className="font-medium">console.mistral.ai</span>
+                    Get your key at <span className="font-medium">console.mistral.ai</span>
                   </p>
                 )}
                 <p className="text-xs text-amber-600 dark:text-amber-400">
@@ -575,11 +1104,7 @@ export function AITrainingModule() {
                 </div>
 
                 {generating ? (
-                  <Button
-                    className="w-full"
-                    variant="destructive"
-                    onClick={handleCancelGeneration}
-                  >
+                  <Button className="w-full" variant="destructive" onClick={handleCancelGeneration}>
                     Cancel Generation
                   </Button>
                 ) : (
@@ -632,6 +1157,32 @@ export function AITrainingModule() {
                         <span className="font-semibold">Generate Content</span>
                       </p>
                     </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-left mt-4 max-w-sm">
+                      <div className="p-3 rounded-lg border border-border bg-muted/30">
+                        <p className="font-semibold flex items-center gap-1">
+                          <BookOpen className="w-3.5 h-3.5" /> Study Guide
+                        </p>
+                        <p className="text-muted-foreground mt-1">Illustrated, comprehensive reference</p>
+                      </div>
+                      <div className="p-3 rounded-lg border border-border bg-muted/30">
+                        <p className="font-semibold flex items-center gap-1">
+                          <CheckSquare className="w-3.5 h-3.5" /> Interactive Quiz
+                        </p>
+                        <p className="text-muted-foreground mt-1">Take it digitally, get scored</p>
+                      </div>
+                      <div className="p-3 rounded-lg border border-border bg-muted/30">
+                        <p className="font-semibold flex items-center gap-1">
+                          <List className="w-3.5 h-3.5" /> Formal Test
+                        </p>
+                        <p className="text-muted-foreground mt-1">Mixed questions, graded assessment</p>
+                      </div>
+                      <div className="p-3 rounded-lg border border-border bg-muted/30">
+                        <p className="font-semibold flex items-center gap-1">
+                          <Lightbulb className="w-3.5 h-3.5" /> Interactive Lesson
+                        </p>
+                        <p className="text-muted-foreground mt-1">Activities, scenarios, discussions</p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -640,7 +1191,7 @@ export function AITrainingModule() {
         </div>
       )}
 
-      {/* Library View */}
+      {/* ── Library View ──────────────────────────────────────────────────────── */}
       {activeView === 'library' && (
         <div className="space-y-4">
           {/* Filters */}
@@ -703,11 +1254,11 @@ export function AITrainingModule() {
               {filteredLibrary.map(item => {
                 const cfg = CONTENT_TYPE_CONFIG[item.contentType]
                 const Icon = cfg.icon
+                const isQuizOrTest = item.contentType === 'quiz' || item.contentType === 'test'
                 return (
                   <Card
                     key={item.id}
-                    className="flex flex-col hover:shadow-md transition-shadow cursor-pointer group"
-                    onClick={() => handleViewItem(item)}
+                    className="flex flex-col hover:shadow-md transition-shadow group"
                   >
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between gap-2">
@@ -744,6 +1295,12 @@ export function AITrainingModule() {
                           ))}
                         </div>
                       )}
+                      {(item.resources?.length ?? 0) > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {item.resources?.length} resource{item.resources?.length !== 1 ? 's' : ''}{' '}
+                          attached
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-auto pt-2">
                         {new Date(item.createdAt).toLocaleDateString(undefined, {
                           year: 'numeric',
@@ -751,6 +1308,28 @@ export function AITrainingModule() {
                           day: 'numeric',
                         })}
                       </p>
+                      {/* Action buttons */}
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 text-xs h-8"
+                          onClick={() => handleViewItem(item)}
+                        >
+                          <Eye className="w-3.5 h-3.5 mr-1" />
+                          View
+                        </Button>
+                        {isQuizOrTest && (
+                          <Button
+                            size="sm"
+                            className="flex-1 text-xs h-8 bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => handleTakeQuiz(item)}
+                          >
+                            <Play className="w-3.5 h-3.5 mr-1" weight="fill" />
+                            {item.contentType === 'quiz' ? 'Take Quiz' : 'Take Test'}
+                          </Button>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 )
@@ -760,10 +1339,11 @@ export function AITrainingModule() {
         </div>
       )}
 
-      {/* Viewer View */}
+      {/* ── Viewer View ───────────────────────────────────────────────────────── */}
       {activeView === 'viewer' && viewingItem && (
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
+          {/* Top bar */}
+          <div className="flex items-center gap-3 flex-wrap">
             <Button variant="ghost" size="sm" onClick={() => setActiveView('library')}>
               <ArrowLeft className="w-4 h-4 mr-1.5" />
               Back to Library
@@ -775,7 +1355,17 @@ export function AITrainingModule() {
                 {tag}
               </Badge>
             ))}
-            <div className="ml-auto">
+            <div className="ml-auto flex gap-2">
+              {(viewingItem.contentType === 'quiz' || viewingItem.contentType === 'test') && (
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => handleTakeQuiz(viewingItem)}
+                >
+                  <Play className="w-4 h-4 mr-1.5" weight="fill" />
+                  {viewingItem.contentType === 'quiz' ? 'Take Quiz' : 'Take Test'}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -787,37 +1377,144 @@ export function AITrainingModule() {
               </Button>
             </div>
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>{viewingItem.title}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Topic: <span className="font-medium">{viewingItem.topic}</span> · Created{' '}
-                {new Date(viewingItem.createdAt).toLocaleDateString(undefined, {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </p>
-            </CardHeader>
-            <Separator />
-            <CardContent className="pt-6">
-              <ScrollArea className="h-[calc(100vh-20rem)] pr-2">
-                <RenderedContent markdown={viewingItem.content} />
-              </ScrollArea>
-            </CardContent>
-          </Card>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* Main content */}
+            <div className="xl:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{viewingItem.title}</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Topic: <span className="font-medium">{viewingItem.topic}</span> · Created{' '}
+                    {new Date(viewingItem.createdAt).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-6">
+                  <ScrollArea className="h-[calc(100vh-18rem)] pr-2">
+                    <RenderedContent markdown={viewingItem.content} />
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Resources sidebar */}
+            <div className="xl:col-span-1 space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm">Attached Resources</CardTitle>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => setAddResourceDialogOpen(true)}
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-4">
+                  {(viewingItem.resources?.length ?? 0) === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground space-y-2">
+                      <Link className="w-8 h-8 mx-auto opacity-20" />
+                      <p className="text-xs">No resources attached yet</p>
+                      <p className="text-xs">
+                        Add videos, articles, slides, or documents to enrich this content
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => setAddResourceDialogOpen(true)}
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" />
+                        Add Resource
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {viewingItem.resources?.map(resource => (
+                        <div key={resource.id}>
+                          <ResourceCard
+                            resource={resource}
+                            onDelete={() => handleRemoveResource(resource.id)}
+                          />
+                          <Separator className="mt-4" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Quick tip for quiz/test */}
+              {(viewingItem.contentType === 'quiz' || viewingItem.contentType === 'test') && (
+                <Card className="border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-950/20">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-start gap-3">
+                      <Play
+                        className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5"
+                        weight="fill"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                          Ready to test your knowledge?
+                        </p>
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                          Take this {viewingItem.contentType} interactively and get an instant score.
+                          70% or above to pass.
+                        </p>
+                        <Button
+                          size="sm"
+                          className="mt-3 bg-green-600 hover:bg-green-700 text-white text-xs h-7"
+                          onClick={() => handleTakeQuiz(viewingItem)}
+                        >
+                          <Play className="w-3.5 h-3.5 mr-1" weight="fill" />
+                          Start Now
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
+      {/* ── Quiz / Test Player ────────────────────────────────────────────────── */}
+      {activeView === 'quiz-player' && viewingItem && (
+        <InteractiveQuizPlayer
+          title={viewingItem.title}
+          content={viewingItem.content}
+          contentType={viewingItem.contentType as 'quiz' | 'test'}
+          onBack={() => setActiveView('library')}
+        />
+      )}
+
+      {/* ── Add Resource Dialog ───────────────────────────────────────────────── */}
+      <AddResourceDialog
+        open={addResourceDialogOpen}
+        onClose={() => setAddResourceDialogOpen(false)}
+        onAdd={handleAddResource}
+      />
+
+      {/* ── Delete Confirmation Dialog ────────────────────────────────────────── */}
       <Dialog open={!!deleteConfirmId} onOpenChange={open => !open && setDeleteConfirmId(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Remove from Library?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This will permanently remove the item from your training library. This action cannot
-            be undone.
+            This will permanently remove the item from your training library. This action cannot be
+            undone.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
