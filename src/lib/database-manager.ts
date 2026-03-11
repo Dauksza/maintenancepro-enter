@@ -360,14 +360,37 @@ export function downloadSnapshot(snapshot: DatabaseSnapshot) {
   URL.revokeObjectURL(url)
 }
 
+function isValidSnapshot(obj: unknown): obj is DatabaseSnapshot {
+  if (!obj || typeof obj !== 'object') return false
+  const snap = obj as Record<string, unknown>
+  if (typeof snap.version !== 'string') return false
+  if (typeof snap.timestamp !== 'string') return false
+  if (!snap.data || typeof snap.data !== 'object') return false
+  const data = snap.data as Record<string, unknown>
+  const requiredArrayFields: Array<keyof DatabaseSnapshot['data']> = [
+    'workOrders', 'sops', 'sparesLabor', 'employees', 'skillMatrix',
+    'schedules', 'messages', 'reminders', 'notifications', 'parts',
+    'partTransactions', 'formTemplates', 'formSubmissions',
+    'assets', 'areas', 'skills', 'dashboardWidgets'
+  ]
+  for (const field of requiredArrayFields) {
+    if (!Array.isArray(data[field])) return false
+  }
+  return true
+}
+
 export async function uploadSnapshot(file: File): Promise<DatabaseSnapshot> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => {
       try {
-        const snapshot = JSON.parse(e.target?.result as string) as DatabaseSnapshot
-        resolve(snapshot)
-      } catch (error) {
+        const parsed: unknown = JSON.parse(e.target?.result as string)
+        if (!isValidSnapshot(parsed)) {
+          reject(new Error('Invalid backup file: missing required fields'))
+          return
+        }
+        resolve(parsed)
+      } catch {
         reject(new Error('Invalid backup file format'))
       }
     }
