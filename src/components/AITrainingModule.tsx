@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { v4 as uuidv4 } from 'uuid'
 import { toast } from 'sonner'
@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
+import { Progress } from '@/components/ui/progress'
 import {
   Brain,
   BookOpen,
@@ -30,6 +32,12 @@ import {
   MagnifyingGlass,
   Plus,
   X,
+  Desktop,
+  Cloud,
+  Cpu,
+  ArrowsClockwise,
+  DownloadSimple,
+  CheckCircle,
 } from '@phosphor-icons/react'
 
 export type ContentType = 'study-guide' | 'quiz' | 'test' | 'interactive-lesson'
@@ -134,6 +142,128 @@ Use well-structured Markdown with clear section headers.`,
 Use well-structured Markdown with clear headers and engaging language throughout.`,
 }
 
+// ---------------------------------------------------------------------------
+// Local edge-model support — powered by @huggingface/transformers (ONNX/WASM)
+// No Ollama, no external server: models download from HuggingFace Hub and
+// are cached in the browser.  Just npm install and generate.
+// ---------------------------------------------------------------------------
+
+export type AIProvider = 'mistral' | 'local'
+
+/** Models verified to work with @huggingface/transformers in-browser ONNX inference. */
+export const RECOMMENDED_LOCAL_MODELS = [
+  {
+    id: 'HuggingFaceTB/SmolLM2-360M-Instruct',
+    name: 'SmolLM2 360M',
+    params: '360M',
+    size: '~270 MB',
+    vendor: 'HuggingFace',
+    notes: 'Best default — fast, tiny download',
+  },
+  {
+    id: 'HuggingFaceTB/SmolLM2-1.7B-Instruct',
+    name: 'SmolLM2 1.7B',
+    params: '1.7B',
+    size: '~1.4 GB',
+    vendor: 'HuggingFace',
+    notes: 'Better quality, still CPU-friendly',
+  },
+  {
+    id: 'Xenova/TinyLlama-1.1B-Chat-v1.0',
+    name: 'TinyLlama 1.1B',
+    params: '1.1B',
+    size: '~675 MB',
+    vendor: 'Meta',
+    notes: 'Solid reasoning, well-tested',
+  },
+  {
+    id: 'Xenova/Qwen1.5-0.5B-Chat',
+    name: 'Qwen 1.5 0.5B',
+    params: '0.5B',
+    size: '~400 MB',
+    vendor: 'Alibaba',
+    notes: 'Smallest option, multilingual',
+  },
+  {
+    id: 'Xenova/phi-1_5',
+    name: 'Phi-1.5',
+    params: '1.3B',
+    size: '~780 MB',
+    vendor: 'Microsoft',
+    notes: 'Strong instruction following',
+  },
+] as const
+
+const MISTRAL_BASE_URL = 'https://api.mistral.ai/v1'
+const MISTRAL_MODEL = 'mistral-large-latest'
+const DEFAULT_LOCAL_MODEL = 'HuggingFaceTB/SmolLM2-360M-Instruct'
+
+const SYSTEM_MESSAGE = {
+  role: 'system' as const,
+  content:
+    'You are an expert instructional designer and subject-matter educator. Create high-quality, well-structured training content using clear Markdown formatting. Be thorough, accurate, and engaging.',
+}
+
+/** Mistral streaming helper — SSE over HTTPS. */
+async function streamMistralCompletion(
+  apiKey: string,
+  messages: Array<{ role: string; content: string }>,
+  signal: AbortSignal,
+  onChunk: (fullContent: string) => void
+): Promise<string> {
+  const response = await fetch(`${MISTRAL_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: MISTRAL_MODEL,
+      messages,
+      stream: true,
+      max_tokens: 4096,
+      temperature: 0.7,
+    }),
+    signal,
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ message: response.statusText }))
+    throw new Error(err?.message || `API error: ${response.status}`)
+  }
+
+  const reader = response.body?.getReader()
+  const decoder = new TextDecoder()
+  let fullContent = ''
+
+  if (!reader) throw new Error('No response body')
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    const chunk = decoder.decode(value, { stream: true })
+    for (const line of chunk.split('\n')) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim()
+        if (data === '[DONE]') continue
+        try {
+          const parsed = JSON.parse(data)
+          const delta = parsed.choices?.[0]?.delta?.content
+          if (delta) {
+            fullContent += delta
+            onChunk(fullContent)
+          }
+        } catch {
+          // skip malformed SSE lines
+        }
+      }
+    }
+  }
+
+  return fullContent
+}
+
 function ContentTypeCard({
   type,
   selected,
@@ -198,6 +328,9 @@ export function AITrainingModule() {
   // KV state
   const [library, setLibrary] = useKV<TrainingContent[]>('ai-training-library', [])
   const [apiKey, setApiKey] = useKV<string>('mistral-api-key', '')
+  const [aiProvider, setAiProvider] = useKV<AIProvider>('ai-provider', 'mistral')
+  const [localModel, setLocalModel] = useKV<string>('local-model-name', DEFAULT_LOCAL_MODEL)
+  const [enableFallback, setEnableFallback] = useKV<boolean>('ai-fallback-enabled', false)
 
   // Local state – Generator panel
   const [contentType, setContentType] = useState<ContentType>('study-guide')
@@ -210,6 +343,13 @@ export function AITrainingModule() {
   // Local state – API key
   const [apiKeyInput, setApiKeyInput] = useState(apiKey || '')
   const [showApiKey, setShowApiKey] = useState(false)
+
+  // Local state – worker & model download
+  const workerRef = useRef<Worker | null>(null)
+  const [modelStatus, setModelStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [modelProgress, setModelProgress] = useState<{ file: string; pct: number } | null>(null)
+  const localStreamRef = useRef<{ resolve: (v: string) => void; reject: (e: Error) => void } | null>(null)
+  const localFullTextRef = useRef('')
 
   // Local state – Generation flow
   const [generating, setGenerating] = useState(false)
@@ -231,6 +371,71 @@ export function AITrainingModule() {
     toast.success('API key saved')
   }, [apiKeyInput, setApiKey])
 
+  // Create / reuse the Web Worker for local inference
+  const getWorker = useCallback(() => {
+    if (!workerRef.current) {
+      workerRef.current = new Worker(
+        new URL('../workers/local-llm.worker.ts', import.meta.url),
+        { type: 'module' }
+      )
+      workerRef.current.onmessage = (e: MessageEvent) => {
+        const msg = e.data as
+          | { type: 'progress'; file: string; loaded: number; total: number }
+          | { type: 'ready'; model: string }
+          | { type: 'token'; text: string }
+          | { type: 'done'; fullText: string }
+          | { type: 'error'; message: string }
+
+        if (msg.type === 'progress') {
+          setModelStatus('loading')
+          const pct = msg.total > 0 ? Math.round((msg.loaded / msg.total) * 100) : 0
+          setModelProgress({ file: msg.file, pct })
+        } else if (msg.type === 'ready') {
+          setModelStatus('ready')
+          setModelProgress(null)
+        } else if (msg.type === 'token') {
+          localFullTextRef.current += msg.text
+          setStreamingContent(localFullTextRef.current)
+        } else if (msg.type === 'done') {
+          const full = localFullTextRef.current
+          localFullTextRef.current = ''
+          localStreamRef.current?.resolve(full)
+          localStreamRef.current = null
+        } else if (msg.type === 'error') {
+          const err = new Error(msg.message)
+          localStreamRef.current?.reject(err)
+          localStreamRef.current = null
+          if (msg.message !== 'Generation cancelled') {
+            setModelStatus('error')
+          }
+        }
+      }
+    }
+    return workerRef.current
+  }, [])
+
+  // Warm up the worker when provider switches to local
+  useEffect(() => {
+    if (aiProvider === 'local') {
+      const worker = getWorker()
+      worker.postMessage({ type: 'load', model: localModel || DEFAULT_LOCAL_MODEL })
+    }
+  }, [aiProvider, localModel, getWorker])
+
+  const handleSelectRecommendedModel = useCallback(
+    (modelId: string) => {
+      setLocalModel(modelId)
+      if (aiProvider !== 'local') setAiProvider('local')
+      setModelStatus('idle')
+      setModelProgress(null)
+      // Pre-warm the new model
+      const worker = getWorker()
+      worker.postMessage({ type: 'load', model: modelId })
+      toast.success(`Switched to ${modelId}`)
+    },
+    [aiProvider, setAiProvider, setLocalModel, getWorker]
+  )
+
   const handleAddTag = useCallback(() => {
     const t = tagInput.trim()
     if (t && !tags.includes(t)) {
@@ -244,7 +449,7 @@ export function AITrainingModule() {
   }, [])
 
   const handleGenerate = useCallback(async () => {
-    if (!apiKey) {
+    if (aiProvider === 'mistral' && !apiKey) {
       toast.error('Please save your Mistral API key first')
       return
     }
@@ -258,74 +463,51 @@ export function AITrainingModule() {
     setStreamingContent('')
 
     const prompt = CONTENT_PROMPTS[contentType](topic.trim(), context.trim())
+    const messages = [SYSTEM_MESSAGE, { role: 'user' as const, content: prompt }]
 
     abortRef.current = new AbortController()
 
-    try {
-      const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'mistral-large-latest',
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are an expert instructional designer and subject-matter educator. Create high-quality, well-structured training content using clear Markdown formatting. Be thorough, accurate, and engaging.',
-            },
-            { role: 'user', content: prompt },
-          ],
-          stream: true,
-          max_tokens: 4096,
-          temperature: 0.7,
-        }),
-        signal: abortRef.current.signal,
+    /** Run local in-browser inference via the Web Worker */
+    const runLocal = (modelId: string): Promise<string> =>
+      new Promise((resolve, reject) => {
+        localFullTextRef.current = ''
+        localStreamRef.current = { resolve, reject }
+        const worker = getWorker()
+        worker.postMessage({ type: 'generate', model: modelId, messages, id: 'gen' })
       })
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ message: response.statusText }))
-        throw new Error(err?.message || `API error: ${response.status}`)
-      }
-
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
+    try {
       let fullContent = ''
 
-      if (!reader) throw new Error('No response body')
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim()
-            if (data === '[DONE]') continue
-            try {
-              const parsed = JSON.parse(data)
-              const delta = parsed.choices?.[0]?.delta?.content
-              if (delta) {
-                fullContent += delta
-                setStreamingContent(fullContent)
-              }
-            } catch {
-              // skip malformed SSE lines
-            }
+      if (aiProvider === 'mistral') {
+        try {
+          fullContent = await streamMistralCompletion(
+            apiKey,
+            messages,
+            abortRef.current.signal,
+            text => setStreamingContent(text)
+          )
+          toast.success('Content generated successfully')
+        } catch (mistralErr) {
+          if (mistralErr instanceof Error && mistralErr.name === 'AbortError') throw mistralErr
+          if (enableFallback) {
+            toast.warning('Mistral API unavailable — falling back to local model…')
+            setStreamingContent('')
+            fullContent = await runLocal(localModel || DEFAULT_LOCAL_MODEL)
+            toast.success(`Content generated via local model (${localModel || DEFAULT_LOCAL_MODEL})`)
+          } else {
+            throw mistralErr
           }
         }
+      } else {
+        fullContent = await runLocal(localModel || DEFAULT_LOCAL_MODEL)
+        toast.success(`Content generated via local model (${localModel || DEFAULT_LOCAL_MODEL})`)
       }
 
       setGeneratedContent(fullContent)
       setStreamingContent('')
-      toast.success('Content generated successfully')
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') {
+      if (err instanceof Error && (err.name === 'AbortError' || err.message === 'Generation cancelled')) {
         toast.info('Generation cancelled')
       } else {
         const message = err instanceof Error ? err.message : 'Failed to generate content'
@@ -335,10 +517,11 @@ export function AITrainingModule() {
       setGenerating(false)
       abortRef.current = null
     }
-  }, [apiKey, contentType, topic, context])
+  }, [aiProvider, apiKey, localModel, enableFallback, contentType, topic, context, getWorker])
 
   const handleCancelGeneration = useCallback(() => {
     abortRef.current?.abort()
+    workerRef.current?.postMessage({ type: 'cancel' })
   }, [])
 
   const handleSaveToLibrary = useCallback(() => {
@@ -403,7 +586,7 @@ export function AITrainingModule() {
           <div>
             <h2 className="text-xl font-bold tracking-tight">AI Training Studio</h2>
             <p className="text-sm text-muted-foreground">
-              Generate study guides, quizzes, tests, and interactive lessons with Mistral AI
+              Generate study guides, quizzes, tests, and interactive lessons with Mistral AI or a local edge model
             </p>
           </div>
         </div>
@@ -437,53 +620,170 @@ export function AITrainingModule() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Config */}
           <div className="lg:col-span-1 space-y-4">
-            {/* API Key */}
+            {/* AI Provider Configuration */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Key className="w-4 h-4 text-muted-foreground" />
-                  Mistral API Key
+                  <Cpu className="w-4 h-4 text-muted-foreground" />
+                  AI Provider
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    type={showApiKey ? 'text' : 'password'}
-                    placeholder="sk-..."
-                    value={apiKeyInput}
-                    onChange={e => setApiKeyInput(e.target.value)}
-                    className="font-mono text-xs"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0"
-                    onClick={() => setShowApiKey(v => !v)}
-                    title={showApiKey ? 'Hide' : 'Show'}
+                {/* Provider toggle */}
+                <div className="flex rounded-lg border overflow-hidden">
+                  <button
+                    onClick={() => setAiProvider('mistral')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
+                      aiProvider === 'mistral'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted'
+                    }`}
                   >
-                    <Eye className="w-4 h-4" />
-                  </Button>
+                    <Cloud className="w-3.5 h-3.5" />
+                    Mistral AI
+                  </button>
+                  <button
+                    onClick={() => setAiProvider('local')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
+                      aiProvider === 'local'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    <Desktop className="w-3.5 h-3.5" />
+                    Local Model
+                  </button>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleSaveApiKey}
-                  disabled={!apiKeyInput.trim()}
-                >
-                  Save Key
-                </Button>
-                {apiKey ? (
-                  <p className="text-xs text-green-600 dark:text-green-400">✓ API key saved</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Get your key at{' '}
-                    <span className="font-medium">console.mistral.ai</span>
-                  </p>
+
+                {/* Mistral config */}
+                {aiProvider === 'mistral' && (
+                  <>
+                    <div className="flex gap-2">
+                      <Input
+                        type={showApiKey ? 'text' : 'password'}
+                        placeholder="sk-..."
+                        value={apiKeyInput}
+                        onChange={e => setApiKeyInput(e.target.value)}
+                        className="font-mono text-xs"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => setShowApiKey(v => !v)}
+                        title={showApiKey ? 'Hide' : 'Show'}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleSaveApiKey}
+                      disabled={!apiKeyInput.trim()}
+                    >
+                      <Key className="w-3.5 h-3.5 mr-1.5" />
+                      Save Key
+                    </Button>
+                    {apiKey ? (
+                      <p className="text-xs text-green-600 dark:text-green-400">✓ API key saved</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Get your key at{' '}
+                        <span className="font-medium">console.mistral.ai</span>
+                      </p>
+                    )}
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Your key is stored in this session only and sent directly from your browser.
+                    </p>
+                    <Separator />
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-medium flex items-center gap-1">
+                          <ArrowsClockwise className="w-3.5 h-3.5" />
+                          Fallback to local model
+                        </p>
+                        <p className="text-xs text-muted-foreground">Retry locally if API unavailable</p>
+                      </div>
+                      <Switch checked={enableFallback} onCheckedChange={setEnableFallback} />
+                    </div>
+                    {enableFallback && (
+                      <p className="text-xs text-muted-foreground">
+                        Will use <span className="font-medium">{localModel || DEFAULT_LOCAL_MODEL}</span> as fallback
+                      </p>
+                    )}
+                  </>
                 )}
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  Your key is stored in this session only and sent directly from your browser.
-                </p>
+
+                {/* Local model config */}
+                {aiProvider === 'local' && (
+                  <>
+                    {/* Model status */}
+                    {modelStatus === 'loading' && modelProgress && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <DownloadSimple className="w-3.5 h-3.5 animate-pulse" />
+                          Downloading model weights…
+                        </p>
+                        <Progress value={modelProgress.pct} className="h-1.5" />
+                        <p className="text-xs text-muted-foreground truncate">{modelProgress.file}</p>
+                      </div>
+                    )}
+                    {modelStatus === 'ready' && (
+                      <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Model ready · {localModel || DEFAULT_LOCAL_MODEL}
+                      </p>
+                    )}
+                    {modelStatus === 'error' && (
+                      <p className="text-xs text-destructive">
+                        Failed to load model. Check your connection and try again.
+                      </p>
+                    )}
+                    <div className="flex gap-1.5 p-2 rounded-lg bg-muted/50">
+                      <DownloadSimple className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                      <p className="text-xs text-muted-foreground">
+                        Models download automatically from HuggingFace and are cached in your browser.
+                        No Ollama or external server needed — just select a model below and generate.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recommended Edge Models */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Desktop className="w-4 h-4 text-muted-foreground" />
+                  Recommended Edge Models
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">CPU-only · No GPU required · Click to use</p>
+              </CardHeader>
+              <CardContent className="space-y-1.5">
+                {RECOMMENDED_LOCAL_MODELS.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => handleSelectRecommendedModel(m.id)}
+                    className={`w-full text-left p-2 rounded-lg border transition-colors ${
+                      (localModel || DEFAULT_LOCAL_MODEL) === m.id && aiProvider === 'local'
+                        ? 'border-primary bg-primary/5'
+                        : 'hover:border-primary/40 hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium truncate">
+                          {m.name}
+                          <span className="ml-1.5 text-muted-foreground font-normal">{m.vendor}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">{m.params} · {m.size}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </CardContent>
             </Card>
 
@@ -586,7 +886,10 @@ export function AITrainingModule() {
                   <Button
                     className="w-full"
                     onClick={handleGenerate}
-                    disabled={!topic.trim() || !apiKey}
+                    disabled={
+                      !topic.trim() ||
+                      (aiProvider === 'mistral' && !apiKey)
+                    }
                   >
                     <Sparkle className="w-4 h-4 mr-1.5" />
                     Generate Content

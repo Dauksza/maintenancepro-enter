@@ -25,4 +25,9 @@ export default defineConfig(({ mode }) => ({
         : {}),
     }
   },
+  optimizeDeps: {
+    // @huggingface/transformers uses dynamic imports for WASM/ONNX backends
+    // that are incompatible with Vite's static dep pre-bundling.
+    exclude: ['@huggingface/transformers'],
+  },
 }));
