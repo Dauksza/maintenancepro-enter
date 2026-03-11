@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -31,6 +31,7 @@ import {
   GraduationCap,
   Key,
   ArrowLeft,
+  ArrowRight,
   MagnifyingGlass,
   Plus,
   X,
@@ -54,6 +55,8 @@ import {
   Trophy,
   Medal,
   Flame,
+  Clock,
+  Hash,
 } from '@phosphor-icons/react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -808,6 +811,83 @@ function getPowerPointEmbedUrl(url: string): string | null {
   return null
 }
 
+// ── Reading time & table-of-contents utilities ────────────────────────────────
+
+/** Estimate reading time based on word count (~200 words/min for technical content). */
+function estimateReadingTime(markdown: string): string {
+  const words = markdown.trim().split(/\s+/).length
+  const minutes = Math.max(1, Math.round(words / 200))
+  return `${minutes} min read`
+}
+
+interface TocEntry {
+  level: number
+  text: string
+  id: string
+}
+
+/** Extract headings (H1–H3) from markdown for a table of contents. */
+function extractToc(markdown: string): TocEntry[] {
+  const entries: TocEntry[] = []
+  for (const line of markdown.split('\n')) {
+    const m = line.match(/^(#{1,3})\s+(.+)$/)
+    if (!m) continue
+    const text = m[2].replace(/[*_`[\]]/g, '').replace(/:\s*$/, '').trim()
+    if (!text) continue
+    const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    entries.push({ level: m[1].length, text, id })
+  }
+  return entries
+}
+
+// ── Table of Contents component ───────────────────────────────────────────────
+
+function TableOfContents({ entries, contentRef }: { entries: TocEntry[]; contentRef: React.RefObject<HTMLDivElement | null> }) {
+  if (entries.length < 3) return null
+
+  const handleClick = (id: string) => {
+    if (!contentRef.current) return
+    // Find heading element by text match since marked doesn't add ids by default
+    const headings = contentRef.current.querySelectorAll('h1, h2, h3')
+    for (const heading of headings) {
+      const headingId = heading.textContent
+        ?.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+      if (headingId === id) {
+        heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        break
+      }
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Hash className="w-4 h-4 text-muted-foreground" weight="duotone" />
+          Contents
+        </CardTitle>
+      </CardHeader>
+      <Separator />
+      <CardContent className="pt-3 pb-3">
+        <nav className="space-y-0.5">
+          {entries.map((entry, i) => (
+            <button
+              key={i}
+              onClick={() => handleClick(entry.id)}
+              className={`w-full text-left text-xs py-1 px-2 rounded hover:bg-muted/60 transition-colors truncate
+                ${entry.level === 1 ? 'font-semibold' : entry.level === 2 ? 'pl-4 text-muted-foreground' : 'pl-6 text-muted-foreground/70'}`}
+            >
+              {entry.text}
+            </button>
+          ))}
+        </nav>
+      </CardContent>
+    </Card>
+  )
+}
+
 // ── Resource card ──────────────────────────────────────────────────────────────
 
 function ResourceCard({
@@ -1051,6 +1131,7 @@ export function AITrainingModule() {
   const [generatedContent, setGeneratedContent] = useState('')
   const [streamingContent, setStreamingContent] = useState('')
   const abortRef = useRef<AbortController | null>(null)
+  const contentViewerRef = useRef<HTMLDivElement | null>(null)
 
   // View: generator | library | viewer | quiz-player | dashboard
   const [activeView, setActiveView] = useState<'generator' | 'library' | 'viewer' | 'quiz-player' | 'dashboard'>(
@@ -1058,7 +1139,7 @@ export function AITrainingModule() {
   )
   const [viewingItem, setViewingItem] = useState<TrainingContent | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterType, setFilterType] = useState<ContentType | 'all'>('all')
+  const [libraryTab, setLibraryTab] = useState<ContentType | 'all'>('all')
 
   // Delete confirmation
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
@@ -1420,9 +1501,43 @@ export function AITrainingModule() {
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.topic.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesType = filterType === 'all' || item.contentType === filterType
+    const matchesType = libraryTab === 'all' || item.contentType === libraryTab
     return matchesSearch && matchesType
   })
+
+  // Count items per content type (for tab badges)
+  const libCountByType = useMemo(() => {
+    const counts: Partial<Record<ContentType | 'all', number>> = { all: safeLibrary.length }
+    for (const item of safeLibrary) {
+      counts[item.contentType] = (counts[item.contentType] ?? 0) + 1
+    }
+    return counts
+  }, [safeLibrary])
+
+  // Viewer navigation: find adjacent items within the currently filtered library view
+  const viewerNeighbors = useMemo(() => {
+    if (!viewingItem) return { prev: null, next: null }
+    const idx = filteredLibrary.findIndex(item => item.id === viewingItem.id)
+    if (idx === -1) {
+      // Item not in current filter — fall back to full library
+      const fullIdx = safeLibrary.findIndex(item => item.id === viewingItem.id)
+      return {
+        prev: fullIdx > 0 ? safeLibrary[fullIdx - 1] : null,
+        next: fullIdx < safeLibrary.length - 1 ? safeLibrary[fullIdx + 1] : null,
+      }
+    }
+    return {
+      prev: idx > 0 ? filteredLibrary[idx - 1] : null,
+      next: idx < filteredLibrary.length - 1 ? filteredLibrary[idx + 1] : null,
+    }
+  }, [viewingItem, filteredLibrary, safeLibrary])
+
+  // Table of contents for the current viewer item (memoized on content string)
+  const viewerToc = useMemo(() => {
+    if (!viewingItem) return []
+    if (viewingItem.contentType !== 'study-guide' && viewingItem.contentType !== 'interactive-lesson') return []
+    return extractToc(viewingItem.content)
+  }, [viewingItem?.content, viewingItem?.contentType])
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -1674,8 +1789,9 @@ export function AITrainingModule() {
               {webResearchOpen && (
                 <CardContent className="space-y-3 pt-0">
                   <p className="text-xs text-muted-foreground">
-                    Search Wikipedia to retrieve real-world context and include it in the AI
-                    prompt for more accurate, up-to-date content.
+                    Search Wikipedia to retrieve real-world context. Selected articles are included
+                    in the AI prompt, giving the model access to up-to-date information for more
+                    accurate and comprehensive content.
                   </p>
                   <div className="flex gap-2">
                     <Input
@@ -1827,7 +1943,7 @@ export function AITrainingModule() {
       {/* ── Library View ──────────────────────────────────────────────────────── */}
       {activeView === 'library' && (
         <div className="space-y-4">
-          {/* Filters */}
+          {/* Search bar + New Content button */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -1838,156 +1954,216 @@ export function AITrainingModule() {
                 className="pl-9"
               />
             </div>
-            <Select
-              value={filterType}
-              onValueChange={v => setFilterType(v as ContentType | 'all')}
-            >
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {(Object.keys(CONTENT_TYPE_CONFIG) as ContentType[]).map(type => (
-                  <SelectItem key={type} value={type}>
-                    {CONTENT_TYPE_CONFIG[type].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Button onClick={() => setActiveView('generator')}>
               <Plus className="w-4 h-4 mr-1.5" />
               New Content
             </Button>
           </div>
 
-          {filteredLibrary.length === 0 ? (
-            <Card>
-              <CardContent className="py-16 flex flex-col items-center justify-center text-center text-muted-foreground space-y-3">
-                <GraduationCap className="w-12 h-12 opacity-20" weight="duotone" />
-                <div>
-                  <p className="font-medium">
-                    {safeLibrary.length === 0 ? 'Your library is empty' : 'No results found'}
-                  </p>
-                  <p className="text-sm mt-1">
-                    {safeLibrary.length === 0
-                      ? 'Generate content and save it here for future reference'
-                      : 'Try adjusting your search or filter'}
-                  </p>
-                </div>
-                {safeLibrary.length === 0 && (
-                  <Button variant="outline" size="sm" onClick={() => setActiveView('generator')}>
-                    <Sparkle className="w-4 h-4 mr-1.5" />
-                    Generate your first item
-                  </Button>
+          {/* Content-type tab filter */}
+          <Tabs
+            value={libraryTab}
+            onValueChange={v => setLibraryTab(v as ContentType | 'all')}
+            className="space-y-4"
+          >
+            <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1">
+              <TabsTrigger value="all" className="text-xs gap-1.5">
+                <List className="w-3.5 h-3.5" />
+                All
+                {(libCountByType.all ?? 0) > 0 && (
+                  <Badge variant="secondary" className="h-4 px-1.5 text-xs ml-0.5">
+                    {libCountByType.all}
+                  </Badge>
                 )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filteredLibrary.map(item => {
-                const cfg = CONTENT_TYPE_CONFIG[item.contentType]
-                const Icon = cfg.icon
-                const isQuizOrTest = item.contentType === 'quiz' || item.contentType === 'test'
-                const completed = isCompleted(item.id)
-                const best = bestScore(item.id)
-                return (
-                  <Card
-                    key={item.id}
-                    className="flex flex-col hover:shadow-md transition-shadow group"
-                  >
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className={`p-2 rounded-lg ${cfg.color} shrink-0`}>
-                          <Icon className="w-4 h-4" weight="duotone" />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {completed && (
-                            <Badge variant="secondary" className="h-5 px-1.5 text-xs gap-1 bg-green-500/10 text-green-600 dark:text-green-400">
-                              <CheckCircle className="w-3 h-3" weight="fill" />
-                              Done
-                            </Badge>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive shrink-0"
-                            onClick={e => {
-                              e.stopPropagation()
-                              setDeleteConfirmId(item.id)
-                            }}
-                          >
-                            <Trash className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                      <CardTitle className="text-sm mt-2 leading-snug line-clamp-2">
-                        {item.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0 flex flex-col gap-2 flex-1">
-                      <p className="text-xs text-muted-foreground">
-                        Topic: <span className="font-medium">{item.topic}</span>
-                      </p>
-                      <ContentBadge type={item.contentType} />
-                      {best !== null && (
-                        <div className="flex items-center gap-1.5">
-                          <Star className="w-3.5 h-3.5 text-yellow-500" weight="fill" />
-                          <span className="text-xs font-medium">Best: {best}%</span>
-                          {best >= PASSING_SCORE && (
-                            <Badge className="h-4 px-1.5 text-xs bg-green-600 hover:bg-green-600 text-white">Pass</Badge>
-                          )}
-                        </div>
-                      )}
-                      {item.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {item.tags.map(tag => (
-                            <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                      {(item.resources?.length ?? 0) > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {item.resources?.length} resource{item.resources?.length !== 1 ? 's' : ''}{' '}
-                          attached
+              </TabsTrigger>
+              <TabsTrigger value="study-guide" className="text-xs gap-1.5">
+                <BookOpen className="w-3.5 h-3.5" />
+                Study Guides
+                {(libCountByType['study-guide'] ?? 0) > 0 && (
+                  <Badge variant="secondary" className="h-4 px-1.5 text-xs ml-0.5">
+                    {libCountByType['study-guide']}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="interactive-lesson" className="text-xs gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5" />
+                Lessons
+                {(libCountByType['interactive-lesson'] ?? 0) > 0 && (
+                  <Badge variant="secondary" className="h-4 px-1.5 text-xs ml-0.5">
+                    {libCountByType['interactive-lesson']}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="quiz" className="text-xs gap-1.5">
+                <Question className="w-3.5 h-3.5" />
+                Quizzes
+                {(libCountByType['quiz'] ?? 0) > 0 && (
+                  <Badge variant="secondary" className="h-4 px-1.5 text-xs ml-0.5">
+                    {libCountByType['quiz']}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="test" className="text-xs gap-1.5">
+                <ClipboardText className="w-3.5 h-3.5" />
+                Tests
+                {(libCountByType['test'] ?? 0) > 0 && (
+                  <Badge variant="secondary" className="h-4 px-1.5 text-xs ml-0.5">
+                    {libCountByType['test']}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="python-exercise" className="text-xs gap-1.5">
+                <Code className="w-3.5 h-3.5" />
+                Python
+                {(libCountByType['python-exercise'] ?? 0) > 0 && (
+                  <Badge variant="secondary" className="h-4 px-1.5 text-xs ml-0.5">
+                    {libCountByType['python-exercise']}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Tab content panels — share the same card grid */}
+            {(['all', 'study-guide', 'interactive-lesson', 'quiz', 'test', 'python-exercise'] as const).map(tabValue => (
+              <TabsContent key={tabValue} value={tabValue} className="mt-0">
+                {filteredLibrary.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-16 flex flex-col items-center justify-center text-center text-muted-foreground space-y-3">
+                      <GraduationCap className="w-12 h-12 opacity-20" weight="duotone" />
+                      <div>
+                        <p className="font-medium">
+                          {safeLibrary.length === 0 ? 'Your library is empty' : 'No results found'}
                         </p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-auto pt-2">
-                        {new Date(item.createdAt).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </p>
-                      {/* Action buttons */}
-                      <div className="flex gap-2 pt-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 text-xs h-8"
-                          onClick={() => handleViewItem(item)}
-                        >
-                          <Eye className="w-3.5 h-3.5 mr-1" />
-                          View
-                        </Button>
-                        {isQuizOrTest && (
-                          <Button
-                            size="sm"
-                            className="flex-1 text-xs h-8 bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => handleTakeQuiz(item)}
-                          >
-                            <Play className="w-3.5 h-3.5 mr-1" weight="fill" />
-                            {item.contentType === 'quiz' ? 'Take Quiz' : 'Take Test'}
-                          </Button>
-                        )}
+                        <p className="text-sm mt-1">
+                          {safeLibrary.length === 0
+                            ? 'Generate content and save it here for future reference'
+                            : 'Try adjusting your search or switching tabs'}
+                        </p>
                       </div>
+                      {safeLibrary.length === 0 && (
+                        <Button variant="outline" size="sm" onClick={() => setActiveView('generator')}>
+                          <Sparkle className="w-4 h-4 mr-1.5" />
+                          Generate your first item
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
-                )
-              })}
-            </div>
-          )}
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filteredLibrary.map(item => {
+                      const cfg = CONTENT_TYPE_CONFIG[item.contentType]
+                      const Icon = cfg.icon
+                      const isQuizOrTest = item.contentType === 'quiz' || item.contentType === 'test'
+                      const completed = isCompleted(item.id)
+                      const best = bestScore(item.id)
+                      const readTime = estimateReadingTime(item.content)
+                      return (
+                        <Card
+                          key={item.id}
+                          className="flex flex-col hover:shadow-md transition-shadow group"
+                        >
+                          <CardHeader className="pb-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className={`p-2 rounded-lg ${cfg.color} shrink-0`}>
+                                <Icon className="w-4 h-4" weight="duotone" />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {completed && (
+                                  <Badge variant="secondary" className="h-5 px-1.5 text-xs gap-1 bg-green-500/10 text-green-600 dark:text-green-400">
+                                    <CheckCircle className="w-3 h-3" weight="fill" />
+                                    Done
+                                  </Badge>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive shrink-0"
+                                  onClick={e => {
+                                    e.stopPropagation()
+                                    setDeleteConfirmId(item.id)
+                                  }}
+                                >
+                                  <Trash className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <CardTitle className="text-sm mt-2 leading-snug line-clamp-2">
+                              {item.title}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="pt-0 flex flex-col gap-2 flex-1">
+                            <p className="text-xs text-muted-foreground">
+                              Topic: <span className="font-medium">{item.topic}</span>
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <ContentBadge type={item.contentType} />
+                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Clock className="w-3 h-3" />
+                                {readTime}
+                              </span>
+                            </div>
+                            {best !== null && (
+                              <div className="flex items-center gap-1.5">
+                                <Star className="w-3.5 h-3.5 text-yellow-500" weight="fill" />
+                                <span className="text-xs font-medium">Best: {best}%</span>
+                                {best >= PASSING_SCORE && (
+                                  <Badge className="h-4 px-1.5 text-xs bg-green-600 hover:bg-green-600 text-white">Pass</Badge>
+                                )}
+                              </div>
+                            )}
+                            {item.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {item.tags.map(tag => (
+                                  <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                            {(item.resources?.length ?? 0) > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                {item.resources?.length} resource{item.resources?.length !== 1 ? 's' : ''}{' '}
+                                attached
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-auto pt-2">
+                              {new Date(item.createdAt).toLocaleDateString(undefined, {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </p>
+                            {/* Action buttons */}
+                            <div className="flex gap-2 pt-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 text-xs h-8"
+                                onClick={() => handleViewItem(item)}
+                              >
+                                <Eye className="w-3.5 h-3.5 mr-1" />
+                                View
+                              </Button>
+                              {isQuizOrTest && (
+                                <Button
+                                  size="sm"
+                                  className="flex-1 text-xs h-8 bg-green-600 hover:bg-green-700 text-white"
+                                  onClick={() => handleTakeQuiz(item)}
+                                >
+                                  <Play className="w-3.5 h-3.5 mr-1" weight="fill" />
+                                  {item.contentType === 'quiz' ? 'Take Quiz' : 'Take Test'}
+                                </Button>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+            ))}
+          </Tabs>
         </div>
       )}
 
@@ -2000,8 +2176,24 @@ export function AITrainingModule() {
               <ArrowLeft className="w-4 h-4 mr-1.5" />
               Back to Library
             </Button>
+            {viewerNeighbors.prev && (
+              <Button variant="ghost" size="sm" onClick={() => viewerNeighbors.prev && handleViewItem(viewerNeighbors.prev)}>
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Prev
+              </Button>
+            )}
+            {viewerNeighbors.next && (
+              <Button variant="ghost" size="sm" onClick={() => viewerNeighbors.next && handleViewItem(viewerNeighbors.next)}>
+                Next
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            )}
             <Separator orientation="vertical" className="h-4" />
             <ContentBadge type={viewingItem.contentType} />
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="w-3.5 h-3.5" />
+              {estimateReadingTime(viewingItem.content)}
+            </span>
             {viewingItem.tags.map(tag => (
               <Badge key={tag} variant="outline" className="text-xs">
                 {tag}
@@ -2059,7 +2251,9 @@ export function AITrainingModule() {
                 <Separator />
                 <CardContent className="pt-6">
                   <ScrollArea className="h-[calc(100vh-18rem)] pr-2">
-                    <RenderedContent markdown={viewingItem.content} />
+                    <div ref={contentViewerRef}>
+                      <RenderedContent markdown={viewingItem.content} />
+                    </div>
                   </ScrollArea>
                 </CardContent>
               </Card>
@@ -2090,6 +2284,10 @@ export function AITrainingModule() {
             {/* Resources sidebar — hidden for python-exercise (full-width layout) */}
             {viewingItem.contentType !== 'python-exercise' && (
             <div className="xl:col-span-1 space-y-4">
+              {/* Table of contents for study guides and lessons */}
+              {viewerToc.length >= 3 && (
+                <TableOfContents entries={viewerToc} contentRef={contentViewerRef} />
+              )}
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
