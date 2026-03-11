@@ -35,6 +35,7 @@ import { ASPHALT_DENSITY_LBS_GAL } from '@/lib/asphalt-constants'
 
 const PRODUCTS: AsphaltProduct[] = ['PG 58-28', 'PG 64-22', 'PG 70-22', 'PG 76-22', 'PG 82-22', 'AC-20', 'AC-30', 'Emulsion', 'Other']
 const LOAD_STATUSES: TankerLoadingStatus[] = ['Pending', 'Loading', 'Complete', 'Cancelled']
+const NONE_SELECT_VALUE = '__none__'
 
 const STATUS_COLORS: Record<TankerLoadingStatus, string> = {
   'Pending': 'bg-blue-100 text-blue-700 border-blue-200',
@@ -435,10 +436,10 @@ export function TankerLoading() {
             </div>
             <div className="space-y-1">
               <Label>Load From Tank</Label>
-              <Select value={form.load_from_tank_id} onValueChange={v => setForm(f => ({...f, load_from_tank_id: v}))}>
+              <Select value={form.load_from_tank_id || NONE_SELECT_VALUE} onValueChange={v => setForm(f => ({...f, load_from_tank_id: v === NONE_SELECT_VALUE ? '' : v}))}>
                 <SelectTrigger><SelectValue placeholder="Select tank" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value={NONE_SELECT_VALUE}>None</SelectItem>
                   {activeTanks.map(t => <SelectItem key={t.tank_id} value={t.tank_id}>{t.tank_name} ({t.product})</SelectItem>)}
                 </SelectContent>
               </Select>
