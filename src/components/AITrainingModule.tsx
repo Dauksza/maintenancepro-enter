@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { InteractiveQuizPlayer } from '@/components/InteractiveQuizPlayer'
+import { PythonPlayground } from '@/components/PythonPlayground'
 import {
   Brain,
   BookOpen,
@@ -39,13 +40,19 @@ import {
   Presentation,
   List,
   CheckSquare,
+  Code,
+  Globe,
+  ArrowClockwise,
+  CaretDown,
+  CaretUp,
+  BookmarkSimple,
 } from '@phosphor-icons/react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type ContentType = 'study-guide' | 'quiz' | 'test' | 'interactive-lesson'
+export type ContentType = 'study-guide' | 'quiz' | 'test' | 'interactive-lesson' | 'python-exercise'
 
-export type ResourceType = 'video' | 'article' | 'slides' | 'document'
+export type ResourceType = 'video' | 'article' | 'slides' | 'document' | 'powerpoint'
 
 export interface Resource {
   id: string
@@ -95,6 +102,12 @@ const CONTENT_TYPE_CONFIG: Record<
     color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
     description: 'Step-by-step lesson with activities, scenarios, and discussion prompts',
   },
+  'python-exercise': {
+    label: 'Python Exercise',
+    icon: Code,
+    color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+    description: 'Interactive Python coding exercises with runnable examples in the browser',
+  },
 }
 
 const RESOURCE_TYPE_CONFIG: Record<ResourceType, { label: string; icon: React.ElementType; color: string }> = {
@@ -117,6 +130,11 @@ const RESOURCE_TYPE_CONFIG: Record<ResourceType, { label: string; icon: React.El
     label: 'Document',
     icon: FileText,
     color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',
+  },
+  powerpoint: {
+    label: 'PowerPoint',
+    icon: Presentation,
+    color: 'bg-red-500/10 text-red-600 dark:text-red-400',
   },
 }
 
@@ -369,6 +387,168 @@ Apply knowledge to realistic workplace situations.
 **Estimated Lesson Duration:** [X hours Y minutes]
 **Recommended Class Size:** [X–Y learners]
 **Prerequisites:** [Any required prior knowledge]`,
+
+  'python-exercise': (topic, context) =>
+    `Create a comprehensive Python coding exercise on "${topic}"${context ? ` for ${context}` : ''}. Include clear explanations, runnable examples, and hands-on exercises.
+
+---
+
+# 🐍 Python Exercise: ${topic}
+
+## 🎯 Learning Objectives
+By the end of this exercise, you will be able to:
+1. [Objective 1 — measurable action verb]
+2. [Objective 2]
+3. [Objective 3]
+4. [Objective 4]
+
+---
+
+## 📖 Concept Introduction
+[Clear, accessible explanation of the concept with real-world context and why it matters.]
+
+---
+
+## 💻 Example 1: [Basic Example Title]
+[Brief explanation of what this code demonstrates and why it's important.]
+
+\`\`\`python
+# [Example 1 — complete, runnable Python code with inline comments]
+# Each line should be clearly commented to aid understanding
+
+[complete Python code here]
+\`\`\`
+
+**Expected Output:**
+\`\`\`
+[exact expected output]
+\`\`\`
+
+**What's happening:** [1–2 sentences explaining the key concept demonstrated]
+
+---
+
+## 💻 Example 2: [Intermediate Example Title]
+[Explanation]
+
+\`\`\`python
+# [Example 2 — slightly more advanced, building on Example 1]
+
+[complete Python code]
+\`\`\`
+
+**Expected Output:**
+\`\`\`
+[expected output]
+\`\`\`
+
+---
+
+## 💻 Example 3: [Advanced Example Title]
+[Explanation]
+
+\`\`\`python
+# [Example 3 — practical real-world application]
+
+[complete Python code]
+\`\`\`
+
+**Expected Output:**
+\`\`\`
+[expected output]
+\`\`\`
+
+---
+
+## ✏️ Exercise 1: [Exercise Name] *(Beginner)*
+**Task:** [Clear, specific description of what to implement]
+
+**Starter Code:**
+\`\`\`python
+# Complete this function
+def [function_name]([params]):
+    """[Docstring explaining what the function should do]"""
+    # Your code here
+    pass
+
+# Test your solution
+[test calls — e.g., print(function_name(args))]
+\`\`\`
+
+> 💡 **Hint:** [Helpful hint without giving away the answer]
+
+**Solution:**
+\`\`\`python
+def [function_name]([params]):
+    """[Docstring]"""
+    [complete solution]
+
+# Test
+[test calls with expected output in comments]
+\`\`\`
+
+---
+
+## ✏️ Exercise 2: [Exercise Name] *(Intermediate)*
+**Task:** [Description]
+
+**Starter Code:**
+\`\`\`python
+[starter code with TODO comments]
+\`\`\`
+
+> 💡 **Hint:** [Hint]
+
+**Solution:**
+\`\`\`python
+[complete solution]
+\`\`\`
+
+---
+
+## ✏️ Exercise 3: [Exercise Name] *(Advanced)*
+**Task:** [Description — a more challenging, real-world inspired problem]
+
+**Starter Code:**
+\`\`\`python
+[starter code]
+\`\`\`
+
+> 💡 **Hint:** [Hint]
+
+**Solution:**
+\`\`\`python
+[complete solution]
+\`\`\`
+
+---
+
+## 🔬 Mini-Project: [Project Name]
+**Description:** [A small but complete project that applies all the concepts from this exercise]
+
+\`\`\`python
+# Complete mini-project solution
+[complete, well-commented Python program]
+\`\`\`
+
+---
+
+## 🏁 Key Takeaways
+- ✅ [Key concept 1]
+- ✅ [Key concept 2]
+- ✅ [Key concept 3]
+- ✅ [Key concept 4]
+
+## 📚 Further Exploration
+- [Related Python topic or standard library module to explore next]
+- [Real-world application domain where this skill is used]
+- [Advanced concept that builds on this exercise]
+
+---
+
+**Difficulty:** [Beginner / Intermediate / Advanced]
+**Prerequisites:** [Required Python knowledge]
+**Estimated Time:** [X–Y minutes]`,
 }
 
 // ── Small components ──────────────────────────────────────────────────────────
@@ -443,6 +623,46 @@ function RenderedContent({ markdown }: RenderedContentProps) {
   )
 }
 
+/** Extract ```python … ``` code blocks from Markdown, paired with a title. */
+function extractPythonCodeBlocks(markdown: string): Array<{ title: string; code: string }> {
+  const blocks: Array<{ title: string; code: string }> = []
+  const lines = markdown.split('\n')
+  let inBlock = false
+  let currentCode: string[] = []
+  let currentTitle = ''
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (!inBlock && /^```python\s*$/i.test(line.trim())) {
+      inBlock = true
+      currentCode = []
+      // Look back for a title (heading, bold, or comment on the preceding non-empty line)
+      let prevLine = ''
+      for (let j = i - 1; j >= 0; j--) {
+        if (lines[j].trim()) {
+          prevLine = lines[j].trim()
+          break
+        }
+      }
+      currentTitle = prevLine
+        .replace(/^#+\s*/, '')
+        .replace(/\*\*/g, '')
+        .replace(/^💻\s*/, '')
+        .trim()
+      continue
+    }
+    if (inBlock && line.trim() === '```') {
+      inBlock = false
+      const code = currentCode.join('\n').trim()
+      if (code) blocks.push({ title: currentTitle, code })
+      continue
+    }
+    if (inBlock) currentCode.push(line)
+  }
+
+  return blocks
+}
+
 /** Convert a YouTube watch URL to an embed URL. Returns null if not YouTube. */
 function getYouTubeEmbedUrl(url: string): string | null {
   try {
@@ -479,6 +699,22 @@ function getSlidesEmbedUrl(url: string): string | null {
   return null
 }
 
+/** Embed any publicly accessible .pptx using Microsoft Office Online Viewer. */
+function getPowerPointEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url)
+    // Already an Office Online viewer URL
+    if (u.hostname === 'view.officeapps.live.com') return url
+    // Any URL ending in .pptx in the pathname — wrap with the viewer
+    if (/\.pptx$/i.test(u.pathname)) {
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`
+    }
+  } catch {
+    // not a valid URL
+  }
+  return null
+}
+
 // ── Resource card ──────────────────────────────────────────────────────────────
 
 function ResourceCard({
@@ -492,6 +728,7 @@ function ResourceCard({
   const Icon = cfg.icon
   const youtubeEmbed = resource.type === 'video' ? getYouTubeEmbedUrl(resource.url) : null
   const slidesEmbed = resource.type === 'slides' ? getSlidesEmbedUrl(resource.url) : null
+  const pptEmbed = resource.type === 'powerpoint' ? getPowerPointEmbedUrl(resource.url) : null
 
   return (
     <div className="space-y-2">
@@ -547,8 +784,18 @@ function ResourceCard({
         </div>
       )}
 
-      {/* Non-embeddable: article / document — show as open link */}
-      {!youtubeEmbed && !slidesEmbed && (
+      {/* Embed iframe for PowerPoint via Office Online Viewer */}
+      {pptEmbed && (
+        <div className="aspect-video w-full rounded-lg overflow-hidden border">
+          <iframe
+            src={pptEmbed}
+            title={resource.title}
+            allowFullScreen
+            className="w-full h-full"
+          />
+        </div>
+      )}
+      {!youtubeEmbed && !slidesEmbed && !pptEmbed && (
         <a
           href={resource.url}
           target="_blank"
@@ -627,7 +874,9 @@ function AddResourceDialog({
                     ? 'e.g. OSHA 1910.147 Overview'
                     : type === 'slides'
                       ? 'e.g. Module 3 Slides'
-                      : 'e.g. Reference Manual PDF'
+                      : type === 'powerpoint'
+                        ? 'e.g. Safety Training Presentation'
+                        : 'e.g. Reference Manual PDF'
               }
               value={title}
               onChange={e => setTitle(e.target.value)}
@@ -645,7 +894,9 @@ function AddResourceDialog({
                   ? 'https://www.youtube.com/watch?v=...'
                   : type === 'slides'
                     ? 'https://docs.google.com/presentation/d/...'
-                    : 'https://...'
+                    : type === 'powerpoint'
+                      ? 'https://example.com/presentation.pptx'
+                      : 'https://...'
               }
               value={url}
               onChange={e => setUrl(e.target.value)}
@@ -659,6 +910,11 @@ function AddResourceDialog({
               <p className="text-xs text-muted-foreground">
                 Google Slides links will be embedded directly. Other slide formats will open in a
                 new tab.
+              </p>
+            )}
+            {type === 'powerpoint' && (
+              <p className="text-xs text-muted-foreground">
+                Public .pptx files are embedded via Microsoft Office Online Viewer.
               </p>
             )}
           </div>
@@ -716,6 +972,65 @@ export function AITrainingModule() {
   // Resource management
   const [addResourceDialogOpen, setAddResourceDialogOpen] = useState(false)
 
+  // Web research (Wikipedia)
+  const [webResearchOpen, setWebResearchOpen] = useState(false)
+  const [wikiQuery, setWikiQuery] = useState('')
+  const [wikiResults, setWikiResults] = useState<Array<{ title: string; description: string; url: string }>>([])
+  const [isSearchingWiki, setIsSearchingWiki] = useState(false)
+  const [wikiSummaries, setWikiSummaries] = useState<Record<string, string>>({})
+  const [selectedWikiTitles, setSelectedWikiTitles] = useState<Set<string>>(new Set())
+
+  // ── Web research helpers ──────────────────────────────────────────────────────
+
+  const handleWikiSearch = useCallback(async () => {
+    const q = wikiQuery.trim() || topic.trim()
+    if (!q) return
+    setIsSearchingWiki(true)
+    setWikiResults([])
+    try {
+      const url = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(q)}&limit=6&format=json&origin=*`
+      const res = await fetch(url)
+      if (!res.ok) throw new Error('Wikipedia search failed')
+      const data = await res.json() as [string, string[], string[], string[]]
+      setWikiResults(
+        data[1].map((t, i) => ({
+          title: t,
+          description: data[2][i] || '',
+          url: data[3][i] || `https://en.wikipedia.org/wiki/${encodeURIComponent(t)}`,
+        }))
+      )
+    } catch {
+      toast.error('Wikipedia search failed — check your internet connection')
+    } finally {
+      setIsSearchingWiki(false)
+    }
+  }, [wikiQuery, topic])
+
+  const handleToggleWikiContext = useCallback(async (result: { title: string; description: string; url: string }) => {
+    if (selectedWikiTitles.has(result.title)) {
+      setSelectedWikiTitles(prev => {
+        const next = new Set(prev)
+        next.delete(result.title)
+        return next
+      })
+      return
+    }
+    // Fetch full summary if not cached
+    if (!wikiSummaries[result.title]) {
+      try {
+        const encodedTitle = encodeURIComponent(result.title)
+        const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodedTitle}`)
+        if (res.ok) {
+          const data = await res.json() as { extract?: string }
+          setWikiSummaries(prev => ({ ...prev, [result.title]: data.extract || result.description }))
+        }
+      } catch {
+        setWikiSummaries(prev => ({ ...prev, [result.title]: result.description }))
+      }
+    }
+    setSelectedWikiTitles(prev => new Set([...prev, result.title]))
+  }, [selectedWikiTitles, wikiSummaries])
+
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
   const handleSaveApiKey = useCallback(() => {
@@ -747,7 +1062,18 @@ export function AITrainingModule() {
     setGeneratedContent('')
     setStreamingContent('')
 
-    const prompt = CONTENT_PROMPTS[contentType](topic.trim(), context.trim())
+    // Build web context from selected Wikipedia articles
+    const webContextParts = Array.from(selectedWikiTitles)
+      .map(t => wikiSummaries[t] ? `**${t}**: ${wikiSummaries[t]}` : '')
+      .filter(Boolean)
+    const fullContext = [
+      context.trim(),
+      webContextParts.length > 0 ? `Web research context:\n${webContextParts.join('\n\n')}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+
+    const prompt = CONTENT_PROMPTS[contentType](topic.trim(), fullContext)
     abortRef.current = new AbortController()
 
     try {
@@ -825,7 +1151,7 @@ export function AITrainingModule() {
       setGenerating(false)
       abortRef.current = null
     }
-  }, [apiKey, contentType, topic, context])
+  }, [apiKey, contentType, topic, context, selectedWikiTitles, wikiSummaries])
 
   const handleCancelGeneration = useCallback(() => {
     abortRef.current?.abort()
@@ -1115,9 +1441,115 @@ export function AITrainingModule() {
                   >
                     <Sparkle className="w-4 h-4 mr-1.5" />
                     Generate Content
+                    {selectedWikiTitles.size > 0 && (
+                      <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-xs">
+                        +{selectedWikiTitles.size} web
+                      </Badge>
+                    )}
                   </Button>
                 )}
               </CardContent>
+            </Card>
+
+            {/* Web Research */}
+            <Card>
+              <CardHeader
+                className="pb-3 cursor-pointer select-none"
+                onClick={() => setWebResearchOpen(v => !v)}
+              >
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-muted-foreground" />
+                    Web Research
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {selectedWikiTitles.size > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {selectedWikiTitles.size} in context
+                      </Badge>
+                    )}
+                    {webResearchOpen ? (
+                      <CaretUp className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <CaretDown className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              {webResearchOpen && (
+                <CardContent className="space-y-3 pt-0">
+                  <p className="text-xs text-muted-foreground">
+                    Search Wikipedia to retrieve real-world context and include it in the AI
+                    prompt for more accurate, up-to-date content.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder={topic.trim() || 'Search topic…'}
+                      value={wikiQuery}
+                      onChange={e => setWikiQuery(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleWikiSearch()}
+                      className="text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleWikiSearch}
+                      disabled={isSearchingWiki}
+                      title="Search Wikipedia"
+                    >
+                      {isSearchingWiki ? (
+                        <ArrowClockwise className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <MagnifyingGlass className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+
+                  {wikiResults.length > 0 && (
+                    <div className="space-y-2">
+                      {wikiResults.map(result => {
+                        const selected = selectedWikiTitles.has(result.title)
+                        return (
+                          <div
+                            key={result.title}
+                            className={`p-2.5 rounded-lg border text-xs transition-colors ${selected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="font-medium truncate">{result.title}</p>
+                                {result.description && (
+                                  <p className="text-muted-foreground mt-0.5 line-clamp-2">
+                                    {result.description}
+                                  </p>
+                                )}
+                              </div>
+                              <Button
+                                variant={selected ? 'default' : 'outline'}
+                                size="sm"
+                                className="h-6 text-xs shrink-0"
+                                onClick={() => handleToggleWikiContext(result)}
+                              >
+                                <BookmarkSimple
+                                  className="w-3 h-3 mr-1"
+                                  weight={selected ? 'fill' : 'regular'}
+                                />
+                                {selected ? 'In Context' : 'Add to Context'}
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {selectedWikiTitles.size > 0 && (
+                    <p className="text-xs text-primary font-medium">
+                      ✓ {selectedWikiTitles.size} article{selectedWikiTitles.size !== 1 ? 's' : ''}{' '}
+                      will be included as context when generating content.
+                    </p>
+                  )}
+                </CardContent>
+              )}
             </Card>
           </div>
 
@@ -1181,6 +1613,12 @@ export function AITrainingModule() {
                           <Lightbulb className="w-3.5 h-3.5" /> Interactive Lesson
                         </p>
                         <p className="text-muted-foreground mt-1">Activities, scenarios, discussions</p>
+                      </div>
+                      <div className="p-3 rounded-lg border border-border bg-muted/30">
+                        <p className="font-semibold flex items-center gap-1">
+                          <Code className="w-3.5 h-3.5" /> Python Exercise
+                        </p>
+                        <p className="text-muted-foreground mt-1">Runnable coding exercises in-browser</p>
                       </div>
                     </div>
                   </div>
@@ -1380,7 +1818,7 @@ export function AITrainingModule() {
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             {/* Main content */}
-            <div className="xl:col-span-2">
+            <div className={viewingItem.contentType === 'python-exercise' ? 'xl:col-span-3' : 'xl:col-span-2'}>
               <Card>
                 <CardHeader>
                   <CardTitle>{viewingItem.title}</CardTitle>
@@ -1400,9 +1838,32 @@ export function AITrainingModule() {
                   </ScrollArea>
                 </CardContent>
               </Card>
+
+              {/* Python Playgrounds (one per code block) */}
+              {viewingItem.contentType === 'python-exercise' &&
+                extractPythonCodeBlocks(viewingItem.content).map((block, idx) => (
+                  <div key={idx} className="mt-4">
+                    <PythonPlayground
+                      initialCode={block.code}
+                      title={block.title || `Runnable Example ${idx + 1}`}
+                      description="Edit and run this Python code directly in your browser."
+                    />
+                  </div>
+                ))}
+
+              {/* Free-form playground for python exercises */}
+              {viewingItem.contentType === 'python-exercise' && (
+                <div className="mt-4">
+                  <PythonPlayground
+                    title="Free Python Playground"
+                    description="Experiment freely — write and run any Python code here."
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Resources sidebar */}
+            {/* Resources sidebar — hidden for python-exercise (full-width layout) */}
+            {viewingItem.contentType !== 'python-exercise' && (
             <div className="xl:col-span-1 space-y-4">
               <Card>
                 <CardHeader className="pb-3">
@@ -1485,6 +1946,7 @@ export function AITrainingModule() {
                 </Card>
               )}
             </div>
+            )}
           </div>
         </div>
       )}
