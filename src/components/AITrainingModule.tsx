@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { v4 as uuidv4 } from 'uuid'
 import { toast } from 'sonner'
@@ -9,12 +9,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { InteractiveQuizPlayer } from '@/components/InteractiveQuizPlayer'
+import type { QuizCompletionResult } from '@/components/InteractiveQuizPlayer'
 import { PythonPlayground } from '@/components/PythonPlayground'
 import {
   Brain,
@@ -46,6 +48,12 @@ import {
   CaretDown,
   CaretUp,
   BookmarkSimple,
+  ChartBar,
+  CheckCircle,
+  Star,
+  Trophy,
+  Medal,
+  Flame,
 } from '@phosphor-icons/react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -71,6 +79,91 @@ export interface TrainingContent {
   tags: string[]
   resources?: Resource[]
 }
+
+export interface ProgressRecord {
+  id: string
+  contentId: string
+  contentTitle: string
+  contentType: ContentType
+  completedAt: string
+  score?: number    // percentage (quizzes/tests)
+  passed?: boolean  // for quizzes/tests
+}
+
+/** Passing threshold — must stay in sync with InteractiveQuizPlayer's PASSING_SCORE */
+export const PASSING_SCORE = 70
+
+// ── Achievement badge definitions ────────────────────────────────────────────
+
+interface AchievementDef {
+  id: string
+  title: string
+  description: string
+  emoji: string
+  check: (library: TrainingContent[], progress: ProgressRecord[]) => boolean
+}
+
+const ACHIEVEMENTS: AchievementDef[] = [
+  {
+    id: 'first-save',
+    title: 'First Step',
+    description: 'Saved your first training item',
+    emoji: '🌱',
+    check: (lib) => lib.length >= 1,
+  },
+  {
+    id: 'first-quiz',
+    title: 'Quiz Taker',
+    description: 'Completed your first quiz or test',
+    emoji: '📝',
+    check: (_, prog) => prog.some(p => p.contentType === 'quiz' || p.contentType === 'test'),
+  },
+  {
+    id: 'perfect-score',
+    title: 'Perfect Score',
+    description: 'Achieved 100% on a quiz or test',
+    emoji: '🏆',
+    check: (_, prog) => prog.some(p => p.score === 100),
+  },
+  {
+    id: 'quiz-master',
+    title: 'Quiz Master',
+    description: 'Passed 5 quizzes or tests',
+    emoji: '🎓',
+    check: (_, prog) => prog.filter(p => p.passed).length >= 5,
+  },
+  {
+    id: 'dedicated',
+    title: 'Dedicated Learner',
+    description: 'Completed 10 training items',
+    emoji: '🔥',
+    check: (_, prog) => prog.length >= 10,
+  },
+  {
+    id: 'python-coder',
+    title: 'Python Coder',
+    description: 'Completed a Python exercise',
+    emoji: '🐍',
+    check: (_, prog) => prog.some(p => p.contentType === 'python-exercise'),
+  },
+  {
+    id: 'well-rounded',
+    title: 'Well-Rounded',
+    description: 'Completed all 5 content types',
+    emoji: '⭐',
+    check: (_, prog) => {
+      const types = new Set(prog.map(p => p.contentType))
+      return types.size >= 5
+    },
+  },
+  {
+    id: 'library-builder',
+    title: 'Library Builder',
+    description: 'Built a library of 10+ training items',
+    emoji: '📚',
+    check: (lib) => lib.length >= 10,
+  },
+]
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -939,6 +1032,7 @@ export function AITrainingModule() {
   // KV state
   const [library, setLibrary] = useKV<TrainingContent[]>('ai-training-library', [])
   const [apiKey, setApiKey] = useKV<string>('mistral-api-key', '')
+  const [progressRecords, setProgressRecords] = useKV<ProgressRecord[]>('ai-training-progress', [])
 
   // Generator panel
   const [contentType, setContentType] = useState<ContentType>('study-guide')
@@ -958,8 +1052,8 @@ export function AITrainingModule() {
   const [streamingContent, setStreamingContent] = useState('')
   const abortRef = useRef<AbortController | null>(null)
 
-  // View: generator | library | viewer | quiz-player
-  const [activeView, setActiveView] = useState<'generator' | 'library' | 'viewer' | 'quiz-player'>(
+  // View: generator | library | viewer | quiz-player | dashboard
+  const [activeView, setActiveView] = useState<'generator' | 'library' | 'viewer' | 'quiz-player' | 'dashboard'>(
     'generator'
   )
   const [viewingItem, setViewingItem] = useState<TrainingContent | null>(null)
@@ -1032,6 +1126,94 @@ export function AITrainingModule() {
   }, [selectedWikiTitles, wikiSummaries])
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
+
+  // ── Progress tracking helpers ─────────────────────────────────────────────
+
+  const safeProgress = progressRecords || []
+
+  const handleQuizComplete = useCallback(
+    (result: QuizCompletionResult) => {
+      if (!viewingItem) return
+      const record: ProgressRecord = {
+        id: uuidv4(),
+        contentId: viewingItem.id,
+        contentTitle: viewingItem.title,
+        contentType: viewingItem.contentType,
+        completedAt: new Date().toISOString(),
+        score: result.percentage,
+        passed: result.passed,
+      }
+      setProgressRecords(prev => [record, ...(prev || [])])
+      if (result.passed) {
+        toast.success(`✓ Passed with ${result.percentage}%! Progress recorded.`)
+      } else {
+        toast.info(`Score: ${result.percentage}%. Keep practicing!`)
+      }
+    },
+    [viewingItem, setProgressRecords]
+  )
+
+  const handleMarkViewed = useCallback(() => {
+    if (!viewingItem) return
+    // Avoid duplicate completion records for non-quiz content
+    const alreadyCompleted = safeProgress.some(p => p.contentId === viewingItem.id)
+    if (alreadyCompleted) {
+      toast.info('Already marked as completed')
+      return
+    }
+    const record: ProgressRecord = {
+      id: uuidv4(),
+      contentId: viewingItem.id,
+      contentTitle: viewingItem.title,
+      contentType: viewingItem.contentType,
+      completedAt: new Date().toISOString(),
+    }
+    setProgressRecords(prev => [record, ...(prev || [])])
+    toast.success('✓ Marked as completed!')
+  }, [viewingItem, safeProgress, setProgressRecords])
+
+  // Computed analytics
+  const analytics = useMemo(() => {
+    const safe = safeProgress
+    const quizAttempts = safe.filter(p => p.contentType === 'quiz' || p.contentType === 'test')
+    const passed = quizAttempts.filter(p => p.passed)
+    const scores = quizAttempts.map(p => p.score ?? 0)
+    const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
+    const completedIds = new Set(safe.map(p => p.contentId))
+    // By type
+    const byType: Partial<Record<ContentType, number>> = {}
+    for (const p of safe) {
+      byType[p.contentType] = (byType[p.contentType] ?? 0) + 1
+    }
+    return {
+      total: safe.length,
+      quizAttempts: quizAttempts.length,
+      passed: passed.length,
+      avgScore,
+      completedIds,
+      byType,
+      recent: safe.slice(0, 8),
+    }
+  }, [safeProgress])
+
+  const earnedBadges = useMemo(() => {
+    const safeLib = library || []
+    return ACHIEVEMENTS.filter(a => a.check(safeLib, safeProgress))
+  }, [library, safeProgress])
+
+  const isCompleted = useCallback(
+    (contentId: string) => safeProgress.some(p => p.contentId === contentId),
+    [safeProgress]
+  )
+
+  const bestScore = useCallback(
+    (contentId: string) => {
+      const attempts = safeProgress.filter(p => p.contentId === contentId && p.score != null)
+      if (attempts.length === 0) return null
+      return Math.max(...attempts.map(p => p.score ?? 0))
+    },
+    [safeProgress]
+  )
 
   const handleSaveApiKey = useCallback(() => {
     setApiKey(apiKeyInput.trim())
@@ -1282,6 +1464,19 @@ export function AITrainingModule() {
             {safeLibrary.length > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-xs">
                 {safeLibrary.length}
+              </Badge>
+            )}
+          </Button>
+          <Button
+            variant={activeView === 'dashboard' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveView('dashboard')}
+          >
+            <ChartBar className="w-4 h-4 mr-1.5" />
+            Progress
+            {analytics.total > 0 && (
+              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-xs">
+                {analytics.total}
               </Badge>
             )}
           </Button>
@@ -1693,6 +1888,8 @@ export function AITrainingModule() {
                 const cfg = CONTENT_TYPE_CONFIG[item.contentType]
                 const Icon = cfg.icon
                 const isQuizOrTest = item.contentType === 'quiz' || item.contentType === 'test'
+                const completed = isCompleted(item.id)
+                const best = bestScore(item.id)
                 return (
                   <Card
                     key={item.id}
@@ -1703,17 +1900,25 @@ export function AITrainingModule() {
                         <div className={`p-2 rounded-lg ${cfg.color} shrink-0`}>
                           <Icon className="w-4 h-4" weight="duotone" />
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive shrink-0"
-                          onClick={e => {
-                            e.stopPropagation()
-                            setDeleteConfirmId(item.id)
-                          }}
-                        >
-                          <Trash className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {completed && (
+                            <Badge variant="secondary" className="h-5 px-1.5 text-xs gap-1 bg-green-500/10 text-green-600 dark:text-green-400">
+                              <CheckCircle className="w-3 h-3" weight="fill" />
+                              Done
+                            </Badge>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive shrink-0"
+                            onClick={e => {
+                              e.stopPropagation()
+                              setDeleteConfirmId(item.id)
+                            }}
+                          >
+                            <Trash className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </div>
                       <CardTitle className="text-sm mt-2 leading-snug line-clamp-2">
                         {item.title}
@@ -1724,6 +1929,15 @@ export function AITrainingModule() {
                         Topic: <span className="font-medium">{item.topic}</span>
                       </p>
                       <ContentBadge type={item.contentType} />
+                      {best !== null && (
+                        <div className="flex items-center gap-1.5">
+                          <Star className="w-3.5 h-3.5 text-yellow-500" weight="fill" />
+                          <span className="text-xs font-medium">Best: {best}%</span>
+                          {best >= PASSING_SCORE && (
+                            <Badge className="h-4 px-1.5 text-xs bg-green-600 hover:bg-green-600 text-white">Pass</Badge>
+                          )}
+                        </div>
+                      )}
                       {item.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {item.tags.map(tag => (
@@ -1794,6 +2008,17 @@ export function AITrainingModule() {
               </Badge>
             ))}
             <div className="ml-auto flex gap-2">
+              {viewingItem.contentType !== 'quiz' && viewingItem.contentType !== 'test' && (
+                <Button
+                  size="sm"
+                  variant={isCompleted(viewingItem.id) ? 'secondary' : 'outline'}
+                  className={isCompleted(viewingItem.id) ? 'text-green-600' : ''}
+                  onClick={handleMarkViewed}
+                >
+                  <CheckCircle className="w-4 h-4 mr-1.5" weight={isCompleted(viewingItem.id) ? 'fill' : 'regular'} />
+                  {isCompleted(viewingItem.id) ? 'Completed' : 'Mark Complete'}
+                </Button>
+              )}
               {(viewingItem.contentType === 'quiz' || viewingItem.contentType === 'test') && (
                 <Button
                   size="sm"
@@ -1958,7 +2183,193 @@ export function AITrainingModule() {
           content={viewingItem.content}
           contentType={viewingItem.contentType as 'quiz' | 'test'}
           onBack={() => setActiveView('library')}
+          onComplete={handleQuizComplete}
         />
+      )}
+
+      {/* ── Progress Dashboard ────────────────────────────────────────────────── */}
+      {activeView === 'dashboard' && (
+        <div className="space-y-6">
+          {/* Summary stat cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-5 pb-4 text-center">
+                <p className="text-3xl font-bold text-primary">{analytics.completedIds.size}</p>
+                <p className="text-xs text-muted-foreground mt-1">Items Completed</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-5 pb-4 text-center">
+                <p className="text-3xl font-bold text-orange-500">{analytics.quizAttempts}</p>
+                <p className="text-xs text-muted-foreground mt-1">Quiz Attempts</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-5 pb-4 text-center">
+                <p className="text-3xl font-bold text-green-600">{analytics.passed}</p>
+                <p className="text-xs text-muted-foreground mt-1">Quizzes Passed</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-5 pb-4 text-center">
+                <p className={`text-3xl font-bold ${analytics.avgScore >= PASSING_SCORE ? 'text-green-600' : analytics.avgScore > 0 ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                  {analytics.avgScore > 0 ? `${analytics.avgScore}%` : '—'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Avg Score</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Achievement Badges */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-yellow-500" weight="duotone" />
+                  Achievement Badges
+                  <Badge variant="secondary" className="ml-1 text-xs">
+                    {earnedBadges.length} / {ACHIEVEMENTS.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-2 gap-3">
+                  {ACHIEVEMENTS.map(achievement => {
+                    const earned = earnedBadges.some(b => b.id === achievement.id)
+                    return (
+                      <div
+                        key={achievement.id}
+                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                          earned
+                            ? 'border-yellow-300 bg-yellow-50/40 dark:bg-yellow-950/20 dark:border-yellow-700'
+                            : 'border-border bg-muted/20 opacity-50'
+                        }`}
+                      >
+                        <span className={`text-2xl ${earned ? '' : 'grayscale'}`}>{achievement.emoji}</span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold truncate">{achievement.title}</p>
+                          <p className="text-xs text-muted-foreground leading-tight line-clamp-2">
+                            {achievement.description}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Content type breakdown */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <ChartBar className="w-4 h-4 text-muted-foreground" weight="duotone" />
+                  Completions by Content Type
+                </CardTitle>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-4 space-y-3">
+                {(() => {
+                  const maxCount = Math.max(...Object.values(analytics.byType).map(v => v ?? 0), 1)
+                  return (Object.keys(CONTENT_TYPE_CONFIG) as ContentType[]).map(type => {
+                    const cfg = CONTENT_TYPE_CONFIG[type]
+                    const Icon = cfg.icon
+                    const count = analytics.byType[type] ?? 0
+                    return (
+                      <div key={type} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="flex items-center gap-1.5 font-medium">
+                            <Icon className="w-3.5 h-3.5" weight="duotone" />
+                            {cfg.label}
+                          </span>
+                          <span className="text-muted-foreground">{count}</span>
+                        </div>
+                        <Progress value={(count / maxCount) * 100} className="h-2" />
+                      </div>
+                    )
+                  })
+                })()}
+                {analytics.total === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">
+                    No completions yet — start learning to see your progress!
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Flame className="w-4 h-4 text-orange-500" weight="duotone" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <Separator />
+            <CardContent className="pt-4">
+              {analytics.recent.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground space-y-2">
+                  <Medal className="w-10 h-10 mx-auto opacity-20" weight="duotone" />
+                  <p className="text-sm">No activity yet</p>
+                  <p className="text-xs">Complete quizzes, read lessons, or run Python exercises to track your progress</p>
+                  <Button variant="outline" size="sm" onClick={() => setActiveView('library')}>
+                    Go to Library
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {analytics.recent.map(record => {
+                    const cfg = CONTENT_TYPE_CONFIG[record.contentType]
+                    const Icon = cfg.icon
+                    return (
+                      <div
+                        key={record.id}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20"
+                      >
+                        <div className={`p-1.5 rounded-md ${cfg.color} shrink-0`}>
+                          <Icon className="w-3.5 h-3.5" weight="duotone" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{record.contentTitle}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(record.completedAt).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {record.score != null && (
+                            <Badge
+                              className={`text-xs ${
+                                record.passed
+                                  ? 'bg-green-600 hover:bg-green-600 text-white'
+                                  : 'bg-red-500 hover:bg-red-500 text-white'
+                              }`}
+                            >
+                              {record.score}% {record.passed ? '✓' : '✗'}
+                            </Badge>
+                          )}
+                          {record.score == null && (
+                            <Badge variant="secondary" className="text-xs gap-1">
+                              <CheckCircle className="w-3 h-3" weight="fill" />
+                              Viewed
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* ── Add Resource Dialog ───────────────────────────────────────────────── */}

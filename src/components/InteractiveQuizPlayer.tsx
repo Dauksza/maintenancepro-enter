@@ -147,11 +147,19 @@ function parseQuizMarkdown(markdown: string): ParsedQuestion[] {
 
 const PASSING_SCORE = 70 // percentage
 
+export interface QuizCompletionResult {
+  correct: number
+  total: number
+  percentage: number
+  passed: boolean
+}
+
 interface InteractiveQuizPlayerProps {
   title: string
   content: string
   contentType: 'quiz' | 'test'
   onBack: () => void
+  onComplete?: (result: QuizCompletionResult) => void
 }
 
 export function InteractiveQuizPlayer({
@@ -159,6 +167,7 @@ export function InteractiveQuizPlayer({
   content,
   contentType,
   onBack,
+  onComplete,
 }: InteractiveQuizPlayerProps) {
   const questions = useMemo(() => parseQuizMarkdown(content), [content])
 
@@ -197,7 +206,18 @@ export function InteractiveQuizPlayer({
   const handleSubmit = useCallback(() => {
     setSubmitted(true)
     setShowResults(true)
-  }, [])
+    // Compute and report completion result
+    if (onComplete && questions.length > 0) {
+      let correct = 0
+      for (const q of questions) {
+        const given = answers[q.id] ?? ''
+        const expected = q.correctAnswer ?? ''
+        if (given.toLowerCase() === expected.toLowerCase()) correct++
+      }
+      const percentage = Math.round((correct / questions.length) * 100)
+      onComplete({ correct, total: questions.length, percentage, passed: percentage >= PASSING_SCORE })
+    }
+  }, [onComplete, questions, answers])
 
   const handleRetry = useCallback(() => {
     setAnswers({})
